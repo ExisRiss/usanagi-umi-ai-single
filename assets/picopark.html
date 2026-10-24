@@ -1,0 +1,570 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+<meta name="theme-color" content="#0a1024">
+<title>Pico Park Co-op</title>
+<style>
+  *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+  :root{
+    --bg:#0a1024; --panel:#141c33; --panel2:#0f1730; --line:#26325a;
+    --text:#eaf0ff; --dim:#93a2c7;
+    --p1:#ff5c6c; --p1d:#a82b39;
+    --p2:#52a8ff; --p2d:#2560a8;
+    --gold:#ffce4d; --goldd:#a87a17;
+    --plate:#4be08b; --bridge:#9b87ff;
+  }
+  html,body{min-height:100%}
+  body{min-height:100vh}
+  body{
+    background:radial-gradient(820px 460px at 50% -12%,#1c2a58 0%,#0a1024 68%);
+    color:var(--text);font-family:system-ui,-apple-system,"Segoe UI",Roboto,Arial,sans-serif;
+    padding:calc(env(safe-area-inset-top) + 8px) 9px calc(env(safe-area-inset-bottom) + 10px);
+    display:flex;justify-content:center;overflow-x:hidden;
+  }
+  .app{width:100%;max-width:560px}
+
+  /* ---------------- header ---------------- */
+  .top{display:flex;align-items:center;gap:9px;background:linear-gradient(180deg,#1a2344,#121a31);
+       border:1px solid var(--line);border-radius:15px;padding:8px 10px;margin-bottom:8px}
+  .logo{width:34px;height:34px;flex:none;border-radius:10px;display:grid;place-items:center;font-size:19px;
+        background:linear-gradient(180deg,#2b3768,#1a2246);border:1px solid #33407a}
+  .ttl{font-size:13.5px;font-weight:900;letter-spacing:.3px;line-height:1.15}
+  .sub{font-size:9.5px;color:var(--dim);margin-top:2px;letter-spacing:.3px}
+  .badge{margin-left:auto;text-align:right;font-size:9px;color:var(--dim);line-height:1.35}
+  .badge b{display:block;font-size:14px;color:var(--text);letter-spacing:2px}
+
+  /* ---------------- panggung ---------------- */
+  .stage{position:relative;width:100%;aspect-ratio:12/7;border-radius:18px;overflow:hidden;
+    border:1px solid var(--line);box-shadow:0 18px 40px #0008, inset 0 1px 0 #ffffff12;
+    background:linear-gradient(180deg,#16224a 0%,#101a38 46%,#0b1226 100%)}
+  .stars{position:absolute;inset:0;opacity:.55;
+    background-image:radial-gradient(1.4px 1.4px at 12% 18%,#fff 50%,transparent 51%),
+      radial-gradient(1.2px 1.2px at 68% 12%,#dbe6ff 50%,transparent 51%),
+      radial-gradient(1.6px 1.6px at 84% 30%,#fff 50%,transparent 51%),
+      radial-gradient(1.1px 1.1px at 32% 34%,#cfe0ff 50%,transparent 51%),
+      radial-gradient(1.3px 1.3px at 52% 26%,#fff 50%,transparent 51%),
+      radial-gradient(1px 1px at 22% 8%,#fff 50%,transparent 51%)}
+  .grid{position:absolute;inset:0;opacity:.10;
+    background-image:linear-gradient(#ffffff22 1px,transparent 1px),linear-gradient(90deg,#ffffff22 1px,transparent 1px);
+    background-size:8.3333% 14.2857%}
+
+  /* blok tanah / platform */
+  .solid{position:absolute;border-radius:6px;
+    background:linear-gradient(180deg,#4a5c9c 0%,#3a4a83 42%,#2a3563 100%);
+    border:1px solid #5a6cab;box-shadow:inset 0 2px 0 #ffffff26, 0 3px 0 #131a35}
+  .solid::after{content:"";position:absolute;left:0;right:0;top:0;height:22%;border-radius:5px 5px 0 0;
+    background:linear-gradient(180deg,#7f95d6,#5b6fae);opacity:.75}
+  .floor{position:absolute;left:0;right:0;bottom:0;
+    background:linear-gradient(180deg,#3b4a86 0%,#27315c 30%,#1a2244 100%);
+    border-top:2px solid #6d81c4}
+  .floor::before{content:"";position:absolute;left:0;right:0;top:0;height:7px;
+    background:repeating-linear-gradient(90deg,#8ea4e2 0 14px,#5d6fae 14px 28px);opacity:.55}
+
+  /* jembatan muncul-hilang */
+  .bridge{position:absolute;border-radius:5px;
+    background:repeating-linear-gradient(90deg,#b3a4ff 0 6px,#8f7bf0 6px 12px);
+    border:1px solid #c3b7ff;box-shadow:0 0 16px #9b87ffaa, inset 0 1px 0 #ffffff66;
+    animation:bridgePop .2s ease-out}
+  @keyframes bridgePop{from{transform:scaleY(.15);opacity:0}to{transform:scaleY(1);opacity:1}}
+
+  /* plat tekanan */
+  .plate{position:absolute;border-radius:7px;
+    background:radial-gradient(circle at 50% 26%,#b9ffd6,#3bc97c 62%,#1d8f52);
+    border:1px solid #2fae6b;box-shadow:0 3px 0 #14603a, inset 0 1px 0 #ffffff88;
+    transition:transform .1s,box-shadow .1s}
+  .plate::after{content:"P";position:absolute;inset:0;display:grid;place-items:center;
+    font-size:8px;font-weight:900;color:#0b3d24;opacity:.85}
+  .plate.pressed{transform:translateY(3px) scaleY(.9);
+    box-shadow:0 0 20px #4be08bc9, inset 0 1px 0 #ffffffcc}
+
+  /* kunci (item di panggung) — JANGAN pakai class .key, itu class tombol */
+  .keyitem{position:absolute;display:grid;place-items:center;
+    filter:drop-shadow(0 0 10px #ffce4dcc);animation:keyFloat 1.6s ease-in-out infinite}
+  .keyitem svg{width:72%;height:72%}
+  @keyframes keyFloat{0%,100%{transform:translateY(0) rotate(-8deg)}50%{transform:translateY(-10%) rotate(8deg)}}
+
+  /* pintu */
+  .door{position:absolute;border-radius:9px 9px 2px 2px;
+    background:linear-gradient(180deg,#6b4b8f 0%,#3f2d63 46%,#2a1d46 100%);
+    border:2px solid #8d6fc4;border-bottom-width:3px;
+    box-shadow:inset 0 0 14px #00000088, inset 0 2px 0 #ffffff22, 0 2px 0 #120c24;
+    transition:box-shadow .25s,border-color .25s,background .25s}
+  .door::after{content:"";position:absolute;left:12%;right:12%;top:6%;height:34%;
+    border-radius:50% 50% 6px 6px/60% 60% 6px 6px;background:#ffffff14;border:1px solid #ffffff22}
+  .door::before{content:"";position:absolute;right:14%;top:46%;width:3px;height:3px;border-radius:50%;
+    background:#d9c9ff;box-shadow:0 0 4px #d9c9ff}
+  .door.locked{filter:saturate(.5) brightness(.8)}
+  .door.open{border-color:#ffd76a;box-shadow:0 0 24px #ffce4d9c, inset 0 0 20px #ffce4d66;
+    background:linear-gradient(180deg,#8a7333 0%,#5a4a1f 48%,#3a2f18 100%)}
+  .door.open::before{background:#fff2b8;box-shadow:0 0 6px #ffe9a8}
+  .door .lbl{position:absolute;left:0;right:0;bottom:5%;text-align:center;font-size:5px;font-weight:900;
+    letter-spacing:.4px;color:#ffe9a8}
+
+  /* kotak */
+  .crate{position:absolute;border-radius:6px;
+    background:linear-gradient(180deg,#d5a05a 0%,#b57c3c 55%,#8b5c28 100%);
+    border:1px solid #e0b478;box-shadow:inset 0 2px 0 #ffffff45, 0 3px 0 #5d3d1a;
+    transition:left .14s ease,top .14s ease}
+  .crate::before,.crate::after{content:"";position:absolute;background:#7a5124;opacity:.65;border-radius:2px}
+  .crate::before{left:12%;right:12%;top:46%;height:2px}
+  .crate::after{top:12%;bottom:12%;left:46%;width:2px}
+
+  /* ---------------- PICO CAT ---------------- */
+  .cat{position:absolute;z-index:4;transition:left .14s ease,top .14s ease;will-change:left,top;overflow:visible}
+  .cat .shadow{position:absolute;left:6%;right:6%;bottom:-7%;height:16%;border-radius:50%;
+    background:#00000066;filter:blur(1px)}
+  .cat .head{position:absolute;left:0;right:0;top:0;height:60%;border-radius:46% 46% 42% 42%;
+    z-index:2;box-shadow:inset 0 -3px 6px #00000038, inset 0 2px 3px #ffffff5c;}
+  .cat .ear{position:absolute;top:-27%;width:38%;height:48%;border-radius:46% 46% 18% 18%;
+    transform:rotate(-18deg);z-index:0;box-shadow:inset 0 -2px 4px #00000035, 0 0 0 1px #0000001f}
+  .cat .ear.r{right:0;transform:rotate(12deg)}
+  .cat .ear.l{left:0}
+  .cat .ear::after{content:"";position:absolute;inset:30% 26% 16% 26%;border-radius:50% 50% 30% 30%;
+    background:#ffc9d2;opacity:.85}
+  .cat .eye{position:absolute;top:34%;width:24%;height:30%;border-radius:50%;background:#10131f;
+    box-shadow:inset 0 1px 2px #000}
+  .cat .eye.l{left:20%}
+  .cat .eye.r{right:20%}
+  .cat .eye::after{content:"";position:absolute;left:22%;top:16%;width:34%;height:34%;border-radius:50%;
+    background:#ffffffd9}
+  .cat .nose{position:absolute;left:50%;top:60%;width:11%;height:7%;transform:translateX(-50%);
+    border-radius:50% 50% 60% 60%;background:#ff9fb0}
+  .cat .mouth{position:absolute;left:50%;top:68%;width:18%;height:9%;transform:translateX(-50%);
+    border-bottom:2px solid #10131f99;border-radius:0 0 50% 50%}
+  .cat .body{position:absolute;left:14%;right:14%;bottom:0;height:44%;border-radius:46% 46% 34% 34%;
+    box-shadow:inset 0 -3px 5px #00000030}
+  .cat .hand{position:absolute;bottom:16%;width:22%;height:20%;border-radius:50%;background:#fdfdfd;
+    box-shadow:0 1px 2px #0003}
+  .cat .hand.l{left:-13%}
+  .cat .hand.r{right:-13%}
+  .cat .foot{position:absolute;bottom:-6%;width:30%;height:15%;border-radius:44% 44% 40% 40%;background:#fdfdfd;
+    box-shadow:0 1px 2px #0003}
+  .cat .foot.l{left:8%}
+  .cat .foot.r{right:8%}
+
+  .cat.p1 .head,.cat.p1 .body,.cat.p1 .ear{background:linear-gradient(180deg,#ff8b96,var(--p1) 62%,var(--p1d))}
+  .cat.p2 .head,.cat.p2 .body,.cat.p2 .ear{background:linear-gradient(180deg,#8ecbff,var(--p2) 62%,var(--p2d))}
+  .cat .name{position:absolute;bottom:132%;left:50%;transform:translateX(-50%);white-space:nowrap;
+    font-size:6px;font-weight:800;color:#e8eeff;background:#0d1428e6;border:1px solid var(--line);
+    border-radius:4px;padding:0 3px;letter-spacing:.2px;max-width:190%;overflow:hidden;text-overflow:ellipsis}
+
+  .cat.walk .head{animation:walkBob .3s ease}
+  .cat.walk .body{animation:walkBob .3s ease .04s}
+  .cat.walk .foot.l{animation:stepL .3s ease}
+  .cat.walk .foot.r{animation:stepR .3s ease}
+  @keyframes walkBob{0%,100%{transform:translateY(0)}50%{transform:translateY(-9%)}}
+  @keyframes stepL{0%,100%{transform:translateY(0)}50%{transform:translateY(-45%)}}
+  @keyframes stepR{0%,100%{transform:translateY(-45%)}50%{transform:translateY(0)}}
+  .cat.jump .head,.cat.jump .body{animation:squash .32s ease}
+  @keyframes squash{0%{transform:scaleY(.82) scaleX(1.12)}45%{transform:scaleY(1.12) scaleX(.92)}100%{transform:scaleY(1) scaleX(1)}}
+  .cat .eye{animation:blink 5.5s infinite}
+  .cat.p2 .eye{animation-delay:2.1s}
+  @keyframes blink{0%,94%,100%{transform:scaleY(1)}96%{transform:scaleY(.12)}}
+  .cat.on-plate::after{content:"";position:absolute;left:-12%;right:-12%;bottom:-10%;height:22%;
+    border-radius:50%;background:radial-gradient(circle,#4be08bcc,transparent 70%);animation:pulse 1.1s infinite}
+  @keyframes pulse{0%,100%{opacity:.45}50%{opacity:1}}
+
+  /* ---------------- HUD ---------------- */
+  .hud{display:flex;gap:6px;margin:8px 0 7px}
+  .chip{flex:1;background:var(--panel2);border:1px solid var(--line);border-radius:11px;padding:6px 8px}
+  .chip small{display:block;font-size:8px;color:var(--dim);letter-spacing:.5px;margin-bottom:1px}
+  .chip b{font-size:11px}
+  .chip.on b{color:var(--plate)}
+  .chip.off b{color:#ff9a9a}
+  .chip.gold b{color:var(--gold)}
+
+  .hint{font-size:9.5px;line-height:1.5;color:var(--dim);text-align:center;margin-bottom:8px;
+    background:#0f1730aa;border:1px dashed #2b3760;border-radius:10px;padding:6px 8px}
+  .hint b{color:#cfd9f7}
+
+  /* ---------------- kontrol ---------------- */
+  .pads{display:grid;grid-template-columns:1fr 1fr;gap:9px}
+  .pad{background:linear-gradient(180deg,#182142,#111935);border:1px solid var(--line);border-radius:15px;padding:8px}
+  .pad .who{display:flex;align-items:center;gap:6px;font-size:10px;font-weight:800;margin-bottom:6px}
+  .dot{width:8px;height:8px;border-radius:50%}
+  .dot.r{background:var(--p1);box-shadow:0 0 9px var(--p1)}
+  .dot.b{background:var(--p2);box-shadow:0 0 9px var(--p2)}
+  .pad .who span{margin-left:auto;font-size:8.5px;color:var(--dim);font-weight:700;max-width:64%;overflow:hidden;
+    text-overflow:ellipsis;white-space:nowrap}
+  .keys{display:grid;grid-template-columns:1fr 1fr;gap:5px}
+  .key{border:1px solid #3a477d;background:linear-gradient(180deg,#2b3768,#1d2650);color:#fff;
+    border-radius:11px;height:46px;font-size:17px;font-weight:900;display:grid;place-items:center;
+    user-select:none;touch-action:manipulation;box-shadow:0 3px 0 #131a35;
+    transition:transform .05s,box-shadow .05s}
+  .key small{display:block;font-size:6.5px;font-weight:800;color:#b9c6ea;letter-spacing:.4px;margin-top:1px}
+  .key:active{transform:translateY(3px);box-shadow:0 0 0 #131a35}
+  .key.jump{grid-column:1/-1;height:38px;font-size:12px;
+    background:linear-gradient(180deg,#3a2f77,#251f52);border-color:#5b49b3}
+  .pad.p1pad .key{border-color:#7a3441}
+  .pad.p1pad .key.jump{background:linear-gradient(180deg,#5a2a34,#3a1a21);border-color:#a8455a}
+  .pad.p2pad .key{border-color:#2f5480}
+  .pad.p2pad .key.jump{background:linear-gradient(180deg,#26456f,#172a45);border-color:#3f7cc2}
+
+  /* ---------------- overlay ---------------- */
+  .overlay{position:absolute;inset:0;display:none;place-items:center;text-align:center;padding:12px;
+    background:linear-gradient(180deg,#0a1024d9,#0a1024f2);z-index:9;backdrop-filter:blur(2px)}
+  .overlay.show{display:grid;animation:fadeIn .2s ease}
+  @keyframes fadeIn{from{opacity:0}to{opacity:1}}
+  .overlay h2{font-size:17px;letter-spacing:.4px;color:var(--gold);text-shadow:0 0 20px #ffce4d70}
+  .overlay p{font-size:10px;color:var(--dim);margin-top:5px;line-height:1.5}
+  .confetti{position:absolute;top:-8%;width:5px;height:9px;border-radius:1px;opacity:.9;animation:fall linear infinite}
+  @keyframes fall{to{transform:translateY(240%) rotate(520deg)}}
+  .mode{font-size:8.5px;letter-spacing:.5px;text-align:center;margin-top:7px;color:#6d7ba6}
+</style>
+</head>
+<body>
+<div class="app">
+
+  <div class="top">
+    <div class="logo">🐱</div>
+    <div>
+      <div class="ttl">PICO PARK CO-OP</div>
+      <div class="sub" id="levelName">Level 1 · Hello Pico Park</div>
+    </div>
+    <div class="badge">ROOM<b id="roomCode">----</b></div>
+  </div>
+
+  <div class="stage" id="stage">
+    <div class="stars"></div>
+    <div class="grid"></div>
+    <div class="overlay" id="overlay">
+      <div>
+        <h2 id="overlayTitle">🎉 MENANG!</h2>
+        <p id="overlayText"></p>
+      </div>
+    </div>
+  </div>
+
+  <div class="hud">
+    <div class="chip" id="chipKey"><small>KUNCI</small><b>belum</b></div>
+    <div class="chip" id="chipBridge"><small>JEMBATAN</small><b>mati</b></div>
+    <div class="chip"><small>GERAKAN</small><b id="moves">0</b></div>
+  </div>
+
+  <div class="hint" id="hint">Ambil kunci 🔑 lalu <b>semua pemain</b> masuk pintu 🚪.</div>
+
+  <div class="pads">
+    <div class="pad p1pad" data-slot="1">
+      <div class="who"><i class="dot r"></i> PLAYER 1 <span id="p1name">—</span></div>
+      <div class="keys">
+        <button class="key" data-act="left" aria-label="kiri">◀<small>KIRI</small></button>
+        <button class="key" data-act="right" aria-label="kanan">▶<small>KANAN</small></button>
+        <button class="key jump" data-act="jump" aria-label="lompat">⤒ LOMPAT</button>
+      </div>
+    </div>
+    <div class="pad p2pad" data-slot="2">
+      <div class="who"><i class="dot b"></i> PLAYER 2 <span id="p2name">—</span></div>
+      <div class="keys">
+        <button class="key" data-act="left" aria-label="kiri">◀<small>KIRI</small></button>
+        <button class="key" data-act="right" aria-label="kanan">▶<small>KANAN</small></button>
+        <button class="key jump" data-act="jump" aria-label="lompat">⤒ LOMPAT</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="mode" id="modeText">MODE: DEMO (tanpa bot)</div>
+</div>
+
+<script>
+(function () {
+  'use strict'
+
+  var BOT_STATE = /*__PICOPARK_STATE__*/null
+
+  var DEFAULT_LEVEL = {
+    width: 12, height: 7, floorRow: 6,
+    plates: [{ x: 1, y: 5 }, { x: 8, y: 2 }],
+    bridges: [{ x: 6, y: 4 }, { x: 7, y: 4 }],
+    ledges: [{ x: 8, y: 3 }, { x: 9, y: 3 }, { x: 10, y: 3 }, { x: 11, y: 3 }],
+    key: { x: 10, y: 2 },
+    door: [{ x: 9, y: 2 }, { x: 11, y: 2 }],
+    spawn: [{ x: 4, y: 5 }, { x: 5, y: 5 }]
+  }
+
+  var state = BOT_STATE || {
+    roomCode: 'DEMO', status: 'playing', levelIndex: 0, levelCount: 3,
+    levelName: 'Hello Pico Park', level: DEFAULT_LEVEL, hint: '',
+    players: [
+      { slot: 1, name: 'Player 1', x: 4, y: 5 },
+      { slot: 2, name: 'Player 2', x: 5, y: 5 }
+    ],
+    boxes: [], bridgeActive: false, keyTaken: false, doorUnlocked: false,
+    winner: null, levelClear: null, moves: 0
+  }
+  var localMode = !BOT_STATE
+  var prev = {}            // posisi sebelumnya, untuk animasi jalan/lompat
+
+  var stage = document.getElementById('stage')
+  var overlay = document.getElementById('overlay')
+
+  function level() { return state.level || DEFAULT_LEVEL }
+  function cellW() { return 100 / level().width }
+  function cellH() { return 100 / level().height }
+  function sameTile(a, b) { return a && b && a.x === b.x && a.y === b.y }
+
+  /* ---------------- gambar panggung ---------------- */
+  function el(cls, style) {
+    var node = document.createElement('div')
+    node.className = cls
+    if (style) node.setAttribute('style', style)
+    return node
+  }
+
+  function build() {
+    Array.prototype.slice.call(stage.querySelectorAll('.solid,.floor,.bridge,.plate,.key,.door,.crate,.cat')).forEach(function (n) { n.remove() })
+    var lv = level()
+    var W = cellW(), H = cellH()
+
+    var floor = el('floor', 'height:' + (H * (lv.height - lv.floorRow)) + '%')
+    stage.appendChild(floor)
+
+    ;(lv.ledges || []).forEach(function (t) {
+      stage.appendChild(el('solid', 'left:' + t.x * W + '%;top:' + t.y * H + '%;width:' + W + '%;height:' + H + '%'))
+    })
+
+    if (state.bridgeActive) {
+      ;(lv.bridges || []).forEach(function (t) {
+        stage.appendChild(el('bridge', 'left:' + (t.x * W + W * 0.04) + '%;top:' + (t.y * H + H * 0.12) + '%;width:' + (W * 0.92) + '%;height:' + (H * 0.76) + '%'))
+      })
+    }
+
+    ;(lv.plates || []).forEach(function (t) {
+      var active = (state.players || []).some(function (p) { return sameTile(p, t) }) ||
+        (state.boxes || []).some(function (b) { return sameTile(b, t) })
+      stage.appendChild(el('plate' + (active ? ' pressed' : ''),
+        'left:' + (t.x * W + W * 0.1) + '%;top:' + (t.y * H + H * 0.58) + '%;width:' + (W * 0.8) + '%;height:' + (H * 0.3) + '%'))
+    })
+
+    if (lv.key && !state.keyTaken) {
+      var keyNode = el('keyitem', 'left:' + lv.key.x * W + '%;top:' + lv.key.y * H + '%;width:' + W + '%;height:' + H + '%')
+      keyNode.innerHTML = '<svg viewBox="0 0 24 24" aria-hidden="true">' +
+        '<circle cx="8" cy="8" r="5" fill="none" stroke="#ffd75e" stroke-width="3"/>' +
+        '<path d="M11.5 11.5 L20 20" stroke="#ffd75e" stroke-width="3" stroke-linecap="round"/>' +
+        '<path d="M16 18 l2.5 -2.5 M18.5 20.5 l2.5 -2.5" stroke="#ffd75e" stroke-width="3" stroke-linecap="round"/>' +
+        '</svg>'
+      stage.appendChild(keyNode)
+    }
+
+    ;(lv.door || []).forEach(function (t) {
+      var cls = 'door' + (state.doorUnlocked ? ' open' : ' locked')
+      var doorNode = el(cls, 'left:' + (t.x * W + W * 0.14) + '%;top:' + (t.y * H + H * 0.1) + '%;width:' + (W * 0.72) + '%;height:' + (H * 0.86) + '%')
+      doorNode.innerHTML = '<span class="lbl">' + (state.doorUnlocked ? 'OPEN' : 'LOCK') + '</span>'
+      stage.appendChild(doorNode)
+    })
+
+    ;(state.boxes || []).forEach(function (b) {
+      stage.appendChild(el('crate', 'left:' + (b.x * W + W * 0.12) + '%;top:' + (b.y * H + H * 0.2) + '%;width:' + (W * 0.76) + '%;height:' + (H * 0.72) + '%'))
+    })
+
+    ;(state.players || []).forEach(function (p) {
+      if (p.inDoor) return            // sudah masuk pintu, menunggu partner
+      stage.appendChild(buildCat(p))
+    })
+  }
+
+  function buildCat(p) {
+    var lv = level(), W = cellW(), H = cellH()
+    var node = el('cat ' + (p.slot === 1 ? 'p1' : 'p2'), 'left:' + (p.x * W + W * 0.06) + '%;top:' + (p.y * H + H * 0.13) + '%;width:' + (W * 0.88) + '%;height:' + (H * 0.84) + '%')
+    node.innerHTML =
+      '<div class="shadow"></div>' +
+      '<div class="body"><i class="hand l"></i><i class="hand r"></i></div>' +
+      '<div class="head"><i class="ear l"></i><i class="ear r"></i>' +
+      '<i class="eye l"></i><i class="eye r"></i><i class="nose"></i><i class="mouth"></i></div>' +
+      '<div class="foot l"></div><div class="foot r"></div>' +
+      '<div class="name"></div>'
+    node.querySelector('.name').textContent = p.name || ('P' + p.slot)
+
+    var before = prev[p.slot]
+    if (before) {
+      if (before.x !== p.x || before.y !== p.y) {
+        var walked = before.y === p.y
+        node.classList.add(walked ? 'walk' : 'jump')
+      }
+    }
+    if ((state.level && state.level.plates || []).some(function (t) { return sameTile(p, t) })) node.classList.add('on-plate')
+    prev[p.slot] = { x: p.x, y: p.y }
+    return node
+  }
+
+  /* ---------------- HUD ---------------- */
+  function renderHud() {
+    var lv = level()
+    document.getElementById('roomCode').textContent = state.roomCode || '----'
+    document.getElementById('levelName').textContent =
+      'Level ' + ((state.levelIndex || 0) + 1) + '/' + (state.levelCount || 3) + ' · ' + (state.levelName || '')
+    document.getElementById('moves').textContent = String(state.moves || 0)
+
+    var keyChip = document.getElementById('chipKey')
+    keyChip.className = 'chip ' + (state.keyTaken ? 'on' : '')
+    keyChip.querySelector('b').textContent = state.keyTaken ? 'diambil' : 'belum'
+
+    var bridgeChip = document.getElementById('chipBridge')
+    bridgeChip.className = 'chip ' + (state.bridgeActive ? 'on' : 'off')
+    bridgeChip.querySelector('b').textContent = state.bridgeActive ? 'AKTIF' : 'mati'
+
+    var p1 = (state.players || []).filter(function (p) { return p.slot === 1 })[0]
+    var p2 = (state.players || []).filter(function (p) { return p.slot === 2 })[0]
+    document.getElementById('p1name').textContent = p1 ? (p1.inDoor ? p1.name + ' · di pintu ✅' : p1.name) : 'kosong'
+    document.getElementById('p2name').textContent = p2 ? (p2.inDoor ? p2.name + ' · di pintu ✅' : p2.name) : 'kosong'
+
+    var inside = (state.players || []).filter(function (p) { return p.inDoor }).length
+    document.getElementById('hint').innerHTML = !state.keyTaken
+      ? (state.hint ? state.hint : 'Ambil kunci 🔑 lalu semua pemain masuk pintu 🚪.')
+      : inside
+        ? '⏳ ' + inside + ' pemain sudah di dalam pintu. <b>Partner harus menyusul</b> supaya level selesai.'
+        : '🔑 Kunci sudah diambil — <b>semua pemain</b> masuk pintu 🚪 untuk lanjut.'
+
+    if (state.winner && state.winner.final) {
+      overlay.classList.add('show')
+      document.getElementById('overlayTitle').textContent = '🏆 SEMUA LEVEL SELESAI!'
+      document.getElementById('overlayText').textContent = (state.winner.players || []).join(' & ') +
+        ' menang dalam ' + (state.moves || 0) + ' gerakan.'
+      confetti()
+    } else if (state.levelClear) {
+      overlay.classList.add('show')
+      document.getElementById('overlayTitle').textContent = '✅ LEVEL ' + state.levelClear.level + ' SELESAI'
+      document.getElementById('overlayText').textContent = 'Maju ke ' + (state.levelClear.nextName || 'level berikutnya') + '…'
+    } else {
+      overlay.classList.remove('show')
+    }
+  }
+
+  var confettiDone = false
+  function confetti() {
+    if (confettiDone) return
+    confettiDone = true
+    var colors = ['#ffce4d', '#ff5c6c', '#52a8ff', '#4be08b', '#9b87ff']
+    for (var i = 0; i < 26; i++) {
+      var piece = el('confetti', 'left:' + (Math.random() * 100) + '%;background:' + colors[i % colors.length] +
+        ';animation-duration:' + (1.4 + Math.random() * 1.6) + 's;animation-delay:' + (Math.random() * 1.2) + 's')
+      overlay.appendChild(piece)
+    }
+  }
+
+  function render() {
+    build()
+    renderHud()
+  }
+
+  /* ---------------- fisika lokal (demo) ---------------- */
+  function isSolid(x, y) {
+    var lv = level()
+    if (x < 0 || x >= lv.width || y < 0) return true
+    if (y >= lv.floorRow) return true
+    if ((lv.ledges || []).some(function (t) { return t.x === x && t.y === y })) return true
+    if (state.bridgeActive && (lv.bridges || []).some(function (t) { return t.x === x && t.y === y })) return true
+    if ((state.boxes || []).some(function (b) { return b.x === x && b.y === y })) return true
+    return false
+  }
+  function gravity(e) {
+    var lv = level(), guard = 0
+    while (e.y < lv.floorRow && !isSolid(e.x, e.y + 1) && guard++ < 30) e.y += 1
+  }
+  function playerAt(x, y, except) {
+    return (state.players || []).filter(function (p) { return p !== except && !p.inDoor && p.x === x && p.y === y })[0]
+  }
+  function localAction(p, act) {
+    var lv = level()
+    if (act === 'left' || act === 'right') {
+      var dx = act === 'right' ? 1 : -1
+      var box = (state.boxes || []).filter(function (b) { return b.x === p.x + dx && b.y === p.y })[0]
+      if (box) {
+        var tx = box.x + dx
+        if (!isSolid(tx, box.y) && !(state.boxes || []).some(function (b) { return b.x === tx && b.y === box.y })) {
+          box.x = tx; gravity(box); p.x += dx; gravity(p)
+        }
+      } else if (!isSolid(p.x + dx, p.y) && !playerAt(p.x + dx, p.y, p)) {
+        p.x += dx; gravity(p)
+      }
+    } else if (act === 'jump') {
+      var cand = [[0, -2], [1, -2], [-1, -2], [0, -1], [1, -1], [-1, -1]]
+      var best = null
+      for (var i = 0; i < cand.length; i++) {
+        var x = p.x + cand[i][0], y = p.y + cand[i][1]
+        if (isSolid(x, y) || playerAt(x, y, p)) continue
+        var probe = { x: x, y: y }
+        gravity(probe)
+        if (probe.y >= p.y) continue
+        if (!best || probe.y < best.y) best = probe
+      }
+      if (best) { p.x = best.x; p.y = best.y }
+    }
+    state.bridgeActive = (state.players || []).some(function (q) {
+      return (lv.plates || []).some(function (t) { return sameTile(q, t) })
+    }) || (state.boxes || []).some(function (b) {
+      return (lv.plates || []).some(function (t) { return sameTile(b, t) })
+    })
+    state.players.forEach(gravity)
+    if (lv.key && !state.keyTaken && state.players.some(function (q) { return sameTile(q, lv.key) })) state.keyTaken = true
+    state.doorUnlocked = state.keyTaken
+    state.moves = (state.moves || 0) + 1
+    state.levelClear = null
+    state.players.forEach(function (q) {
+      if (state.keyTaken && !q.inDoor && (lv.door || []).some(function (t) { return sameTile(q, t) })) q.inDoor = true
+    })
+    var allInDoor = state.keyTaken && state.players.length > 1 && state.players.every(function (q) { return q.inDoor })
+    if (allInDoor) state.levelClear = { level: (state.levelIndex || 0) + 1, nextName: 'level berikutnya' }
+    render()
+  }
+
+  /* ---------------- jembatan ke bot ---------------- */
+  function post(payload) {
+    var data = JSON.stringify(payload)
+    try { if (window.ReactNativeWebView && window.ReactNativeWebView.postMessage) { window.ReactNativeWebView.postMessage(data); return true } } catch (e) {}
+    try { if (window.UsanagiBridge && window.UsanagiBridge.postMessage) { window.UsanagiBridge.postMessage(data); return true } } catch (e) {}
+    try { if (window.AndroidNative && window.AndroidNative.postMessage) { window.AndroidNative.postMessage(data); return true } } catch (e) {}
+    try { if (window.webkit && window.webkit.messageHandlers && window.webkit.messageHandlers.usanagi) { window.webkit.messageHandlers.usanagi.postMessage(payload); return true } } catch (e) {}
+    try { if (window.parent && window.parent !== window) { window.parent.postMessage(data, '*'); return true } } catch (e) {}
+    return false
+  }
+
+  function sendAction(slot, act) {
+    if (state.winner && state.winner.final) return
+    var sent = post({
+      action: act === 'jump' ? 'jump' : 'move',
+      player: slot,
+      direction: act === 'jump' ? undefined : act,
+      roomCode: state.roomCode
+    })
+    if (!sent && localMode) {
+      var p = (state.players || []).filter(function (q) { return q.slot === slot })[0]
+      if (p) localAction(p, act)
+    }
+  }
+
+  Array.prototype.forEach.call(document.querySelectorAll('.key'), function (btn) {
+    btn.addEventListener('click', function (event) {
+      event.preventDefault()
+      var pad = btn.closest('.pad')
+      sendAction(Number(pad.getAttribute('data-slot')), btn.getAttribute('data-act'))
+    })
+  })
+
+  /* dipanggil bot setiap kirim ulang WebView */
+  window.updateState = function (newState) {
+    try {
+      if (!newState || !newState.players) return
+      state = newState
+      localMode = false
+      document.getElementById('modeText').textContent = 'MODE: BOT · room ' + state.roomCode
+      render()
+    } catch (e) { if (window.console) console.warn('updateState gagal', e) }
+  }
+
+  window.addEventListener('message', function (event) {
+    try {
+      var data = typeof event.data === 'string' ? JSON.parse(event.data) : event.data
+      if (data && data.type === 'picopark:state' && data.state) window.updateState(data.state)
+    } catch (e) {}
+  })
+
+  render()
+  document.getElementById('modeText').textContent = localMode
+    ? 'MODE: DEMO · tekan tombol untuk coba'
+    : 'MODE: BOT · room ' + state.roomCode
+})()
+</script>
+</body>
+</html>
