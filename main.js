@@ -26,6 +26,8 @@ import { startGameRoomNotifier } from './lib/game-room-notifier.js';
 import { normalizePluginText, storedDefaultPrefix } from './core/awang-prefix-text.js';
 import { startJadibotSessionCleaner } from './lib/jadibot-session-cleaner.js';
 import { startPlatform, stopPlatform } from './lib/platform/index.js';
+import { SINGLE_MODE } from './config/single-mode.js';
+import { startSingleModeUsers } from './lib/single-mode.js';
 import { readMainBotState, writeMainBotState, normalizeMainBotNumber } from './lib/main-bot-config.js';
 import { applyMainBotSettingsAtBoot, syncMainBotSettingsProfile } from './lib/main-bot-settings.js';
 import { installErrorHooks } from './lib/error-hub.js';
@@ -279,16 +281,21 @@ const connectionOptions = {
 // Bot utama bisa dimatikan total dari website. Kalau nonaktif, bot tidak
 // mencoba menyambung, tidak memunculkan prompt pairing, dan tidak ikut
 // reconnect berulang. Jadibot serta API platform tetap berjalan normal.
-const mainBotState = readMainBotState();
+const mainBotState = SINGLE_MODE
+    ? { enabled: false, pairingNumber: '' }
+    : readMainBotState();
 global.mainBotEnabled = mainBotState.enabled;
+global.singleMode = SINGLE_MODE;
 if (mainBotState.pairingNumber) {
     // Dipakai requestPairing() supaya tidak perlu prompt manual.
     process.env.PAIRING_NUMBER = mainBotState.pairingNumber;
 }
 console.log(
-    mainBotState.enabled
-        ? chalk.green('⚙️ Bot utama: AKTIF')
-        : chalk.yellow('⚙️ Bot utama: NONAKTIF (diatur dari website > halaman Bot Utama)')
+    SINGLE_MODE
+        ? chalk.cyan('⚙️ Mode SINGLE: bot utama tidak dipakai (hanya nomor dari config/users.json)')
+        : mainBotState.enabled
+            ? chalk.green('⚙️ Bot utama: AKTIF')
+            : chalk.yellow('⚙️ Bot utama: NONAKTIF (diatur dari website > halaman Bot Utama)')
 );
 
 /** Simpan nomor pairing yang dipakai saat bot utama menyambung. */
@@ -336,12 +343,20 @@ global.conn = installAutoTyping(makeWASocket(connectionOptions));
 global.conn.botConfig = getMainBotConfig();
 syncMainBotSettingsProfile(global.conn.botConfig);
 global.conn.isJadibot = false;
-startJadibotPlatformApi();
+if (SINGLE_MODE) {
+    console.log(chalk.cyan('🌐 HTTP API platform: MATI (mode single)'));
+} else {
+    startJadibotPlatformApi();
+}
 startGameRoomNotifier();
 // Ekosistem multi-aplikasi: adapter Telegram + service bersama (RBAC, server,
 // saham, RPG, media to-URL). Tidak membuat socket WhatsApp kedua dan tidak
 // mengubah perilaku bot WhatsApp yang sudah berjalan.
-startPlatform().catch(error => console.error('[PLATFORM] Gagal start:', error.message));
+if (!SINGLE_MODE) {
+    startPlatform().catch(error => console.error('[PLATFORM] Gagal start:', error.message));
+} else {
+    console.log(chalk.cyan('🤖 Platform Telegram & multi-app: MATI (mode single)'));
+}
 for (const signal of ['SIGTERM', 'SIGINT']) {
     process.on(signal, () => {
         stopPlatform().catch(() => {}).finally(() => process.exit(0));
@@ -1292,6 +1307,13 @@ console.log('Quick Test Done');
 // their connections now; the in-flight guard avoids a duplicate later on open.
 void restoreJadibotsIndependently();
 
+// Mode single: hanya nomor yang didaftarkan user (config/users.json) yang hidup.
+if (SINGLE_MODE) {
+    setTimeout(() => {
+        startSingleModeUsers().catch(error => console.error('[SINGLE] Gagal menyiapkan user:', error.message));
+    }, 2500);
+}
+
 function requestMainPairingWhenSocketReady(attempt = 0) {
     // Tanpa izin eksplisit, helper ini tidak boleh menghubungi WhatsApp.
     if (!global.mainPairingExplicit) return;
@@ -1329,4 +1351,9 @@ if (global.mainBotEnabled && global.mainPairingExplicit && !global.conn.authStat
 }
 
 console.log(chalk.green('Bot siap digunakan!'));
-console.log(chalk.yellow('Scan QR atau masukkan pairing code di WhatsApp'));
+if (SINGLE_MODE) {
+    console.log(chalk.cyan('Mode single: tidak ada bot utama & tidak ada API.'));
+    console.log(chalk.cyan('Nomor yang hidup diatur di config/users.json (lihat log [SINGLE] di atas).'));
+} else {
+    console.log(chalk.yellow('Scan QR atau masukkan pairing code di WhatsApp'));
+}

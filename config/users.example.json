@@ -1,0 +1,7 @@
+{
+  "_catatan": "Salin berkas ini menjadi config/users.json lalu isi nomor WhatsApp (format 628xxx). Nomor di sini yang dijalankan bot; bot utama & API tidak dipakai.",
+  "autoPair": true,
+  "users": [
+    "628123456789"
+  ]
+}

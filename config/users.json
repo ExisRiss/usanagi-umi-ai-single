@@ -1,0 +1,5 @@
+{
+  "_catatan": "Isi nomor WhatsApp yang boleh memakai bot ini (format 628xxx). Nomor di sini otomatis diminta kode pairing saat bot start kalau sesinya belum ada.",
+  "autoPair": true,
+  "users": []
+}

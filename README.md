@@ -132,6 +132,74 @@ Command tanpa namespace tetap dapat bekerja apabila tidak bertabrakan dengan plu
 
 Plugin `.usanagi-rvo` dipindahkan tetapi dinonaktifkan karena melewati privasi media view-once. Plugin verifikasi pembelian yang membawa credential pihak lain juga dinonaktifkan. Credential yang ditemukan di source telah dikosongkan dan dipindahkan ke konfigurasi `global.externalApiKeys`.
 
+## Mode SINGLE (default)
+
+Repo ini **hanya** menjalankan nomor WhatsApp yang didaftarkan pemiliknya.
+Tidak ada bot utama, tidak ada HTTP API, tidak ada website.
+
+| Komponen | Status di mode single |
+|---|---|
+| Bot utama (sesi di `sessions/`) | **mati** — tidak menyambung, tidak minta pairing |
+| HTTP API platform (port 2176/2144) | **mati** |
+| Adapter Telegram / platform | **mati** |
+| Nomor dari `config/users.json` | **hidup** (sesi di `sessions/jadibot/<nomor>/`) |
+
+### Menambah nomor
+
+1. Pasang nomornya (sekali saja per nomor):
+
+   ```bash
+   npm run pair 628123456789
+   ```
+
+   Perintah ini mencetak **kode pairing** di terminal. Buka WhatsApp nomor itu →
+   **Perangkat tertaut** → **Tautkan perangkat** → **Tautkan dengan nomor telepon**
+   → masukkan kode. Nomor otomatis ditambahkan ke `config/users.json`.
+
+2. Jalankan bot:
+
+   ```bash
+   npm start
+   ```
+
+   Semua nomor di `config/users.json` dinyalakan bersamaan. Nomor yang belum
+   punya sesi akan dimintakan kode pairing lagi saat start (tercetak di console
+   dengan awalan `[SINGLE]`).
+
+### Mengembalikan mode penuh
+
+```bash
+UMI_SINGLE_MODE=false npm start
+```
+
+---
+
+## Game HTML (AI Rich)
+
+21 game interaktif yang dirender WhatsApp sebagai halaman HTML (diadaptasi dari
+paket Rimuru MD, kredit di `lib/rich-games/`).
+
+```text
+.htmlgames            daftar semua game
+.htmlflappy           Flappy Bird
+.htmlsnake .htmltetris .htmlpacman .htmlcatur
+.htmlmario .htmlsonik .htmlbreakout .htmldino
+.htmlangrybirds .htmlbalap .htmlcolorblock .htmlmahjong
+.htmlmemory .htmlmortal .htmlminigames .htmlpinz <kata kunci>
+.htmlslot2 .htmlslotui .htmlspeedydash .htmlstickman
+.html <nama>          bentuk panjang, mis. .html flappy
+```
+
+Butuh WhatsApp versi terbaru yang mendukung pesan AI Rich. Kalau perangkat
+tidak mendukung, bot membalas pesan biasa (bukan error).
+
+## Pemutar YouTube
+
+- `.ytplay <judul/link>` — pemutar HTML interaktif **UMI Usanagi AI**.
+  Tiga lapis: video langsung → unduh ke blob → embed YouTube.
+- `.ytvideo <judul/link>` — kirim berkas videonya langsung (paling aman untuk
+  semua perangkat, tidak butuh webview).
+
 ## API Rin (284 endpoint)
 
 `plugins/xrina/xrina.js` menyambungkan bot ke [Rin API](https://apiii-xrina.my.id)
@@ -248,6 +316,10 @@ Daftar atribusi source dan kontributor terdahulu dikonsolidasikan dalam [`CREDIT
 
 
 ## Konfigurasi Bot Utama dan Jadibot
+
+> Di **mode single** (default repo ini) bot utama tidak dipakai sama sekali —
+> lihat bagian *Mode SINGLE* di atas. Penjelasan di bawah berlaku kalau
+> `UMI_SINGLE_MODE=false`.
 
 Bot utama memakai konfigurasi global di `config.js`. Setiap akun Jadibot mempunyai profil terpisah di `sessions/jadibot/<nomor>/bot-config.json`; file dibuat otomatis saat sesi dibuat atau dipulihkan. Identitas, prefix default, mode public/private, limit awal, auto-typing, tautan, aset, pengaturan TikTok Rich, dan daftar fitur nonaktif tidak dibagikan antar akun. Kredensial API, session WhatsApp, branding resmi, dan akses owner utama tetap dilindungi serta tidak dapat dioverride profil Jadibot.
 

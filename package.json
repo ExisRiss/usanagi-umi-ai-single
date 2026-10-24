@@ -16,7 +16,9 @@
     "test:auto-ai": "node --test tests/auto-ai.test.mjs tests/agent-settings.test.mjs && node --loader ./tests/mock-native-loader.mjs --test tests/native-dispatch.test.mjs",
     "backup:worker": "node scripts/backup-worker.js",
     "backup:once": "node scripts/backup-worker.js --once",
-    "test:backup": "node --test tests/backup/"
+    "test:backup": "node --test tests/backup/",
+    "pair": "node scripts/pair.js",
+    "users": "node -e \"import('./config/single-mode.js').then(m=>console.log(JSON.stringify(m.readSingleUsers(),null,2)))\""
   },
   "author": "AlzRiss × Arena",
   "license": "MIT",

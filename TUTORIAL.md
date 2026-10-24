@@ -145,7 +145,7 @@ atau UMI_PASTEBIN_KEY di .platform.env.
 
 ---
 
-## 5b. API Rin (`.xai`, `.ximg`, `.xdl`, ...)
+## 5.1 API Rin (`.xai`, `.ximg`, `.xdl`, ...)
 
 Bot memakai [Rin API](https://apiii-xrina.my.id) lewat `plugins/xrina/xrina.js`
 dengan katalog lokal `lib/xrina-catalog.json` (284 endpoint, 18 kategori).
@@ -189,6 +189,61 @@ Kalau endpoint butuh gambar, kirim/reply foto sekalian:
 .ximg toghibli              (sambil reply foto)
 .xcv fakeml username=alz    (sambil reply foto)
 ```
+
+---
+
+## 5.2 Mode SINGLE — hanya nomor dari setting
+
+Versi single berjalan **tanpa bot utama dan tanpa API**. Yang hidup hanya nomor
+yang kamu daftarkan sendiri.
+
+```bash
+npm run pair 628123456789     # sekali per nomor, masukkan kode di WhatsApp
+npm start                     # semua nomor di config/users.json menyala
+```
+
+Hasil pairing disimpan di `sessions/jadibot/<nomor>/` dan nomornya ditulis ke
+`config/users.json`:
+
+```json
+{
+  "autoPair": true,
+  "users": ["628123456789"]
+}
+```
+
+Kalau menambah nomor manual di berkas itu, bot meminta kode pairing saat start
+dan mencetaknya di console dengan awalan `[SINGLE]`.
+
+Mematikan mode single (bot utama + API kembali aktif):
+
+```bash
+UMI_SINGLE_MODE=false npm start
+```
+
+---
+
+## 5.3 Game HTML (AI Rich)
+
+21 game dikirim sebagai pesan HTML interaktif: `.htmlgames` untuk daftarnya,
+lalu `.htmlflappy`, `.htmlsnake`, `.htmltetris`, `.htmlpacman`, `.htmlcatur`,
+`.htmlmario`, `.htmlsonik`, `.htmlbreakout`, `.htmldino`, `.htmlangrybirds`,
+`.htmlbalap`, `.htmlcolorblock`, `.htmlmahjong`, `.htmlmemory`, `.htmlmortal`,
+`.htmlminigames`, `.htmlpinz <kata>`, `.htmlslot2`, `.htmlslotui`,
+`.htmlspeedydash`, `.htmlstickman`.
+
+---
+
+## 5.4 Pemutar YouTube (UMI Usanagi AI)
+
+```text
+.ytplay <judul/link>     pemutar HTML 3 lapis (langsung → unduh → embed)
+.ytvideo <judul/link>    kirim berkas video langsung
+```
+
+Resolver yang dipakai: SaveTube (`cdn*.savetube.vip/media/...`). Piped,
+Invidious, dan Innertube per 24 Oktober 2026 menolak permintaan (403/401/
+LOGIN_REQUIRED), jadi tidak dipakai lagi.
 
 ---
 
@@ -239,16 +294,17 @@ Kalau `.menu` membalas daftar perintah, bot sudah siap.
 
 ## 9. Pemutar YouTube (`.ytplay`)
 
-`.ytplay <judul>` mengirim kartu pemutar. Pemutar mencoba 4 cara berurutan:
+Lihat **5.4** untuk versi terbaru (UMI Usanagi AI). Ringkasnya:
 
-1. proxy server bot · putar langsung
-2. proxy server bot · unduh dulu ke perangkat, lalu putar dari `blob:` (dipakai kalau
-   webview WhatsApp menolak memutar video jarak jauh)
-3. tautan asli YouTube · putar langsung
-4. pemutar embed YouTube
+- `.ytplay <judul/link>` — pemutar HTML tiga lapis: video langsung →
+  diunduh jadi `blob:` → embed YouTube.
+- `.ytvideo <judul/link>` — berkas video dikirim langsung sebagai pesan video
+  WhatsApp; ini jalur yang paling aman kalau webview perangkat rewel.
 
-Panel kecil di kartu menampilkan sumber yang sedang dipakai, jadi kalau gagal kelihatan
-di tahap mana. Untuk mengunduh biasa: `.ytmp4 <judul>` / `.ytmp3 <judul>`.
+Proxy `/media/yt` hanya dipakai di **mode penuh** (butuh server HTTP). Di mode
+single proxy tidak tersedia, dan pemutar tetap jalan tanpa itu.
+
+Untuk audio: `.ytmp3 <judul>` / `.play <judul>`.
 
 ---
 
