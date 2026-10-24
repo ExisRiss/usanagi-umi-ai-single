@@ -145,6 +145,53 @@ atau UMI_PASTEBIN_KEY di .platform.env.
 
 ---
 
+## 5b. API Rin (`.xai`, `.ximg`, `.xdl`, ...)
+
+Bot memakai [Rin API](https://apiii-xrina.my.id) lewat `plugins/xrina/xrina.js`
+dengan katalog lokal `lib/xrina-catalog.json` (284 endpoint, 18 kategori).
+
+Tanpa kunci pun sebagian besar endpoint jalan. Endpoint kategori **premium**
+dan **system** butuh kunci dari pemilik API. Isi salah satu:
+
+```js
+// config.js
+global.apiKeys = { xrina: 'KUNCI-RIN-KAMU' }
+```
+
+```bash
+# .platform.env / .env.apikeys
+UMI_XRINA_KEY=KUNCI-RIN-KAMU
+```
+
+Kalau kosong, bot membalas:
+
+```
+🔑 Endpoint *viu* butuh kunci API Rin.
+```
+
+bukan error mentah.
+
+Cara pakai singkat:
+
+```text
+.xapi                       daftar kategori + jumlah endpoint
+.xapi download              daftar 22 endpoint download
+.xapi cekkhodam             detail parameter satu endpoint
+.xai gemini halo            tanya Gemini
+.ximg flux kucing oren      buat gambar
+.xdl tiktok <url>           unduh video (dikirim sebagai media)
+.xrina /fun/pantun          panggil endpoint mentah
+```
+
+Kalau endpoint butuh gambar, kirim/reply foto sekalian:
+
+```text
+.ximg toghibli              (sambil reply foto)
+.xcv fakeml username=alz    (sambil reply foto)
+```
+
+---
+
 ## 6. Jalankan bot
 
 ```bash

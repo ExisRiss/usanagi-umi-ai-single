@@ -132,6 +132,68 @@ Command tanpa namespace tetap dapat bekerja apabila tidak bertabrakan dengan plu
 
 Plugin `.usanagi-rvo` dipindahkan tetapi dinonaktifkan karena melewati privasi media view-once. Plugin verifikasi pembelian yang membawa credential pihak lain juga dinonaktifkan. Credential yang ditemukan di source telah dikosongkan dan dipindahkan ke konfigurasi `global.externalApiKeys`.
 
+## API Rin (284 endpoint)
+
+`plugins/xrina/xrina.js` menyambungkan bot ke [Rin API](https://apiii-xrina.my.id)
+— 284 endpoint dalam 18 kategori. Katalognya disimpan lokal di
+`lib/xrina-catalog.json`, jadi daftar perintah dan parameter bisa dibaca tanpa
+memanggil server.
+
+Perintah dikelompokkan per kategori:
+
+| Perintah | Kategori | Jumlah |
+|---|---|---|
+| `.xai` | ai | 22 |
+| `.ximg` | ai image | 45 |
+| `.xdl` | download | 22 |
+| `.xcari` | search | 14 |
+| `.xstalk` | stalker | 11 |
+| `.xfun` | fun | 14 |
+| `.xcv` | canvas | 29 |
+| `.xmk` | maker | 14 |
+| `.xgame` | game | 13 |
+| `.xberita` | info | 10 |
+| `.xkomik` | komik, komiku, MangaDex | 20 |
+| `.xanime` | Animein, Donghive | 11 |
+| `.xtool` | tools | 39 |
+| `.xprem` | premium (butuh kunci) | 14 |
+| `.xsys` | system (butuh kunci) | 6 |
+
+Perintah bantu:
+
+- `.xapi` — daftar kategori; `.xapi <kategori>` daftar endpoint;
+  `.xapi <nama>` detail parameter.
+- `.xrina /path?k=v` — panggil endpoint apa pun secara mentah.
+
+Contoh:
+
+```text
+.xai gemini jelaskan fotosintesis singkat
+.ximg flux kucing oren pakai topi
+.xtool qrcode halo dunia
+.xmk brat usanagi umi ai
+.xgame tebakhewan
+.xfun cekkhodam Alz
+.xcari lyrics bohemian rhapsody
+.xstalk stalk-gh octocat
+.xdl tiktok https://www.tiktok.com/@user/video/123
+.xdl play-spotify despacito
+.xkomik komiku terbaru
+.xanime animein search one piece
+```
+
+Catatan pemakaian:
+
+- Parameter bisa ditulis berurutan (`.xfun cekkhodam Alz`) atau `k=v`
+  (`.xcari pinterest q=kucing limit=5`).
+- Endpoint yang butuh gambar bisa memakai URL **atau** balas/kirim foto:
+  bot mengunggah fotonya dulu, lalu mengisi parameter `image`/`url`/`pp`.
+- Hasil gambar/video/audio dikirim sebagai media. Untuk endpoint download,
+  berkasnya diunduh dulu dan diperiksa; kalau tautan CDN dari server sudah mati,
+  bot bilang terus terang alih-alih mengirim tautan rusak.
+- Endpoint berkunci (kategori premium/system) butuh `global.apiKeys.xrina`
+  atau `UMI_XRINA_KEY`. Tanpa kunci, bot membalas instruksi — bukan error.
+
 ## Media branding
 
 - `media/menu.png` — banner welcome biru Usanagi Umi AI.
