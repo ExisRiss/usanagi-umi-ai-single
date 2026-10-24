@@ -194,8 +194,9 @@ Kalau endpoint butuh gambar, kirim/reply foto sekalian:
 
 ## 5.2 Mode SINGLE — hanya nomor dari setting
 
-Versi single berjalan **tanpa bot utama dan tanpa API**. Yang hidup hanya nomor
-yang kamu daftarkan sendiri.
+Versi single berjalan **tanpa bot utama**; HTTP API mati kecuali diminta lewat
+`config.js` (lihat bagian HTTP API di bawah). Yang hidup hanya nomor yang kamu
+daftarkan sendiri.
 
 ```bash
 npm run pair 628123456789     # sekali per nomor, masukkan kode di WhatsApp
@@ -214,6 +215,41 @@ Hasil pairing disimpan di `sessions/jadibot/<nomor>/` dan nomornya ditulis ke
 
 Kalau menambah nomor manual di berkas itu, bot meminta kode pairing saat start
 dan mencetaknya di console dengan awalan `[SINGLE]`.
+
+### Prefix di mode single
+
+```text
+.setprefix !              → prefix khusus chat ini
+.setprefix global !       → prefix default bot ini (semua chat)
+.setprefix default        → chat ini kembali ke prefix default
+```
+
+Prefix global disimpan di `sessions/jadibot/<nomor>/bot-config.json` dan tetap
+dipakai setelah restart. **Jika website jadibot dipakai**, prefix juga bisa
+diubah dari halaman Settings website — keduanya menulis berkas yang sama.
+
+> Perbaikan 24-10-2026: `.setprefix` dulu salah membaca argumen (runtime
+> memberi `m.text` tanpa nama perintah), sehingga `.setprefix !` hanya
+> menampilkan bantuan dan `.setprefix global !` malah mengubah prefix per-chat.
+> Sudah diperbaiki di `plugins/owner/usanagi-setprefix.js`.
+
+### HTTP API jadibot (opsional)
+
+Mode single mematikan HTTP API secara default. Kalau kamu memakai website
+jadibot (butuh `/api/health`, `/api/sessions`, `/api/settings/*`), nyalakan
+secara eksplisit di `config.js`:
+
+```js
+global.jadibotPlatform = {
+  enabled: true,
+  apiPort: 2176,
+  supabaseUrl: 'https://<project>.supabase.co',
+  supabaseAnonKey: '<anon key>',
+  ownerEmails: ['email-owner@contoh.com'],
+}
+```
+
+Tanpa `enabled: true`, tidak ada port yang dibuka sama sekali.
 
 Mematikan mode single (bot utama + API kembali aktif):
 

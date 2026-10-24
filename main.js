@@ -343,10 +343,21 @@ global.conn = installAutoTyping(makeWASocket(connectionOptions));
 global.conn.botConfig = getMainBotConfig();
 syncMainBotSettingsProfile(global.conn.botConfig);
 global.conn.isJadibot = false;
-if (SINGLE_MODE) {
-    console.log(chalk.cyan('🌐 HTTP API platform: MATI (mode single)'));
-} else {
+/*
+ * HTTP API jadibot tetap dinyalakan di mode single JIKA config.js memintanya
+ * (`global.jadibotPlatform.enabled === true`). Tanpa API ini website
+ * (jadibot-alzriss.gwenna.my.id) tidak punya backend: /api/health, /api/sessions,
+ * /api/settings/* semuanya 502 karena diteruskan ke port yang tidak mendengarkan.
+ * Untuk pemasangan yang memang tidak memakai website, set enabled: false di
+ * config.js dan API tidak akan membuka port apa pun.
+ */
+const platformApiWanted = SINGLE_MODE
+    ? global.jadibotPlatform?.enabled === true
+    : global.jadibotPlatform?.enabled !== false;
+if (platformApiWanted) {
     startJadibotPlatformApi();
+} else {
+    console.log(chalk.cyan('🌐 HTTP API platform: MATI (dimatikan di config.js)'));
 }
 startGameRoomNotifier();
 // Ekosistem multi-aplikasi: adapter Telegram + service bersama (RBAC, server,

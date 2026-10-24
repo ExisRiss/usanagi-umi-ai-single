@@ -27,13 +27,26 @@ const HELP = (p) => [
 ].join('\n')
 
 const handler = async (m, { conn, usedPrefix, botConfig, prefixStorageKey, isOwner, isAdmin, isROwner }) => {
-  const text = String(m.text || '').trim()
-  const parts = text.split(/\s+/).filter(Boolean)
+  /*
+   * Plugin `usanagi-*` menerima `m.text` TANPA nama perintah (runtime sudah
+   * memotong prefix + command) dan `m.args` berisi argumennya. Versi lama
+   * membaca `m.text` seolah-olah masih memuat "setprefix", sehingga:
+   *   .setprefix !        -> parts = ["!"]        -> parts[1] kosong -> hanya HELP
+   *   .setprefix global ! -> parts = ["global","!"] -> parts[1] = "!" -> dianggap per-chat
+   * Akibatnya prefix global tidak pernah tersimpan (bug dilaporkan 24-10-2026).
+   * Di sini argumen diambil dari `m.args`, dengan cadangan `m.text`, dan nama
+   * perintah dibuang kalau runtime lain masih menyertakannya.
+   */
+  const rawText = String(m.text || '').trim()
+  let parts = Array.isArray(m.args) && m.args.length
+    ? m.args.map(value => String(value))
+    : rawText.split(/\s+/).filter(Boolean)
+  if (parts.length && /^setprefix$/i.test(parts[0])) parts = parts.slice(1)
   const storageKey = prefixStorageKey || m.prefixStorageKey || m.chat
   const defaultPrefix = botConfig?.defaultPrefix || global.mainBot?.defaultPrefix || '.'
   const owner = Boolean(isOwner || isROwner)
-  const isGlobal = String(parts[1] || '').toLowerCase() === 'global'
-  const value = isGlobal ? parts[2] : parts[1]
+  const isGlobal = String(parts[0] || '').toLowerCase() === 'global'
+  const value = isGlobal ? parts[1] : parts[0]
 
   if (!value) return conn.sendMessage(m.chat, { text: HELP(usedPrefix) }, { quoted: m.raw })
 

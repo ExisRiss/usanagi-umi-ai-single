@@ -10,7 +10,11 @@
  *
  * Mode single artinya:
  *   - bot utama TIDAK ADA (tidak menyambung, tidak minta pairing)
- *   - HTTP API platform & adapter Telegram MATI
+ *   - adapter Telegram MATI
+ *   - HTTP API jadibot ikut MATI kecuali `global.jadibotPlatform.enabled === true`
+ *     di config.js (dipakai website jadibot: /api/health, /api/sessions,
+ *     /api/settings/*). Perbaikan 24-10-2026: dulu API ini selalu mati sehingga
+ *     website menerima 502 di semua halaman setelah login.
  *   - yang jalan hanya nomor WhatsApp yang didaftarkan user di `config/users.json`
  *     (folder sesinya di `sessions/jadibot/<nomor>/`, sama seperti jadibot biasa)
  *
