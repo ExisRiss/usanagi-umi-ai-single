@@ -1,5 +1,7 @@
 /* Reaksi bersifat hiasan: kalau koneksi WhatsApp sedang menutup, jangan sampai
  * seluruh perintah ikut gagal (dulu muncul "Connection Closed" di Feedback). */
+import { fetchRinMedia, describe } from '../../lib/rin-api.js'
+
 const safeReact = async (m, emoji) => {
     try { if (typeof m.react === 'function') await m.react(emoji) } catch { }
 }
@@ -11,18 +13,11 @@ let handler = async (m, { conn, text }) => {
     await safeReact(m, '🕒')
 
     try {
-        const controller = new AbortController()
-        const timeout = setTimeout(() => controller.abort(), 20000)
+        // Sejak 25-10-2026 pemanggilan API dipusatkan di lib/rin-api.js:
+        // UA browser, timeout, batas ukuran, dan retry otomatis bila teks yang
+        // dikirim kebetulan sama dengan contoh di dokumentasi API (HTTP 400).
+        const { buffer } = await fetchRinMedia('/maker/brat', text, { timeoutMs: 60000 })
 
-        const res = await fetch(
-            `https://apiii-xrina.my.id/maker/brat?text=${encodeURIComponent(text)}`,
-            { signal: controller.signal }
-        )
-        clearTimeout(timeout)
-
-        if (!res.ok) throw new Error(`API ${res.status}`)
-
-        const buffer = Buffer.from(await res.arrayBuffer())
         if (buffer.length < 100) throw new Error('Response terlalu kecil')
 
         await conn.sendSticker(
@@ -37,9 +32,9 @@ let handler = async (m, { conn, text }) => {
 
         await safeReact(m, '✅')
     } catch (e) {
-        console.error('[brat]', e.message || e)
+        console.error('[brat]', describe(e))
         await safeReact(m, '❌')
-        const reason = e?.name === 'AbortError' ? 'server gambar terlalu lama merespons' : (e?.message || 'layanan sedang sibuk')
+        const reason = describe(e)
         try { await m.reply(`Gagal membuat sticker: ${String(reason).slice(0, 120)}. Coba lagi nanti.`) } catch { }
     }
 }
