@@ -864,12 +864,13 @@ async function play(m, { conn, usedPrefix }) {
 
     setCache(`video:${data.videoId}`, data)
     await menu(m, conn, usedPrefix, data)
-  } catch (e) {
+  } catch (error) {
+    console.error('[PLAY] pencarian gagal:', String(error?.message || error).slice(0, 160))
     await conn.sendMessage(
       m.chat,
-      { text: errorBox(e.message || 'Gagal mencari video.') },
+      { text: errorBox(friendlyError(error, 'video')) },
       { quoted: m.raw },
-    )
+    ).catch(() => { })
   }
 }
 
@@ -905,14 +906,43 @@ async function action(m, { conn }, type) {
 
     await sendMedia(m, conn, data, type)
     m.limit?.success()
-  } catch (e) {
+  } catch (error) {
+    /*
+     * 25-10-2026 (laporan log): pesan galat mentah seperti "HTTP 400" tidak
+     * memberi tahu apa-apa ke pengguna, dan `throw` di akhir membuat handler
+     * menolak promise tanpa penanganan (muncul sebagai unhandledRejection di
+     * log panel). Sekarang: alasan diterjemahkan, dicatat sekali dengan
+     * konteks, dan tidak dilempar ulang.
+     */
+    const friendly = friendlyError(error, type)
+    console.error('[PLAY] gagal:', `${type} ${id}`, '→', String(error?.message || error).slice(0, 160))
     await conn.sendMessage(
       m.chat,
-      { text: errorBox(e.message || `Gagal mengunduh ${type}.`) },
+      { text: errorBox(friendly) },
       { quoted: m.raw },
-    )
-    throw e
+    ).catch(() => { })
+    try { m.limit?.fail?.() } catch { }
+    return null
   }
+}
+
+/** Terjemahkan galat jaringan/HTTP menjadi kalimat yang bisa ditindak. */
+function friendlyError(error, type) {
+  const raw = String(error?.message || error || '')
+  const media = type === 'audio' ? 'audio' : 'video'
+  if (/HTTP 404|HTTP 410/.test(raw)) return `Video tidak tersedia lagi (${raw}). Coba video lain.`
+  if (/HTTP 400/.test(raw)) return 'Video tidak ditemukan atau dibatasi (privat, usia, atau wilayah). Coba judul/link lain.'
+  if (/HTTP 403/.test(raw)) {
+    return type === 'audio'
+      ? 'Video ini menolak unduhan audio (biasanya karena dibatasi pemiliknya). Coba gunakan .play lalu pilih audio, atau video lain.'
+      : 'Video ini menolak unduhan (dibatasi pemilik/wilayah). Coba video lain.'
+  }
+  if (/HTTP 429|Too Many Requests/i.test(raw)) return `Server YouTube sedang membatasi permintaan. Tunggu satu menit lalu coba lagi.`
+  if (/ENOTFOUND|EAI_AGAIN|ECONNRESET|ETIMEDOUT|fetch failed|socket hang up/i.test(raw)) {
+    return 'Koneksi ke server YouTube terputus. Coba lagi sebentar lagi.'
+  }
+  if (/tidak ditemukan|not found/i.test(raw)) return 'Video tidak ditemukan. Periksa judul atau tautannya.'
+  return String(raw || `Gagal mengunduh ${media}.`).slice(0, 180)
 }
 
 const handler = async (m, { conn, usedPrefix }) => {
