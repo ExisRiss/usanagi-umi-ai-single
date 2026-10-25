@@ -318,9 +318,27 @@ function createRoom(m, extra) {
   return room
 }
 
+/**
+ * Cari room milik pengirim.
+ *
+ * Kunci indeks memakai scope bot (bot utama vs jadibot), tetapi hook `all`
+ * dipanggil handler tanpa `botConfig`, jadi scope bisa berbeda dari saat room
+ * dibuat. Karena itu ada cadangan: cocokkan JID pemain ke seluruh room aktif.
+ * Jumlah room kecil (maksimal ribuan) dan pencarian ini hanya jalan kalau
+ * kunci utama tidak ketemu.
+ */
 const findRoomByPlayer = (extra, m) => {
   const code = playerIndex.get(playerKey(extra, m))
-  return code ? activeRooms.get(code) || null : null
+  if (code && activeRooms.has(code)) return activeRooms.get(code)
+  const jid = jidKey(senderOf(m))
+  if (!jid) return null
+  for (const room of activeRooms.values()) {
+    if (room.players.some(player => player.jid === jid)) {
+      playerIndex.set(playerKey(extra, m), room.code)
+      return room
+    }
+  }
+  return null
 }
 
 const roomOfPlayer = (room, m) => {
@@ -424,11 +442,14 @@ function applyAction(room, player, action) {
  * 6. STATE UNTUK WEBVIEW
  * ============================================================ */
 
-function buildState(room) {
+function buildState(room, viewer) {
   const level = levelOf(room)
   const plates = platesPressed(room)
   return {
     roomCode: room.code,
+    /* slot yang sedang melihat kartu ini: 1 / 2 / 0 (keduanya, untuk papan grup).
+       HTML hanya menampilkan tombol milik slot tersebut. */
+    viewer: Number(viewer) || 0,
     status: room.status,
     levelIndex: room.level,
     levelCount: LEVELS.length,
@@ -583,26 +604,18 @@ function buildRichPayload(html, room) {
 
 const USE_EDIT = false
 
-async function sendGameUI(conn, chat, room, options = {}) {
-  const state = buildState(room)
+/** Kirim satu kartu HTML ke satu tujuan (grup atau DM pemain). */
+async function sendCard(conn, target, room, options = {}) {
+  const viewer = Number(options.viewer) || 0
+  const state = buildState(room, viewer)
   const html = buildHtml(state)
-  const quoted = options.quoted || null
   const prefix = options.prefix || '.'
 
-  if (!html) {
-    await reply(conn, { chat }, [
-      '⚠️ Berkas `picopark.html` tidak ditemukan.',
-      'Taruh di `assets/picopark.html` atau set env `PICOPARK_HTML`.',
-      '', renderStatus(room), '',
-      `Main lewat teks: ${prefix}picopark left | right | jump`,
-    ].join('\n'), { quoted: false })
-    return { mode: 'no-template', html: '' }
-  }
+  if (!html) return { mode: 'no-template', html: '' }
 
   if (typeof conn?.sendRichHtml === 'function') {
     try {
-      const result = await conn.sendRichHtml(chat, html, options.richOptions || {})
-      lastUiMessage.set(room.code, result)
+      const result = await conn.sendRichHtml(target, html, options.richOptions || {})
       return { mode: 'sendRichHtml', result, html }
     } catch (error) { console.error('[PICOPARK] sendRichHtml gagal:', error?.message || error) }
   }
@@ -610,25 +623,129 @@ async function sendGameUI(conn, chat, room, options = {}) {
   if (typeof conn?.relayMessage === 'function') {
     try {
       const { message, messageId } = buildRichPayload(html, room)
-      await conn.relayMessage(chat, message, { messageId })
-      lastUiMessage.set(room.code, { key: { id: messageId, remoteJid: chat } })
+      await conn.relayMessage(target, message, { messageId })
       return { mode: 'relayMessage', messageId, html }
     } catch (error) { console.error('[PICOPARK] relayMessage gagal:', error?.message || error) }
   }
 
   if (USE_EDIT && options.editKey && typeof conn?.sendMessage === 'function') {
     try {
-      await conn.sendMessage(chat, { text: html, edit: options.editKey })
+      await conn.sendMessage(target, { text: html, edit: options.editKey })
       return { mode: 'edit', html }
     } catch (error) { console.error('[PICOPARK] edit gagal:', error?.message || error) }
   }
+  return { mode: 'none', html }
+}
 
-  await reply(conn, { chat }, [
-    renderStatus(room), '',
-    '📱 UI WebView tidak terkirim di fork ini. Mainkan lewat teks:',
-    `\`${prefix}picopark left\` \`${prefix}picopark right\` \`${prefix}picopark jump\``,
-  ].join('\n'), { quoted: false })
-  return { mode: 'text', html }
+/**
+ * Tombol kendali NATIVE (single_select) — ini yang benar-benar bisa ditekan.
+ *
+ * Kartu HTML di WhatsApp tidak punya jembatan balik ke bot (WebView tanpa
+ * jaringan & tanpa AndroidBridge), jadi tombol di dalam HTML hanya gambar.
+ * Solusinya: setiap kartu selalu diikuti daftar native yang barisnya berisi
+ * PERINTAH berprefix (`.ppark p1 kiri`). Saat baris ditekan, WhatsApp
+ * mengirim balik id baris itu sebagai pesan → handler gerak yang asli jalan.
+ */
+async function sendControlList(conn, jid, room, slot, prefix = '.') {
+  const level = levelOf(room)
+  const sections = []
+  const slots = slot === 1 || slot === 2 ? [slot] : [1, 2]
+  for (const number of slots) {
+    sections.push({
+      title: `Pemain ${number}${slot ? ' (kamu)' : ''}`,
+      highlight_label: number === 1 ? 'P1' : 'P2',
+      rows: [
+        { header: '', title: '⬅️ Kiri', description: `gerakkan P${number} ke kiri`, id: `${prefix}ppark p${number} kiri` },
+        { header: '', title: '➡️ Kanan', description: `gerakkan P${number} ke kanan`, id: `${prefix}ppark p${number} kanan` },
+        { header: '', title: '⬆️ Lompat', description: `P${number} lompat`, id: `${prefix}ppark p${number} lompat` },
+      ],
+    })
+  }
+
+  const header = `🐱 Pico Park · Room ${room.code}`
+  const subtitle = `Level ${(room.level || 0) + 1}/${LEVELS.length} · ${level.name}`
+  const body = slot === 1 || slot === 2
+    ? `Kamu mengendalikan P${slot}. Tekan tombol di bawah — setiap tekanan langsung menggerakkan karakter di bot.`
+    : 'Tekan tombol di bawah untuk menggerakkan karakter (P1/P2 sesuai yang kamu pegang).'
+
+  try {
+    const { ButtonV2 } = await import('../../lib/awang-tombol.js')
+    const button = new ButtonV2(conn)
+      .setTitle(header)
+      .setSubtitle(subtitle)
+      .setBody(body)
+      .setFooter(`Target: ambil kunci 🔑 lalu semua masuk pintu 🚪 · By AlzRiss`)
+      .addRawButton({
+        buttonText: { displayText: '🎮 KENDALI' },
+        buttonId: 'picopark-control',
+        type: 1,
+        nativeFlowInfo: {
+          name: 'single_select',
+          paramsJson: JSON.stringify({ title: `Kendali Pico Park ${room.code}`.slice(0, 60), sections }),
+        },
+      })
+    await button.send(jid)
+    return { ok: true, mode: 'native-controls' }
+  } catch (error) {
+    console.error('[PICOPARK] daftar kendali gagal:', error?.message || error)
+    const rows = (slot === 1 || slot === 2 ? [slot] : [1, 2])
+      .map(number => `${prefix}ppark p${number} kiri · kanan · lompat`)
+      .join('\n')
+    try { await conn.sendMessage(jid, { text: `🎮 *Kendali Pico Park ${room.code}*\n\n${rows}` }) } catch {}
+    return { ok: false, mode: 'text-controls' }
+  }
+}
+
+/**
+ * Kirim kartu game + tombol kendali native.
+ *
+ * Kalau `perPlayer` aktif (default saat ada 2 pemain), setiap pemain menerima
+ * kartunya sendiri di DM yang HANYA berisi tombol karakternya sendiri.
+ * Kalau DM gagal (nomor tidak bisa dihubungi / belum pernah chat), kartu grup
+ * dipakai sebagai cadangan — jadi game tetap jalan.
+ */
+async function sendGameUI(conn, chat, room, options = {}) {
+  const prefix = options.prefix || '.'
+  const perPlayer = options.perPlayer !== false && room.players.length > 1
+  const results = []
+
+  if (perPlayer) {
+    for (const player of room.players) {
+      const jid = `${player.jid}@s.whatsapp.net`
+      const sent = await sendCard(conn, jid, room, { ...options, viewer: player.slot })
+      results.push({ slot: player.slot, ...sent })
+      // Tombol native selalu dikirim, walau kartu HTML berhasil — kartu hanya
+      // papan, tombol yang bisa ditekan ada di daftar ini.
+      const controls = await sendControlList(conn, jid, room, player.slot, prefix)
+      results.push({ slot: player.slot, controls })
+      if (sent.mode === 'none' || sent.mode === 'no-template') {
+        // cadangan: kirim papan teks ke DM pemain itu
+        await reply(conn, { chat: jid }, [
+          `🎮 ${player.slot === 1 ? 'Pemain 1' : 'Pemain 2'} — room ${room.code}`,
+          `Kamu mengendalikan karakter ${player.slot === 1 ? 'P1 (merah)' : 'P2 (biru)'}.`,
+          `Tekan tombol kendali di atas atau tulis: *kiri* / *kanan* / *lompat*.`,
+        ].join('\n'), { quoted: false })
+      }
+    }
+  }
+
+  const groupSends = results.filter(item => item.mode !== 'none' && item.mode !== 'no-template')
+  if (!perPlayer || !groupSends.length) {
+    const sent = await sendCard(conn, chat, room, { ...options, viewer: 0 })
+    results.push({ slot: 0, ...sent })
+    const controls = await sendControlList(conn, chat, room, 0, prefix)
+    results.push({ slot: 0, controls })
+    if (sent.mode === 'none' || sent.mode === 'no-template') {
+      await reply(conn, { chat }, [
+        '⚠️ Kartu papan tidak bisa dikirim di fork ini — papan teks dipakai.',
+        '', renderStatus(room), '',
+        'Kendali: tombol di pesan berikutnya, atau tulis *kiri* · *kanan* · *lompat*.',
+      ].join('\n'), { quoted: false })
+    }
+  }
+
+  lastUiMessage.set(room.code, results)
+  return results
 }
 
 /* ============================================================
@@ -682,15 +799,53 @@ async function announceLevel(conn, room, clear) {
  * 9. HOOK: tangkap JSON dari WebView
  * ============================================================ */
 
+/**
+ * Kata kunci kontrol tanpa prefix.
+ *
+ * Kartu WebView tidak selalu bisa mengirim balik aksi (bridge tergantung
+ * aplikasi WhatsApp). Supaya game tetap bisa dimainkan, pemain cukup menulis
+ * satu kata: kiri / kanan / lompat. Hanya diproses kalau pengirim memang
+ * sedang berada di sebuah room, jadi chat biasa tidak terganggu.
+ */
+const BARE_ACTIONS = {
+  kiri: 'left', kanan: 'right', lompat: 'jump', atas: 'jump',
+  left: 'left', right: 'right', jump: 'up',
+}
+
 const allHook = async function (m) {
   try {
     const text = String(m?.text || m?.message?.conversation || '').trim()
-    if (!text.startsWith('{') || !text.endsWith('}') || text.length > 800) return
-    if (!/"roomCode"|"room"/.test(text) || !/"action"/.test(text)) return
-    const payload = JSON.parse(text)
-    if (!payload || !payload.action) return
-    await handleBridgePayload(this, payload, { sender: senderOf(m), chat: m.chat })
-  } catch { /* bukan payload bridge */ }
+
+    // 1. payload JSON dari WebView
+    if (text.startsWith('{') && text.endsWith('}') && text.length <= 800 && /"action"/.test(text)) {
+      try {
+        const payload = JSON.parse(text)
+        if (payload && payload.action) {
+          await handleBridgePayload(this, payload, { sender: senderOf(m), chat: m.chat })
+          return
+        }
+      } catch { /* lanjut ke kata kunci */ }
+    }
+
+    // 2. satu kata kontrol dari pemain yang sedang bermain
+    if (!text || text.length > 12 || /\s/.test(text)) return
+    const action = BARE_ACTIONS[text.toLowerCase()]
+    if (!action) return
+    const room = findRoomByPlayer({ conn: this, botConfig: this?.botConfig }, m)
+    if (!room) return
+    const player = roomOfPlayer(room, m)
+    if (!player) return
+    const result = applyAction(room, player, action === 'up' ? 'jump' : action)
+    if (result.ok) {
+      if (result.pickedKey) await reply(this, m, '🔑 Kunci diambil! Semua pemain masuk pintu 🚪.')
+      if (result.levelClear) await announceLevel(this, room, result.levelClear)
+      await sendGameUI(this, room.chat, room, { prefix: '.' })
+    } else if (!result.silent && result.reason) {
+      await reply(this, m, `⚠️ ${result.reason}`, { quoted: false })
+    }
+  } catch (error) {
+    console.error('[PICOPARK] hook gagal:', error?.message || error)
+  }
 }
 
 /* ============================================================
@@ -704,6 +859,7 @@ const HELP = (prefix = '.') => [
   `${prefix}picopark join <kode>        ikut sebagai pemain 2`,
   `${prefix}picopark left|right|jump    gerakkan karaktermu`,
   `${prefix}picopark p1 <aksi>          gerakkan pemain 1 (main bergiliran 1 HP)`,
+  `${prefix}picopark p2 <aksi>          gerakkan pemain 2 (main bergiliran 1 HP)`,
   `${prefix}picopark status             lihat papan`,
   `${prefix}picopark level              info level sekarang`,
   `${prefix}picopark leave              keluar room`,
@@ -711,6 +867,9 @@ const HELP = (prefix = '.') => [
   'Cara main: ambil *kunci* (🔑) → *pintu* terbuka → SEMUA pemain harus',
   'masuk pintu. Plat (P) yang diinjak memunculkan jembatan — kalau dilepas,',
   'jembatan hilang dan pemain di atasnya jatuh.',
+  '',
+  'Tombol: setiap papan diikuti pesan "🎮 KENDALI" berisi tombol native',
+  'Kiri/Kanan/Lompat — tekan itu untuk menggerakkan karakter.',
 ].join('\n')
 
 const NORMALIZE = {
@@ -762,7 +921,17 @@ async function runCommand(m, extra) {
     playerIndex.set(`${room.scope}:${jidKey(senderOf(m))}`, room.code)
     room.status = 'playing'
     room.updatedAt = nowIso()
-    await reply(conn, m, '🐱 *Game Dimulai!*\n\nAmbil kunci 🔑 lalu berdua masuk pintu 🚪.\nPlat P harus ditahan supaya jembatan menyala.')
+    await reply(conn, m, [
+      '🐱 *Game Dimulai!*',
+      '',
+      'Ambil kunci 🔑 lalu berdua masuk pintu 🚪.',
+      'Plat P harus ditahan supaya jembatan menyala.',
+      '',
+      '*Cara gerak (tanpa titik):*',
+      '  kiri · kanan · lompat',
+      'Kartu kontrol masing-masing pemain dikirim ke DM. Kalau kartu tidak muncul,',
+      'cukup balas satu kata di atas di chat ini — hanya karaktermu yang bergerak.',
+    ].join('\n'))
     await sendGameUI(conn, room.chat, room, { quoted: m, prefix })
     return null
   }
@@ -862,4 +1031,4 @@ const sweeper = setInterval(() => {
 if (typeof sweeper.unref === 'function') sweeper.unref()
 
 export default handler
-export { activeRooms, handleBridgePayload, sendGameUI, buildState, renderStatus, LEVELS, applyAction, createRoom, applyGravity, jump, step, bridgeActive }
+export { activeRooms, handleBridgePayload, sendGameUI, sendControlList, buildState, renderStatus, LEVELS, applyAction, createRoom, applyGravity, jump, step, bridgeActive }
