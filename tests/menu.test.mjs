@@ -507,6 +507,34 @@ await test('plugin: .umimenu mengirim menu, .menu_owner memakai menu teks lama',
   assert.equal(conn.sent[0].jid, '628666000111@s.whatsapp.net')
 })
 
+await test('plugin: .menu_owner memakai menu teks lama (bukan halaman HTML)', async () => {
+  const mod = await import(path.join(ROOT, 'plugins/main/umi-menu.js'))
+  const handler = mod.default
+  const conn = makeConn()
+  const richCalls = []
+  conn.sendRichHtml = async () => { richCalls.push(1); return { ok: true, mode: 'relay-html' } }
+  const m = makeMessage({ command: 'menu_owner', text: '.menu_owner', sender: '628666000444@s.whatsapp.net', chat: '628666000444@s.whatsapp.net' })
+  await handler.call(conn, m, { conn, usedPrefix: '.', command: 'menu_owner', args: [], text: '' })
+  const texts = conn.sent.filter(item => item.payload && typeof item.payload.text === 'string').map(item => item.payload.text)
+  const joined = texts.join('\n')
+  assert.equal(richCalls.length, 0, '.menu_owner masih mengirim kartu HTML')
+  assert.ok(joined.length > 100, '.menu_owner tidak mengirim daftar teks')
+  assert.match(joined, /setprefix/, 'perintah owner tidak muncul di menu owner')
+  assert.ok(!/\bslot\b/.test(joined), 'perintah game ikut muncul di menu owner')
+})
+
+await test('plugin: .menu_group memakai menu teks lama juga', async () => {
+  const mod = await import(path.join(ROOT, 'plugins/main/umi-menu.js'))
+  const conn = makeConn()
+  const richCalls = []
+  conn.sendRichHtml = async () => { richCalls.push(1); return { ok: true } }
+  const m = makeMessage({ command: 'menu_group', text: '.menu_group', chat: '1203630@g.us', isGroup: true, sender: '628666000555@s.whatsapp.net' })
+  await mod.default.call(conn, m, { conn, usedPrefix: '.', command: 'menu_group', args: [], text: '' })
+  const joined = conn.sent.filter(i => i.payload && typeof i.payload.text === 'string').map(i => i.payload.text).join('\n')
+  assert.equal(richCalls.length, 0)
+  assert.match(joined, /kick|glist/i, 'perintah grup tidak muncul')
+})
+
 await test('plugin: ID tombol berprefix dihitung sebagai aksi yang sah', async () => {
   const mod = await import(path.join(ROOT, 'plugins/main/umi-menu.js'))
   const handler = mod.default
