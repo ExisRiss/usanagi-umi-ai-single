@@ -1,28 +1,21 @@
 /* By AlzRiss - Usanagi Umi AI
  *
- * MENU UMI — satu sistem menu untuk seluruh bot.
+ * MENU UMI — kartu HTML + navigasi native.
  *
- * Sejak Task105 lanjutan (permintaan owner: "hapus menu lama, ganti pakai menu
- * HTML"), perintah menu lama sudah dihapus dan seluruhnya dilayani di sini:
+ * Pembagian perintah (Task105c, permintaan owner):
  *
- *   .menu                  → kartu HTML Liquid Glass (fallback teks otomatis)
+ *   .menu                  → KARTU HTML (background foto) + daftar menu native
  *   .umimenu / .lmenu      → sama dengan .menu
- *   .menu_all [_halaman]   → seluruh perintah terdaftar (berhalaman)
- *   .menu_owner            → menu owner (diperiksa di server)
- *   .menu_group            → menu grup + cek metadata & admin bot
- *   .menu_game             → perintah kategori game
- *   .menu_tools            → perintah kategori tools
- *   .menu_refresh          → status terbaru (dibatasi 30 detik)
- *   .menu_back             → kembali ke menu
- *   .menu_dashboard        → paksa kartu HTML
- *   .allmenu               → alias .menu_all
- *   .kategori [nama]       → daftar perintah satu kategori
- *   .umimenu system umi|legacy  → (kompatibilitas; menu baru kini default)
- *   .umimenu style html|text    → paksa tampilan HTML atau teks
+ *   .menu_all [_halaman]   → All Menu versi HTML (BARU, terpisah)
+ *   .menu_owner|group|game|tools → menu lama seperti semula (teks kategori)
  *
- * Tombol/list WhatsApp mengirim balik ID-nya (mis. ".menu_all") yang oleh
- * serializer menjadi perintah biasa; router di lib/umi-menu/router.js yang
- * menjalankan aksinya, termasuk seluruh pemeriksaan izin.
+ * Perintah lama TIDAK diambil alih lagi:
+ *   .allmenu                → tetap milik plugins/main/usanagi-allmenu.js
+ *   .kategori / .listmenu   → tetap milik plugins/main/usanagi-kategori.js
+ *
+ * Kenapa kartu selalu diikuti daftar native: WebView WhatsApp tidak punya
+ * jaringan maupun bridge untuk mengirim pesan, jadi tombol di dalam HTML
+ * tidak bisa menjalankan perintah. Daftar native di bawah kartu yang bisa.
  */
 
 import {
@@ -32,7 +25,7 @@ import {
 import { buildCatalogue } from '../../lib/umi-menu/registry.js'
 import { isOwner } from '../../lib/awang-cekakses.js'
 
-const COMMAND_RE = /^(umimenu|lmenu|menu|allmenu|kategori|listmenu|menu_(?:all|owner|group|game|tools|refresh|back|dashboard)(?:_\d+)?)$/i
+const COMMAND_RE = /^(umimenu|lmenu|menu|menu_all(?:_\d+)?|menu_(?:owner|group|game|tools))$/i
 
 async function handleSettings(m, { conn, args }) {
   let allowed = m.fromMe === true
@@ -113,15 +106,30 @@ let handler = async function (m, extra = {}) {
   // .menu → kartu HTML
   if (command === 'menu') return dispatchMenuCommand(m, { conn, prefix, action: 'menu_dashboard' })
 
-  // .allmenu → daftar semua fitur (halaman 1 atau halaman yang diminta)
-  if (command === 'allmenu') {
-    const page = Number(String(args[0] || '').replace(/\D/g, '')) || null
+  // .menu_all [halaman] → All Menu versi HTML (baru, terpisah dari .allmenu)
+  if (command === 'menu_all' || /^menu_all_\d+$/.test(command)) {
+    const fromCommand = Number((command.match(/_all_(\d+)$/) || [])[1]) || 0
+    const page = Number(String(args[0] || '').replace(/\D/g, '')) || fromCommand || null
     return dispatchMenuCommand(m, { conn, prefix, action: 'menu_all', page })
   }
 
-  // .kategori <nama> / .listmenu
-  if (command === 'kategori' || command === 'listmenu') {
-    return dispatchMenuCommand(m, { conn, prefix, action: 'menu_kategori', args })
+  /*
+   * .menu_owner / .menu_group / .menu_game / .menu_tools → menu LAMA, apa
+   * adanya: plugin kategori yang sama dengan `.kategori <nama>` (teks +
+   * tombol navigasi), bukan halaman HTML baru.
+   */
+  const legacyMenu = command.match(/^menu_(owner|group|game|tools)$/)
+  if (legacyMenu) {
+    const category = legacyMenu[1]
+    const { default: kategoriHandler } = await import('./usanagi-kategori.js')
+    // Handler lama membaca nama kategori dari `m.args[0]`, bukan dari extra.
+    return kategoriHandler({ ...m, args: [category], text: category }, {
+      conn,
+      usedPrefix: prefix,
+      command: 'kategori',
+      args: [category],
+      text: category,
+    })
   }
 
   // ID tombol/list/native-flow
@@ -131,10 +139,10 @@ let handler = async function (m, extra = {}) {
 }
 
 handler.command = COMMAND_RE
-handler.help = ['menu', 'allmenu', 'kategori', 'menu_owner', 'menu_group', 'menu_game', 'menu_tools', 'menu_refresh']
+handler.help = ['menu', 'menu_all', 'menu_owner', 'menu_group', 'menu_game', 'menu_tools']
 handler.tags = ['main']
 handler.category = 'main'
-handler.description = 'Menu utama Umi Usanagi AI — kartu HTML Liquid Glass dengan statistik hidup, katalog fitur berhalaman, dan pemeriksaan izin'
+handler.description = 'Menu utama Umi Usanagi AI — kartu HTML (background foto) + daftar menu native yang bisa ditekan'
 handler.limit = false
 
 /**
