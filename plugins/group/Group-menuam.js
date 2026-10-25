@@ -21,15 +21,18 @@ let handler = async (m, { conn, usedPrefix }) => {
 
 Halo kak! Berikut adalah layanan Alight Motion Premium yang tersedia.
 
-*1. Pengirim Link Verifikasi*
- ◦ Perintah: \`${usedPrefix}ampremium\`
- ◦ Format: \`${usedPrefix}ampremium emailkamu@gmail.com\`
- ◦ Fungsi: Mengirim link aktivasi resmi ke Gmail kamu.
+*1. Kirim Magic Link*
+ ◦ Perintah: \`${usedPrefix}amprem\`
+ ◦ Format: \`${usedPrefix}amprem emailkamu@gmail.com\`
+ ◦ Fungsi: server mengirim link aktivasi ke email kamu.
 
-*2. Verifikasi Akun Premium*
- ◦ Perintah: \`${usedPrefix}amverify\`
- ◦ Format: \`${usedPrefix}amverify email | link_login\`
- ◦ Fungsi: Memasukkan link yang dikirim dari email untuk aktivasi Premium di akun kamu.
+*2. Verifikasi & Aktifkan Premium*
+ ◦ Perintah: \`${usedPrefix}amprem\`
+ ◦ Format: \`${usedPrefix}amprem emailkamu@gmail.com | link_dari_email\`
+ ◦ Fungsi: memverifikasi link lalu mengaktifkan premium.
+
+*3. Tutorial / bantuan*
+ ◦ \`${usedPrefix}amprem\` tanpa argumen = tutorial lengkap + status server.
 
 💡 *Info:*
 Jika *AM Mode* sedang **AKTIF**, maka siapapun di grup ini bisa menggunakan fitur di atas meskipun bukan user premium di bot!
