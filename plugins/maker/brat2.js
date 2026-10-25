@@ -185,9 +185,12 @@ const handler = async (m, { conn, text, usedPrefix, command }) => {
     return { success: false }
   }
 
+  let mediaFallback = null
+
   try {
     await m.react('⏳').catch(() => {})
     const result = await createBratMedia(input)
+    mediaFallback = result
     // API mengembalikan video, tetapi keluaran command ini WAJIB stiker.
     // Jangan kirim MP4/GIF/image langsung, termasuk ketika memakai fallback.
     const detected = await fileTypeFromBuffer(result.data)
@@ -212,6 +215,29 @@ const handler = async (m, { conn, text, usedPrefix, command }) => {
     return { success: true }
   } catch (error) {
     const reason = describeError(error)
+
+    /*
+     * 25-10-2026: di server yang ffmpeg-nya tidak tersedia (atau gagal
+     * dijalankan) perintah ini dulu mati total dengan "Cannot find ffmpeg"
+     * padahal media dari API sudah berhasil diunduh. Sekarang media itu tetap
+     * dikirim sebagai video/GIF — pengguna tidak pulang tangan kosong.
+     * Stiker tetap jadi jalur utama; fallback ini hanya saat konversi gagal.
+     */
+    if (/ffmpeg|spawn|ENOENT/i.test(reason) && mediaFallback?.data?.length) {
+      try {
+        const mime = mediaFallback.mimetype || 'video/mp4'
+        if (/^image\//.test(mime)) {
+          await conn.sendMessage(m.chat, { image: mediaFallback.data, mimetype: mime, caption: `🎨 ${input}` }, { quoted: m.raw || m })
+        } else {
+          await conn.sendMessage(m.chat, { video: mediaFallback.data, mimetype: mime, gifPlayback: true, caption: `🎬 ${input}` }, { quoted: m.raw || m })
+        }
+        await m.react('✅').catch(() => {})
+        return { success: true, fallback: 'media-tanpa-stiker' }
+      } catch (sendError) {
+        console.error('[BRATVID2] fallback media gagal:', describeError(sendError))
+      }
+    }
+
     console.error('[BRATVID2]', reason)
     await m.react('❌').catch(() => {})
     await m.reply(
