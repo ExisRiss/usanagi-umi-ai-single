@@ -42,7 +42,7 @@ import {
     fetchLatestBaileysVersion,
     makeCacheableSignalKeyStore,
     DisconnectReason
-} from '@rexxhayanasi/elaina-baileys';
+} from './lib/baileys.js';
 
 /* ============================================================
  * JADIBOT LIBRARY
