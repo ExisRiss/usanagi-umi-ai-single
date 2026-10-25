@@ -1,6 +1,4 @@
-import axios from 'axios'
-
-const API_BASE = 'https://apiii-xrina.my.id'
+import { fetchRinMedia, describe } from '../../lib/rin-api.js'
 
 let handler = async (m, { conn, args }) => {
   const text = args.join(' ') || m.quoted?.text
@@ -13,16 +11,14 @@ let handler = async (m, { conn, args }) => {
 
   try {
     await m.react('⏳').catch(() => {})
-    const url = `${API_BASE}/maker/bratvid?text=${encodeURIComponent(text)}`
-
-    const { data } = await axios.get(url, {
-      responseType: 'arraybuffer',
-      timeout: 60000,
-      headers: { 'User-Agent': 'Mozilla/5.0 (Linux; Android 13) Chrome/140' }
-    })
-
-    const buffer = Buffer.from(data)
+    const { buffer, type } = await fetchRinMedia('/maker/bratvid', text, { timeoutMs: 90000 })
     if (!buffer.length) throw new Error('API mengembalikan data kosong.')
+    // GIF dikirim sebagai stiker animasi; kalau API berubah jadi MP4, kirim video.
+    if (/video\/(mp4|webm)/.test(type)) {
+      await conn.sendMessage(m.chat, { video: buffer, mimetype: type.split(';')[0], gifPlayback: true }, { quoted: m })
+      await m.react('✅').catch(() => {})
+      return
+    }
 
     await conn.sendSticker(
       m.chat,
@@ -35,9 +31,9 @@ let handler = async (m, { conn, args }) => {
     )
     await m.react('✅').catch(() => {})
   } catch (e) {
-    console.error('[BRATVID]', e?.message || e)
+    console.error('[BRATVID]', describe(e))
     await m.react('❌').catch(() => {})
-    m.reply(`❌ Gagal membuat bratvid.\n${e?.message || e}`)
+    m.reply(`❌ Gagal membuat bratvid.\n${describe(e)}`)
   }
 }
 
