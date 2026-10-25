@@ -13,6 +13,23 @@ import { sendModernMenu, buildFullMenuText } from '../../lib/awang-menu.js'
 import { readMenuMedia } from '../../lib/menu-media.js'
 
 const handler = async (m, { conn, usedPrefix }) => {
+  /*
+   * Task105: menu sistem baru bisa menggantikan tampilan `.menu` TANPA
+   * menghapus menu lama. Default tetap 'legacy' (perilaku lama persis).
+   * Owner mengaktifkan lewat `.umimenu system umi`; kembalikan dengan
+   * `.umimenu system legacy`. Kalau modul baru gagal dimuat, menu lama jalan.
+   */
+  try {
+    const { shouldDelegateToUmiMenu, dispatchMenuCommand } = await import('../../lib/umi-menu/router.js')
+    if (shouldDelegateToUmiMenu()) {
+      const result = await dispatchMenuCommand(m, { conn, prefix: usedPrefix, action: 'menu_back' })
+      if (result?.ok) return
+      console.warn('[MENU] menu Umi gagal, memakai menu lama:', result?.mode)
+    }
+  } catch (error) {
+    console.warn('[MENU] modul menu Umi tidak tersedia:', error?.message || error)
+  }
+
   if (getMenuStyle() === 'modern') {
     await sendModernMenu(conn, m, usedPrefix)
     return
