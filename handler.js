@@ -12,6 +12,7 @@ import { smsg } from './lib/simple.js';
 import { generateWAMessageFromContent, proto } from '@rexxhayanasi/elaina-baileys'
 import { format } from 'util';
 import { recordError } from './lib/error-hub.js';
+import { errorReplyText } from './lib/umi-error.js';
 import { fileURLToPath } from 'url';
 import path from 'path';
 import fs, { unwatchFile, watchFile } from 'fs';
@@ -24,7 +25,8 @@ import {
 } from './lib/awang-cekakses.js'
 import { collectUserIdentityKeys, mergeUserIdentityRecords } from './lib/user-identity.js'
 import { getActivePrefix } from './core/awang-prefix.js'
-import { prefixStorageKey, isPluginDisabled } from './lib/bot-config.js'
+import { getMainBotConfig, prefixStorageKey, isPluginDisabled } from './lib/bot-config.js'
+import { detectAlternatePrefix } from './lib/prefix-detect.js'
 import { limitsEnabled } from './lib/limit-mode.js'
 import { canUseOwnerPlugin } from './lib/owner-policy.js'
 import { isPremiumFeatureLocked, premiumOwnerContact } from './lib/premium-mode.js'
@@ -156,6 +158,20 @@ export async function handler(chatUpdate) {
     return runWithBotConnection(this, () => withMessageResponses(this, () => handleMessage.call(this, chatUpdate)));
 }
 
+/* Cache 1 detik: cukup untuk menyegarkan prefix tanpa membaca berkas di
+ * setiap pesan yang masuk beruntun. */
+let mainConfigCache = { at: 0, value: null }
+function mainBotConfigSnapshot() {
+    const now = Date.now()
+    if (mainConfigCache.value && now - mainConfigCache.at < 1000) return mainConfigCache.value
+    try {
+        mainConfigCache = { at: now, value: getMainBotConfig() }
+    } catch {
+        mainConfigCache = { at: now, value: mainConfigCache.value }
+    }
+    return mainConfigCache.value
+}
+
 async function handleMessage(chatUpdate) {
     const conn = this;
     // Task64: status ON/OFF limit harus terbaca juga di blok finally (blok try
@@ -238,7 +254,29 @@ if (isBlacklistedUser && !isOwner && !blacklistCmd) {
 // dapat terdaftar di private chat tetapi terlihat belum terdaftar di grup.
 const userIdentityKeys = collectUserIdentityKeys(m, resolvedSenderNumber)
 const prefixKey = prefixStorageKey(this, m.chat)
-const activePrefix = await getActivePrefix(prefixKey, botConfig.defaultPrefix)
+/*
+ * Default prefix harus SELALU dibaca ulang.
+ *
+ * `botConfig` bot utama adalah snapshot saat bot dinyalakan (main.js menyetel
+ * global.conn.botConfig sekali). Dulu nilai itu yang dipakai sebagai default,
+ * sehingga `.setprefix global !` hanya mengubah chat yang sudah punya baris
+ * prefix di database; chat lain tetap memakai prefix lama sampai bot restart.
+ * Sekarang default diambil dari berkas setelan terbaru (di-cache 1 detik).
+ */
+let runDefaultPrefix = botConfig.defaultPrefix
+if (botConfig.type !== 'jadibot') {
+    const freshMainConfig = mainBotConfigSnapshot()
+    if (freshMainConfig && freshMainConfig.defaultPrefix) runDefaultPrefix = freshMainConfig.defaultPrefix
+}
+let activePrefix = await getActivePrefix(prefixKey, runDefaultPrefix)
+// Simbol prefix lain tetap diterima kalau sisa teksnya benar-benar nama perintah.
+if (!String(m.text || '').trim().startsWith(activePrefix)) {
+    const altPrefix = detectAlternatePrefix(m.text, global.plugins, activePrefix)
+    if (altPrefix) {
+        activePrefix = altPrefix
+        m.__detectedPrefix = altPrefix
+    }
+}
 // Activity clears AFK before private/premium/registration/only-group command gates.
 // Do this before profile merging, so a stale PN/LID field cannot overwrite the status.
 const afkNotify = (isOwner || m.fromMe || (botConfig.type === 'jadibot' ? botConfig.public !== false : global.db.data.settings?.[this.user.jid]?.public !== false)) && !isPluginDisabled(botConfig, '_system/_afk.js')
@@ -909,7 +947,10 @@ if (m.isGroup && chat.adminOnly && !isAdmin && !isOwner && isCmd) {
 					m.error = e;
 					console.error(e);
 					if (e) {
-						let text = format(e);
+						// Teks mentah (format(e)) hanya untuk log & laporan owner. Yang dikirim
+						// ke pengguna memakai pesan yang bisa dipahami (Task110).
+						const rawText = format(e);
+						let text = errorReplyText(e, format);
 						// Kirim juga ke halaman Feedback di website supaya jejaknya tidak hilang
 						// bersama log container. Dijalankan lebih dulu (tanpa menunggu) agar tidak
 						// menahan balasan ke pengguna; laporan yang sama digabung dalam 10 menit.
@@ -929,7 +970,7 @@ if (m.isGroup && chat.adminOnly && !isAdmin && !isOwner && isCmd) {
 							for (let [jid] of global.owner.filter(([number, _, isDeveloper]) => isDeveloper && number)) {
 								let data = (await conn.onWhatsApp(jid))[0] || {};
 								if (data.exists) {
-                                    const errorReport = `*🗂️ Plugin:* ${m.plugin}\n*👤 Sender:* ${m.sender}\n*💬 Chat:* ${m.chat}\n*💻 Command:* ${usedPrefix}${command} ${args.join(' ')}\n📄 *Error Logs:*\n\n\`\`\`${text}\`\`\``.trim();
+                                    const errorReport = `*🗂️ Plugin:* ${m.plugin}\n*👤 Sender:* ${m.sender}\n*💬 Chat:* ${m.chat}\n*💻 Command:* ${usedPrefix}${command} ${args.join(' ')}\n📄 *Error Logs:*\n\n\`\`\`${rawText}\`\`\``.trim();
                                     // Jangan quote message user ke chat developer. Context quote dapat
                                     // membawa externalAdReply/URL serta karakter invisible dari pesan
                                     // asal ke laporan error.

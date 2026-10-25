@@ -1,13 +1,21 @@
-/* By AlzRiss - Usanagi Umi AI */
+/* By AlzRiss - Usanagi Umi AI
+ *
+ * .ytmp3 / .yta — unduh audio YouTube jadi MP3.
+ *
+ * Perbaikan Task110:
+ *  1. Dulu plugin memanggil API `gateway.gencipta.com` dengan kunci bawaan
+ *     placeholder. Kuncinya tidak valid, jadi setiap permintaan berakhir
+ *     `API HTTP 401 - {"error":"Unauthorized: Invalid token"}` dan error itu
+ *     dilempar mentah ke pelapor error.
+ *  2. Sekarang seluruh sumber (yt-dlp → SaveTube → api-faa) ditangani
+ *     `lib/youtube-media.js`, jadi kalau satu gagal yang lain tetap dicoba.
+ *  3. Kegagalan dijawab dengan pesan yang bisa dibaca pengguna, tanpa stack.
+ */
 
 import fs from 'fs-extra'
-import { fetchBuffer } from '../../lib/awang-http.js'
-import { ytDlpExtractAudio } from '../../lib/awang-ytdlp.js'
+import { downloadYoutube, isYoutubeUrl } from '../../lib/youtube-media.js'
 
 const MAX_AUDIO = 100 * 1024 * 1024
-
-const API_URL = 'https://gateway.gencipta.com/api/downloader/ytmp3'
-const API_KEY = process.env.USANAGI_YTMP3_KEY || 'YOUR_GENCIPTA_API_KEY'
 
 async function react(conn, m, emoji) {
   try {
@@ -33,118 +41,40 @@ const handler = async (m, { conn, usedPrefix }) => {
     }, { quoted: m.raw })
   }
 
-  let parsed
-  try {
-    parsed = new URL(input)
-  } catch {
-    m.limit?.fail()
-    return conn.sendMessage(m.chat, { text: '❌ URL YouTube tidak valid.' }, { quoted: m.raw })
-  }
-
-  const hostname = parsed.hostname.toLowerCase().replace(/^www\./, '')
-  const valid = hostname === 'youtube.com' || hostname === 'youtu.be' || hostname === 'm.youtube.com'
-
-  if (!valid) {
+  if (!isYoutubeUrl(input)) {
     m.limit?.fail()
     return conn.sendMessage(m.chat, { text: '❌ Link tersebut bukan link YouTube.' }, { quoted: m.raw })
   }
 
   void react(conn, m, '⏳')
 
-  let ytDlpFile = null
+  let media = null
   try {
-    ytDlpFile = await ytDlpExtractAudio(input, MAX_AUDIO, { prefix: 'usanagi-ytmp3' })
-  } catch (ytDlpError) {
-    console.log(`  \x1b[33m⚠\x1b[0m  yt-dlp tidak dapat digunakan untuk ytmp3: ${ytDlpError.message}`)
-  }
-
-  if (ytDlpFile) {
-    try {
-      await conn.sendMessage(m.chat, {
-        audio: { url: ytDlpFile },
-        mimetype: 'audio/mpeg',
-        fileName: 'youtube.mp3',
-        ptt: false
-      }, { quoted: m.raw })
-      await react(conn, m, '✅')
-      m.limit?.success()
-      return
-    } catch (sendError) {
-      console.error('[USANAGI YTMP3 YTDLP SEND]', sendError)
-    } finally {
-      await fs.remove(ytDlpFile).catch(() => {})
-    }
-  }
-
-  if (!API_KEY) {
-    m.limit?.fail()
-    await react(conn, m, '❌')
-    return conn.sendMessage(m.chat, { text: '❌ Gagal mendownload YouTube (yt-dlp gagal, dan API cadangan belum diset).' }, { quoted: m.raw })
-  }
-
-  try {
-    const endpoint = `${API_URL}?url=${encodeURIComponent(input)}`
-    const response = await fetch(endpoint, {
-      method: 'GET',
-      headers: {
-        Accept: 'application/json',
-        Authorization: `Bearer ${API_KEY}`,
-        'User-Agent': 'Mozilla/5.0'
-      }
-    })
-
-    if (!response.ok) {
-      let errorText = ''
-      try { errorText = await response.text() } catch {}
-      throw new Error(`API HTTP ${response.status}${errorText ? ` - ${errorText.slice(0, 300)}` : ''}`)
-    }
-
-    const result = await response.json()
-    console.log('[USANAGI YTMP3]', result)
-
-    if (result?.status !== true) {
-      throw new Error(result?.error || result?.message || 'API gagal memproses YouTube.')
-    }
-
-    const audioUrl = result.output
-    if (!audioUrl || typeof audioUrl !== 'string') {
-      throw new Error('URL audio tidak ditemukan pada output API.')
-    }
-
-    const audioResponse = await fetchBuffer(audioUrl, {
-      timeout: 120000,
-      maxBytes: MAX_AUDIO,
-      headers: {
-        'User-Agent': 'Mozilla/5.0',
-        Accept: 'audio/mpeg,audio/*,*/*'
-      }
-    })
-
-    const audioBuffer = audioResponse.buffer
-    if (!audioBuffer.length) {
-      throw new Error('File MP3 kosong.')
-    }
-
-    const title = result.title || 'YouTube Audio'
+    media = await downloadYoutube(input, { type: 'audio', maxBytes: MAX_AUDIO, prefix: 'usanagi-ytmp3' })
 
     await conn.sendMessage(m.chat, {
-      audio: audioBuffer,
+      audio: { url: media.file },
       mimetype: 'audio/mpeg',
-      fileName: `${sanitizeFilename(title)}.mp3`,
+      fileName: `${sanitizeFilename(media.title)}.mp3`,
       ptt: false
     }, { quoted: m.raw })
 
     await react(conn, m, '✅')
     m.limit?.success()
-
   } catch (error) {
     m.limit?.fail()
-    console.error('[USANAGI YTMP3 ERROR]', error)
     await react(conn, m, '❌')
+    const kode = String(error?.code || '')
+    const alasan = kode === 'UMI_DISK_FULL'
+      ? String(error.message)
+      : 'Semua sumber audio sedang tidak bisa dipakai (yt-dlp ditolak YouTube, sumber cadangan ikut gagal).'
     await conn.sendMessage(m.chat, {
-      text: `❌ Gagal mendownload YouTube.\n\nError: ${error.message}`
+      text: `❌ Gagal mengunduh audio YouTube.\n\n${alasan}\n\nCoba lagi nanti atau pakai link lain.`
     }, { quoted: m.raw })
-    throw error
+    // Jangan throw: kegagalan unduhan adalah kejadian normal, bukan bug bot.
+    console.warn('[USANAGI YTMP3]', error?.message || error)
+  } finally {
+    if (media?.file) await fs.remove(media.file).catch(() => {})
   }
 }
 
