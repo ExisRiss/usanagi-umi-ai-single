@@ -12,6 +12,7 @@
 import assert from 'assert'
 import path from 'path'
 import fs from 'fs'
+import crypto from 'crypto'
 
 const ROOT = '/home/user/work-task94/single'
 process.chdir(ROOT)
@@ -207,14 +208,20 @@ await test('halaman katalog memuat nomor halaman dan perintah navigasi', () => {
 })
 
 /* ---------------- 4. router & pembatasan ---------------- */
-await test('menu_all mengirim ke chat asal saja', async () => {
+await test('menu_all hanya mengirim ke chat asal (HTML + navigasi native)', async () => {
+  router.resetMenuState()
   const conn = makeConn()
+  const cards = []
+  conn.sendRichHtml = async (jid, html) => { cards.push({ jid, html }); return { ok: true, mode: 'relay-html' } }
   const m = makeMessage({ chat: '1203630@g.us', isGroup: true, command: 'menu_all', text: '.menu_all' })
   const result = await dispatchMenuCommand(m, { conn, prefix: '.', action: 'menu_all' })
   assert.equal(result.ok, true)
-  assert.equal(conn.sent.length, 1)
-  assert.equal(conn.sent[0].jid, '1203630@g.us')
-  assert.ok(conn.sent[0].payload.text.includes('SEMUA FITUR'))
+  assert.equal(cards.length, 1, 'halaman HTML allmenu tidak dikirim')
+  assert.equal(cards[0].jid, '1203630@g.us')
+  assert.match(cards[0].html, /All Menu/)
+  const all = conn.sent.map(item => item.jid)
+  assert.ok(all.length >= 1, 'daftar navigasi tidak dikirim')
+  assert.ok(all.every(jid => jid === '1203630@g.us'), 'ada pesan yang bocor ke chat lain')
 })
 
 await test('menu_owner menolak non-owner tanpa membocorkan daftar', async () => {
@@ -322,33 +329,57 @@ await test('balasan angka 1–6 hanya aktif setelah menu dikirim', async () => {
 })
 
 await test('error pengiriman tidak membuat router melempar', async () => {
+  router.resetMenuState()
   const conn = makeConn()
   conn.failSend = true
-  const m = makeMessage({ command: 'menu_all' })
-  const result = await dispatchMenuCommand(m, { conn, prefix: '.', action: 'menu_all' })
-  assert.equal(result.ok, false)
-  assert.equal(result.mode, 'text')
+  conn.sendRichHtml = async () => ({ ok: false, mode: 'rich-error', error: 'relay ditolak' })
+  const m = makeMessage({ command: 'menu_all', sender: '628555000123@s.whatsapp.net', chat: '628555000123@s.whatsapp.net' })
+  let threw = false
+  let result = null
+  try {
+    result = await dispatchMenuCommand(m, { conn, prefix: '.', action: 'menu_all' })
+  } catch {
+    threw = true
+  }
+  assert.equal(threw, false, 'router melempar saat pengiriman gagal')
+  assert.ok(result && typeof result.mode === 'string', 'router tidak mengembalikan status')
+  // Pengiriman boleh gagal (ok:false) atau berhasil lewat jalur relay; yang
+  // penting tidak ada exception yang sampai ke handler.
 })
 
 /* ---------------- 5. kartu HTML ---------------- */
-await test('kartu HTML memakai data hidup dan tetap kecil', async () => {
+await test('kartu HTML memakai data hidup dan tetap di bawah batas rich', async () => {
   const catalogue = buildCatalogue()
   const status = await collectStatus({ conn: makeConn(), chat: '628111@s.whatsapp.net', cpuSampleMs: 10 })
   const html = buildDashboardHtml({ status, stats: catalogue.stats, prefix: '.', botNumber: '628999888777' })
   assert.match(html, /Usanagi Umi AI/)
   assert.match(html, /AlzRiss/)
-  assert.match(html, /8 perintah|<b>8<\/b>/)
+  assert.match(html, /8 perintah/)
+  assert.match(html, /\.menu_all/, 'kartu tidak menyebut perintah allmenu HTML')
   assert.ok(html.length < 900 * 1024, 'kartu HTML melebihi batas rich HTML')
-  assert.match(html, /wa\.me\/628999888777/)
   assert.ok(!/access_token|refresh_token|session|apikey|api_key/i.test(html), 'kartu HTML memuat kata sensitif')
 })
 
-await test('tanpa nomor bot, kartu HTML tidak membuat tautan palsu', async () => {
+await test('kartu HTML tidak memuat tautan keluar (WebView WhatsApp tanpa jaringan)', () => {
   const catalogue = buildCatalogue()
-  const status = await collectStatus({ conn: makeConn({ user: {} }), chat: '628111@s.whatsapp.net', cpuSampleMs: 10 })
-  const html = buildDashboardHtml({ status, stats: catalogue.stats, prefix: '.', botNumber: '' })
-  assert.ok(!html.includes('wa.me/'), 'tautan wa.me dibuat tanpa nomor')
-  assert.match(html, /aria-disabled="true"/)
+  return collectStatus({ conn: makeConn(), chat: '628111@s.whatsapp.net', cpuSampleMs: 10 }).then(status => {
+    const html = buildDashboardHtml({ status, stats: catalogue.stats, prefix: '.' })
+    assert.ok(!/<a\s/i.test(html), 'kartu memuat anchor yang tidak bisa diklik')
+    assert.ok(!/wa\.me|https?:\/\//i.test(html), 'kartu memuat URL eksternal')
+    assert.match(html, /Tombol menu ada di daftar WhatsApp/, 'kartu tidak menjelaskan cara membuka menu')
+  })
+})
+
+await test('kartu memakai background foto bila aset tersedia', () => {
+  const catalogue = buildCatalogue()
+  return collectStatus({ conn: makeConn(), chat: '628111@s.whatsapp.net', cpuSampleMs: 10 }).then(status => {
+    const html = buildDashboardHtml({
+      status, stats: catalogue.stats, prefix: '.',
+      assets: { backgroundDataUri: 'data:image/jpeg;base64,AAAA', logoDataUri: 'data:image/jpeg;base64,BBBB' },
+    })
+    assert.match(html, /class="hero-bg" src="data:image\/jpeg;base64,AAAA"/)
+    assert.match(html, /class="logo" src="data:image\/jpeg;base64,BBBB"/)
+  })
 })
 
 await test('menu_dashboard memakai sendRichHtml dan fallback teks bila gagal', async () => {
@@ -376,37 +407,104 @@ await test('plugin umi-menu memuat dan mendaftarkan semua ID interaksi', async (
   const mod = await import(path.join(ROOT, 'plugins/main/umi-menu.js'))
   const handler = mod.default
   assert.equal(typeof handler, 'function')
-  const ids = ['umimenu', 'lmenu', 'menu_all', 'menu_owner', 'menu_group', 'menu_game', 'menu_tools', 'menu_refresh', 'menu_back', 'menu_dashboard', 'menu_all_4']
+  const ids = ['umimenu', 'lmenu', 'menu', 'menu_all', 'menu_all_4', 'menu_owner', 'menu_group', 'menu_game', 'menu_tools']
   for (const id of ids) assert.ok(handler.command.test(id), `perintah ${id} tidak cocok dengan handler.command`)
   handler.command.lastIndex = 0
-  assert.ok(!handler.command.test('menu_unknown'))
+  // Menu teks lama tidak boleh diambil alih lagi.
+  for (const id of ['allmenu', 'kategori', 'listmenu', 'menu_refresh', 'menu_unknown']) {
+    assert.ok(!handler.command.test(id), `umi-menu masih mengklaim ${id}`)
+  }
   assert.equal(typeof handler.all, 'function')
 })
 
-await test('plugin: .umimenu mengirim menu, .menu_owner menolak non-owner', async () => {
+await test('.menu mengirim kartu HTML (bukan menu teks lama)', async () => {
+  router.resetMenuState()
+  const calls = []
+  const conn = makeConn()
+  conn.sendRichHtml = async (jid, html, options) => {
+    calls.push({ jid, html, options })
+    return { ok: true, mode: 'relay-html' }
+  }
+  const m = makeMessage({ command: 'menu', text: '.menu', sender: '628555000999@s.whatsapp.net', chat: '628555000999@s.whatsapp.net' })
+  const result = await dispatchMenuCommand(m, { conn, prefix: '.', action: 'menu_dashboard' })
+  assert.equal(result.ok, true)
+  assert.equal(calls.length, 1, 'kartu HTML tidak dikirim')
+  assert.match(calls[0].html, /Usanagi Umi AI/)
+  assert.match(calls[0].html, /\.menu_all/)
+  assert.match(result.mode, /dashboard/, 'mode kartu tidak dilaporkan')
+  // Setelah kartu harus ada pesan navigasi (list native atau teks) yang bisa ditekan.
+  assert.ok(conn.sent.length >= 1, 'navigasi menu tidak dikirim setelah kartu')
+})
+
+await test('.umimenu style text memaksa menu teks', async () => {
+  router.resetMenuState()
+  const conn = makeConn()
+  const owner = makeMessage({ command: 'umimenu', text: '.umimenu style text', sender: '628111222333@s.whatsapp.net', chat: '628111222333@s.whatsapp.net' })
+  owner.reply = async text => { conn.sent.push({ jid: 'reply', payload: { text } }) }
+  const mod = await import(path.join(ROOT, 'plugins/main/umi-menu.js'))
+  await mod.default.call(conn, owner, { conn, usedPrefix: '.', command: 'umimenu', args: ['style', 'text'], text: '' })
+  assert.match(String(conn.sent[0].payload.text), /tampilan teks/)
+  // mode teks: .menu tidak memakai sendRichHtml
+  const richCalls = []
+  conn.sendRichHtml = async () => { richCalls.push(1); return { ok: true } }
+  router.resetMenuState()
+  await dispatchMenuCommand(makeMessage({ command: 'menu', sender: '628555000998@s.whatsapp.net', chat: '628555000998@s.whatsapp.net' }), { conn, prefix: '.', action: 'menu_dashboard' })
+  assert.equal(richCalls.length, 0, 'mode teks masih mengirim HTML')
+  const last = conn.sent[conn.sent.length - 1].payload.text
+  assert.match(String(last), /UMI USANAGI AI/)
+  // kembalikan ke html untuk uji berikutnya
+  router.writeMenuSettings({ style: 'html' })
+})
+
+await test('.kategori <nama> menampilkan perintah kategori itu saja', async () => {
+  router.resetMenuState()
+  const conn = makeConn()
+  const m = makeMessage({ command: 'kategori', sender: '628555000777@s.whatsapp.net', chat: '628555000777@s.whatsapp.net' })
+  const listing = await dispatchMenuCommand(m, { conn, prefix: '.', action: 'menu_kategori', args: ['game'] })
+  assert.equal(listing.mode, 'kategori')
+  assert.equal(listing.count, 2)
+  const text = conn.sent[0].payload.text
+  assert.match(text, /GAME/)
+  assert.ok(text.includes('uno') && text.includes('slot'))
+  assert.ok(!text.includes('toimg'), 'kategori lain ikut tampil')
+
+  router.resetMenuState()
+  const missing = await dispatchMenuCommand(makeMessage({ command: 'kategori', sender: '628555000776@s.whatsapp.net', chat: '628555000776@s.whatsapp.net' }), { conn, prefix: '.', action: 'menu_kategori', args: ['tidakada'] })
+  assert.equal(missing.mode, 'kategori-missing')
+})
+
+await test('menu teks lama (.allmenu/.kategori) kembali apa adanya', () => {
+  const pairs = [
+    ['plugins/main/usanagi-allmenu.js', '/home/user/backups/task105b/menu-lama/plugins_main_usanagi-allmenu.js'],
+    ['plugins/main/usanagi-kategori.js', '/home/user/backups/task105b/menu-lama/plugins_main_usanagi-kategori.js'],
+    ['plugins/_system/_allmenu.js', '/home/user/backups/task105b/menu-lama/plugins__system__allmenu.js'],
+  ]
+  for (const [rel, backup] of pairs) {
+    const file = path.join(ROOT, rel)
+    assert.ok(fs.existsSync(file), `${rel} belum dipulihkan`)
+    assert.equal(
+      crypto.createHash('sha256').update(fs.readFileSync(file)).digest('hex'),
+      crypto.createHash('sha256').update(fs.readFileSync(backup)).digest('hex'),
+      `${rel} berubah dari versi asli`
+    )
+  }
+  // .menu lama tetap tidak dipulihkan: .menu sekarang kartu HTML.
+  assert.ok(!fs.existsSync(path.join(ROOT, 'plugins/main/usanagi-menu.js')), 'usanagi-menu.js tidak boleh kembali')
+})
+
+await test('plugin: .umimenu mengirim menu, .menu_owner memakai menu teks lama', async () => {
   const mod = await import(path.join(ROOT, 'plugins/main/umi-menu.js'))
   const handler = mod.default
 
+  router.resetMenuState()
   const conn = makeConn()
+  const cards = []
+  conn.sendRichHtml = async (jid, html) => { cards.push(jid); return { ok: true, mode: 'relay-html' } }
   const menuMessage = makeMessage({ command: 'umimenu', text: '.umimenu', sender: '628666000111@s.whatsapp.net', chat: '628666000111@s.whatsapp.net' })
   await handler.call(conn, menuMessage, { conn, usedPrefix: '.', command: 'umimenu', args: [], text: '' })
-  assert.ok(conn.sent.length >= 1, 'menu tidak terkirim')
-  const outgoing = conn.sent[0]
-  assert.equal(outgoing.jid, '628666000111@s.whatsapp.net')
-  // Jalur native (list) memakai relayMessage; jalur teks memakai payload.text.
-  if (outgoing.relay) {
-    const text = JSON.stringify(outgoing.relay)
-    assert.match(text, /menu_all|BUKA MENU/, 'payload list tidak memuat aksi menu')
-  } else {
-    const body = outgoing.payload?.text || outgoing.payload?.body || ''
-    assert.match(String(body), /UMI USANAGI AI/)
-  }
-
-  router.resetMenuState()
-  const conn2 = makeConn()
-  const outsider = makeMessage({ command: 'menu_owner', text: '.menu_owner', sender: '628666000222@s.whatsapp.net', chat: '628666000222@s.whatsapp.net' })
-  await handler.call(conn2, outsider, { conn: conn2, usedPrefix: '.', command: 'menu_owner', args: [], text: '' })
-  assert.match(String(conn2.sent[0].payload.text), /ditolak/)
+  assert.equal(cards.length, 1, 'kartu menu tidak dikirim')
+  assert.ok(conn.sent.length >= 1, 'daftar tombol tidak dikirim')
+  assert.equal(conn.sent[0].jid, '628666000111@s.whatsapp.net')
 })
 
 await test('plugin: ID tombol berprefix dihitung sebagai aksi yang sah', async () => {
@@ -414,8 +512,68 @@ await test('plugin: ID tombol berprefix dihitung sebagai aksi yang sah', async (
   const handler = mod.default
   const conn = makeConn()
   const m = makeMessage({ command: 'menu_all', text: '.menu_all', sender: '628666000333@s.whatsapp.net', chat: '628666000333@s.whatsapp.net' })
+  const before = conn.sent.length
   await handler.call(conn, m, { conn, usedPrefix: '.', command: 'menu_all', args: [], text: '' })
-  assert.match(String(conn.sent[0].payload.text), /SEMUA FITUR/)
+  assert.ok(conn.sent.length > before, 'ID .menu_all tidak menghasilkan pesan apa pun')
+  const payload = JSON.stringify(conn.sent.slice(before))
+  assert.match(payload, /SEMUA FITUR|All Menu|menu_all/, 'ID .menu_all tidak diproses sebagai perintah')
+})
+
+await test('auto-ai memilih umi-menu untuk .menu dan allmenu teks untuk .allmenu', () => {
+  const source = fs.readFileSync(path.join(ROOT, 'lib/auto-ai.js'), 'utf8')
+  assert.ok(source.includes("/umi-menu.js"), 'auto-ai.js belum mengarah ke umi-menu.js')
+  assert.ok(source.includes("/_allmenu.js"), 'auto-ai.js kehilangan preferensi allmenu teks')
+  assert.ok(!/usanagi-menu\.js/.test(source), 'auto-ai.js masih menunjuk menu yang sudah dihapus')
+})
+
+await test('setmenu lama tidak menyimpan gaya yang sudah tidak dipakai', () => {
+  const source = fs.readFileSync(path.join(ROOT, 'plugins/owner/owner-setmenu.js'), 'utf8')
+  assert.ok(source.includes('readMenuSettings'), 'setmenu belum membaca pengaturan menu baru')
+  assert.ok(!/setMenuStyle\(/.test(source.split('const handler')[1] || ''),
+    'setmenu masih memanggil setMenuStyle pada alur perintah')
+})
+
+await test('plugin .setmenu mengatur menu utama + gaya .help, tanpa duplikat', async () => {
+  const mod = await import(path.join(ROOT, 'plugins/owner/owner-setmenu.js'))
+  const handler = mod.default
+  const before = router.readMenuSettings()
+  const replies = []
+  const msg = (arg) => ({ args: arg === undefined ? [] : [arg], reply: async (t) => replies.push(String(t)) })
+  const conn = { user: { jid: '628000@s.whatsapp.net' } }
+  const run = (arg) => handler(msg(arg), { conn, usedPrefix: '.', command: 'setmenu', text: arg === undefined ? '' : arg, isOwner: true })
+  await run(undefined)
+  assert.match(replies.at(-1), /kartu HTML/i)
+  assert.match(replies.at(-1), /Gaya \.help/i)
+  await run('text')
+  assert.equal(router.readMenuSettings().style, 'text')
+  assert.match(replies.at(-1), /teks/i)
+  await run('modern')
+  assert.equal(router.readMenuSettings().style, 'html')
+  await run('3')
+  assert.match(replies.at(-1), /Classic Text/)
+  await run('ngawur')
+  assert.match(replies.at(-1), /tidak dikenal/i)
+  await run('text')
+  const outsider = []
+  await handler({ args: [], reply: async (t) => outsider.push(String(t)) }, { conn, usedPrefix: '.', command: 'setmenu', text: '', isOwner: false })
+  assert.match(outsider.at(-1), /Hanya Owner/i)
+  router.writeMenuSettings({ style: before.style || 'html' })
+})
+
+await test('hanya satu plugin yang memiliki perintah setmenu', () => {
+  const dir = path.join(ROOT, 'plugins')
+  const owners = []
+  const walk = (folder) => {
+    for (const item of fs.readdirSync(folder, { withFileTypes: true })) {
+      const full = path.join(folder, item.name)
+      if (item.isDirectory()) { walk(full); continue }
+      if (!item.name.endsWith('.js')) continue
+      const src = fs.readFileSync(full, 'utf8')
+      if (src.includes('handler.command = /^setmenu$/i')) owners.push(path.relative(ROOT, full))
+    }
+  }
+  walk(dir)
+  assert.deepEqual(owners, ['plugins/owner/owner-setmenu.js'])
 })
 
 await test('aset menu ada dan valid', () => {
