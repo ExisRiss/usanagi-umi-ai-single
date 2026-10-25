@@ -769,16 +769,19 @@ const handler = async (m, context) => {
     return handlePick(m, context)
   }
 
-  if (command === 'brat') {
+  // `brat` biasa sekarang dilayani plugins/maker/brat.js lewat Rin API
+  // (apiii-xrina) supaya satu perintah = satu sumber. Menu 10 style lokal ini
+  // tetap bisa dipakai lewat `bratmenu` (alias baru, bukan penggantian nama).
+  if (command === 'bratmenu' || command === 'brat') {
     return handleCommand(m, context)
   }
 }
 
-handler.command = /^(brat|bratpick)$/i
-handler.help = ['brat']
+handler.command = /^(bratmenu|bratpick)$/i
+handler.help = ['bratmenu', 'bratpick']
 handler.tags = ['sticker']
 handler.category = 'sticker'
-handler.description = 'Membuat stiker Brat dengan 10 style'
+handler.description = 'Menu 10 style stiker Brat (lokal) — perintah brat biasa memakai Rin API'
 handler.limit = false
 handler.isOwner = false
 handler.isPremium = false
