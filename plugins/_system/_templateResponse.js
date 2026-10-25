@@ -1,54 +1,151 @@
-/* By AlzRiss - Usanagi Umi AI */
+/* By AlzRiss - Usanagi Umi AI
+ *
+ * Menyalurkan balasan tombol / daftar / native-flow menjadi perintah biasa.
+ *
+ * Perbaikan Task108 (menekan tombol menu tapi bot diam):
+ *  1. ID dibaca dengan `extractSelectionId` baru → bentuk bersarang
+ *     (`interactiveResponseMessage.nativeFlowResponseMessage`) dan bentuk
+ *     terbungkus (`viewOnceMessage`) ikut terbaca.
+ *  2. ID tanpa prefix (mis. "allmenu") diberi prefix SEBELUM dikirim ulang.
+ *     Prefix diambil dari pengaturan chat yang sebenarnya (core/awang-prefix),
+ *     bukan tebakan — dulu salah prefix sehingga handler mengabaikannya.
+ *  3. Pengiriman ulang hanya dilakukan bila ID itu memang nama perintah yang
+ *     terdaftar, supaya payload tombol lain tidak memicu "perintah tak dikenal".
+ *  4. Pesan sintetis hanya dibuat kalau serializer belum mengisi m.text,
+ *     supaya tidak ada balasan ganda.
+ */
 
-import { proto, generateWAMessage, areJidsSameUser } from '@rexxhayanasi/elaina-baileys';
-import { extractSelectionId } from '../../lib/message-response.js';
+import {
+  proto,
+  generateWAMessage,
+  areJidsSameUser,
+  generateMessageIDV2,
+} from '@rexxhayanasi/elaina-baileys'
+import { extractSelectionId } from '../../lib/message-response.js'
+import { getActivePrefix } from '../../core/awang-prefix.js'
+import { prefixStorageKey } from '../../lib/bot-config.js'
+
+const PREFIX_CHARS = ['.', '/', '!', '#', '?', '<', '>', '$', '%', '&', '+', '-', '=', '#']
+
+function fallbackPrefix() {
+  const value = String(global?.prefix || '.').trim()
+  return value || '.'
+}
+
+/** Prefix yang benar-benar dipakai handler untuk chat ini. */
+export async function activePrefixFor(conn, chat) {
+  try {
+    const fallback = conn?.botConfig?.defaultPrefix || fallbackPrefix()
+    const value = await getActivePrefix(prefixStorageKey(conn, chat), fallback)
+    const text = String(value || fallback).trim()
+    return text || '.'
+  } catch {
+    return fallbackPrefix()
+  }
+}
+
+/** Pastikan ID punya prefix supaya bisa dieksekusi handler. */
+export function withPrefix(id, prefix) {
+  const value = String(id || '').trim()
+  if (!value) return ''
+  if (PREFIX_CHARS.includes(value[0])) return value
+  const head = String(prefix || fallbackPrefix()).trim() || '.'
+  return `${head}${value}`
+}
+
+/* ---------------------------------------------------------------
+ * Daftar perintah yang terdaftar (di-cache sebentar supaya ringan).
+ * --------------------------------------------------------------- */
+let commandCache = { at: 0, cmd: new Set(), help: new Set() }
+
+function buildCommandCache() {
+  const cmd = new Set()
+  const help = new Set()
+  for (const key in global.plugins || {}) {
+    const plugin = global.plugins[key]
+    if (!plugin) continue
+    try {
+      if (plugin.command instanceof RegExp) {
+        const source = String(plugin.command.source || '').replace(/^\^|\$$/g, '')
+        for (const part of source.split('|')) {
+          const clean = part.replace(/[\\^$.*+?()[\]{}]/g, '').trim().toLowerCase()
+          if (clean) cmd.add(clean)
+        }
+      } else if (Array.isArray(plugin.command)) {
+        for (const item of plugin.command) cmd.add(String(item).toLowerCase())
+      } else if (plugin.command) {
+        cmd.add(String(plugin.command).toLowerCase())
+      }
+      if (Array.isArray(plugin.help)) for (const item of plugin.help) help.add(String(item).toLowerCase())
+      else if (plugin.help) help.add(String(plugin.help).toLowerCase())
+    } catch {
+      /* plugin rusak: lewati */
+    }
+  }
+  commandCache = { at: Date.now(), cmd, help }
+}
+
+function isKnownCommand(id) {
+  if (!commandCache.at || Date.now() - commandCache.at > 60_000) buildCommandCache()
+  const word = String(id || '').trim().replace(/^[^\w]+/, '').split(/\s+/)[0].toLowerCase()
+  if (!word) return false
+  return commandCache.cmd.has(word) || commandCache.help.has(word)
+}
 
 function responseId(m) {
-	if (m.mtype === 'conversation') return m.message.conversation || '';
-	if (m.mtype === 'imageMessage') return m.message.imageMessage?.caption || '';
-	if (m.mtype === 'videoMessage') return m.message.videoMessage?.caption || '';
-	if (m.mtype === 'extendedTextMessage') return m.message.extendedTextMessage?.text || '';
-	if (['buttonsResponseMessage', 'listResponseMessage', 'templateButtonReplyMessage', 'interactiveResponseMessage'].includes(m.mtype)) {
-		return extractSelectionId(m.msg);
-	}
-	if (m.mtype === 'messageContextInfo') {
-		return m.message.buttonsResponseMessage?.selectedButtonId ||
-			m.message.listResponseMessage?.singleSelectReply?.selectedRowId ||
-			m.text || '';
-	}
-	return '';
+  if (!m?.message) return ''
+  const viaSerializer = extractSelectionId(m.message)
+  if (viaSerializer) return viaSerializer
+  return extractSelectionId(m.msg)
 }
 
 export async function all(m, chatUpdate) {
-	if (m.isBaileys) return;
-	if (!m.message) return;
-	if (!(m.message.buttonsResponseMessage || m.message.templateButtonReplyMessage || m.message.listResponseMessage || m.message.interactiveResponseMessage || m.message.pollUpdateMessage)) return;
+  try {
+    if (!m?.message) return
+    const looksLikeResponse =
+      m.message.buttonsResponseMessage ||
+      m.message.templateButtonReplyMessage ||
+      m.message.listResponseMessage ||
+      m.message.interactiveResponseMessage ||
+      m.message.viewOnceMessage?.message?.interactiveResponseMessage ||
+      m.message.viewOnceMessageV2?.message?.interactiveResponseMessage ||
+      m.message.pollUpdateMessage
+    if (!looksLikeResponse) return
 
-	const id = responseId(m);
-	if (!id) return;
+    const raw = responseId(m)
+    if (!raw) return
 
-	// Serializer baru sudah menaruh ID tombol/list/native-flow ke m.text.
-	// Dalam kondisi itu command diproses langsung oleh handler. Jangan emit
-	// pesan sintetis lagi karena akan membuat kategori dibalas dua kali.
-	if (m.text === id) return;
+    const id = withPrefix(raw, await activePrefixFor(this, m.chat))
 
-	let messages = await generateWAMessage(
-		m.chat,
-		{ text: id, mentions: m.mentionedJid },
-		{
-			userJid: this.user.jid,
-			quoted: m.quoted && m.quoted.fakeObj,
-		}
-	);
-	messages.key.remoteJid = m.chat;
-	messages.key.fromMe = areJidsSameUser(m.sender, this.user.id);
-	messages.key.id = m.key.id;
-	messages.pushName = m.pushName;
-	if (m.isGroup) messages.key.participant = messages.participant = m.sender;
-	let msg = {
-		...chatUpdate,
-		messages: [proto.WebMessageInfo.create(messages)].map((v) => ((v.conn = this), v)),
-		type: 'append',
-	};
-	this.ev.emit('messages.upsert', msg);
+    // Serializer sudah memasukkan ID ke m.text → handler menanganinya sendiri.
+    if (String(m.text || '').trim() === id) return
+
+    // Payload tombol yang bukan perintah: jangan dikirim ulang.
+    if (!isKnownCommand(raw)) return
+
+    const messages = await generateWAMessage(
+      m.chat,
+      { text: id, mentions: m.mentionedJid },
+      {
+        userJid: this.user.jid,
+        quoted: m.quoted && m.quoted.fakeObj,
+      }
+    )
+    messages.key.remoteJid = m.chat
+    messages.key.fromMe = areJidsSameUser(m.sender, this.user.id)
+    messages.key.id = typeof generateMessageIDV2 === 'function'
+      ? generateMessageIDV2(m.sender)
+      : `${m.key?.id || Date.now()}-tap`
+    messages.pushName = m.pushName
+    if (m.isGroup) messages.key.participant = messages.participant = m.sender
+
+    const wrapped = {
+      ...chatUpdate,
+      messages: [proto.WebMessageInfo.create(messages)].map(v => ((v.conn = this), v)),
+      type: 'append',
+    }
+    this.ev.emit('messages.upsert', wrapped)
+  } catch (error) {
+    console.error('[TEMPLATE-RESPONSE] gagal menyalurkan tombol:', error?.message || error)
+  }
 }
