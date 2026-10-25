@@ -39,6 +39,9 @@ export const API_KEY_ENV = {
   openai: 'OPENAI_API_KEY',
   saveTubeQuality: 'UMI_SAVETUBE_VIDEO_QUALITY',
   xrina: 'UMI_XRINA_KEY',
+  // Statistik website (Supabase) untuk menu real-time.
+  supabaseUrl: 'UMI_DATA_SUPABASE_URL',
+  supabaseServiceKey: 'UMI_DATA_SERVICE_ROLE_KEY',
 }
 
 import fs from 'node:fs'
