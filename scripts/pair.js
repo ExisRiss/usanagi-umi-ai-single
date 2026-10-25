@@ -23,7 +23,7 @@ import {
   useMultiFileAuthState,
   Browsers,
   DisconnectReason,
-} from '@rexxhayanasi/elaina-baileys'
+} from '../lib/baileys.js'
 import { normalizeUserNumber, readSingleUsers, writeSingleUsers } from '../config/single-mode.js'
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..')
@@ -88,7 +88,9 @@ sock.ev.on('connection.update', async update => {
         const code = await sock.requestPairingCode(number)
         console.log('')
         console.log('═══════════════════════════════════════════')
-        console.log(`  KODE PAIRING ${number}:  ${code}`)
+        // Nomor ditampilkan sebagian saja; kode tetap tampil karena ini CLI
+        // interaktif yang memang dipakai operator untuk menautkan perangkat.
+        console.log(`  KODE PAIRING …${String(number).slice(-4)}:  ${code}`)
         console.log('  WhatsApp > Perangkat tertaut > Tautkan perangkat')
         console.log('  > Tautkan dengan nomor telepon, lalu ketik kode di atas.')
         console.log('  Menunggu kode dimasukkan (maks 3 menit)...')
