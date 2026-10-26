@@ -21,6 +21,12 @@ import { buildCatalogue, topCommands, countJadibot } from '../../lib/umi-menu/re
 import { findLevel } from '../../lib/levelling.js'
 import { settings } from '../../config/settings.js'
 import { botKind, describeBotPrefixRule, sanitizeActivePrefix } from '../../lib/prefix-bot.js'
+import { richEnabled } from '../../lib/umi-menu/router.js'
+
+/** Tampilan kartu hanya dipakai bila owner menyalakan `.umimenu style html`. */
+function richAktif() {
+  try { return richEnabled() } catch { return false }
+}
 
 const GAME_BASE = String(process.env.UMI_GAME_BASE || 'https://game.gwenna.my.id').replace(/\/+$/, '')
 const FETCH_TIMEOUT_MS = 4500
@@ -257,7 +263,7 @@ let handler = async function (m, extra = {}) {
 
   const teksLaporan = susunTeks(laporan)
 
-  if (m.__richMenu === true) {
+  if (m.__richMenu === true && richAktif()) {
     try {
       const { sendHtmlCard } = await import('../../lib/umi-menu/router.js')
       const { buildMenuinfoCard, perkiraanTinggiMenuinfo } = await import('../../lib/umi-menu/menuinfo-card.js')

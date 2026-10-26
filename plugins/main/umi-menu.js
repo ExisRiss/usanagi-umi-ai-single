@@ -20,7 +20,7 @@
 
 import {
   dispatchMenuCommand, handleNumericSelection, parseActionId, sendTextMenu,
-  readMenuSettings, writeMenuSettings,
+  readMenuSettings, writeMenuSettings, richEnabled,
 } from '../../lib/umi-menu/router.js'
 import { buildCatalogue } from '../../lib/umi-menu/registry.js'
 import { isOwner } from '../../lib/awang-cekakses.js'
@@ -95,7 +95,9 @@ let handler = async function (m, extra = {}) {
    *   prefix ganda    (`$$menu`, `//menu`) → menu RICH (kartu HTML + daftar native)
    * Penanda `rich` dipasang handler.js saat pesan diawali prefix dua kali.
    */
-  const rich = m.__richMenu === true
+  // Task117b: prefix ganda hanya meminta tampilan rich; kartunya benar-benar
+  // dipakai kalau owner sudah menyalakan `.umimenu style html`.
+  const rich = m.__richMenu === true && richEnabled()
 
   // .umimenu system|style …
   if ((command === 'umimenu' || command === 'lmenu') && ['system', 'style'].includes(String(args[0] || '').toLowerCase())) {

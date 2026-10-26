@@ -42,7 +42,9 @@ import { fileURLToPath } from 'node:url'
 const HERE = path.dirname(fileURLToPath(import.meta.url))
 
 /* Halaman web yang benar-benar bisa dimainkan di browser (keyboard + tombol). */
-const WEB_URL = String(process.env.PICOPARK_WEB_URL || 'https://game.gwenna.my.id/picopark').trim()
+// Task117c — host lama (game.gwenna.my.id) origin tunnel-nya mati (502/530).
+// Halaman sekarang disajikan platform: https://picopark.gwenna.my.id/
+const WEB_URL = String(process.env.PICOPARK_WEB_URL || 'https://picopark.gwenna.my.id/').trim()
 const webLine = prefix => `🌐 Versi web (bisa diklik): ${WEB_URL}\n▶️ Di chat: ${prefix}picopark left | right | jump`
 
 /* ============================================================
@@ -89,36 +91,51 @@ function makeLevel(definition) {
 }
 
 const LEVELS = [
+  /*
+   * Task117c — level lama TIDAK BISA DISELESAIKAN:
+   * tebingnya 3 baris di atas lantai, sedangkan lompatan maksimal 2 baris,
+   * jadi kunci & pintu mustahil dijangkau (keluhan "gabisa main, gabisa lompat").
+   * Semua level di bawah disusun ulang dengan tangga 2 baris supaya bisa
+   * dimainkan satu orang pun.
+   */
   makeLevel({
     name: 'Hello Pico Park',
-    hint: 'Satu pemain menahan plat kiri, yang lain menyeberang lalu menahan plat kanan.',
-    spawn: [{ x: 4, y: 5 }, { x: 5, y: 5 }],
-    plates: [{ x: 1, y: 5 }, { x: 8, y: 2 }],
-    bridges: [{ x: 6, y: 4 }, { x: 7, y: 4 }],
-    ledges: [{ x: 8, y: 3 }, { x: 9, y: 3 }, { x: 10, y: 3 }, { x: 11, y: 3 }],
-    key: { x: 10, y: 2 },
-    door: [{ x: 9, y: 2 }, { x: 11, y: 2 }],
+    hint: 'Lompat ke tebing kiri, lalu lompat lagi ke tebing atas. Ambil kunci, masuk pintu.',
+    spawn: [{ x: 1, y: 5 }, { x: 2, y: 5 }],
+    plates: [],
+    bridges: [],
+    ledges: [
+      { x: 2, y: 4 }, { x: 3, y: 4 },
+      { x: 4, y: 2 }, { x: 5, y: 2 }, { x: 6, y: 2 }, { x: 7, y: 2 }, { x: 8, y: 2 },
+    ],
+    key: { x: 6, y: 1 },
+    door: [{ x: 7, y: 1 }, { x: 8, y: 1 }],
   }),
   makeLevel({
     name: 'Jembatan Panjang',
-    hint: 'Jembatannya lebih panjang — jangan lepas plat sebelum partner mendarat.',
-    spawn: [{ x: 3, y: 5 }, { x: 4, y: 5 }],
-    plates: [{ x: 1, y: 5 }, { x: 8, y: 2 }],
-    bridges: [{ x: 5, y: 4 }, { x: 6, y: 4 }, { x: 7, y: 4 }],
-    ledges: [{ x: 8, y: 3 }, { x: 9, y: 3 }, { x: 10, y: 3 }, { x: 11, y: 3 }],
-    key: { x: 11, y: 2 },
-    door: [{ x: 9, y: 2 }, { x: 10, y: 2 }],
+    hint: 'Dorong kotak ke plat kiri supaya jembatan menyala, lalu naik berdua.',
+    spawn: [{ x: 4, y: 5 }, { x: 5, y: 5 }],
+    plates: [{ x: 1, y: 5 }],
+    bridges: [{ x: 2, y: 4 }, { x: 3, y: 4 }, { x: 4, y: 4 }],
+    ledges: [
+      { x: 4, y: 2 }, { x: 5, y: 2 }, { x: 6, y: 2 }, { x: 7, y: 2 }, { x: 8, y: 2 },
+    ],
+    boxes: [{ x: 2, y: 5 }],
+    key: { x: 6, y: 1 },
+    door: [{ x: 7, y: 1 }, { x: 8, y: 1 }],
   }),
   makeLevel({
     name: 'Kotak Penolong',
-    hint: 'Dorong kotak ke plat kiri supaya jembatan tetap menyala, lalu naik berdua.',
-    spawn: [{ x: 4, y: 5 }, { x: 5, y: 5 }],
+    hint: 'Kotaknya bisa menahan plat supaya kamu bebas memanjat.',
+    spawn: [{ x: 3, y: 5 }, { x: 4, y: 5 }],
     plates: [{ x: 1, y: 5 }],
-    bridges: [{ x: 6, y: 4 }, { x: 7, y: 4 }],
-    ledges: [{ x: 8, y: 3 }, { x: 9, y: 3 }, { x: 10, y: 3 }, { x: 11, y: 3 }],
-    boxes: [{ x: 3, y: 5 }],
-    key: { x: 10, y: 2 },
-    door: [{ x: 9, y: 2 }, { x: 11, y: 2 }],
+    bridges: [{ x: 2, y: 4 }, { x: 3, y: 4 }],
+    ledges: [
+      { x: 4, y: 2 }, { x: 5, y: 2 }, { x: 6, y: 2 }, { x: 7, y: 2 },
+    ],
+    boxes: [{ x: 2, y: 5 }],
+    key: { x: 6, y: 1 },
+    door: [{ x: 7, y: 1 }, { x: 5, y: 1 }],
   }),
 ]
 
@@ -246,13 +263,24 @@ function step(room, player, direction) {
   return { moved: true }
 }
 
-/** Lompat: naik 1–2 baris, boleh geser 1 kolom, pilih pendaratan tertinggi. */
+/**
+ * Lompat: naik 1–2 baris, boleh geser 1 kolom, pilih pendaratan tertinggi.
+ *
+ * Task117c — dulu lompatan DITOLAK kalau pendaratannya tidak lebih tinggi
+ * (`probe.y >= player.y`), sehingga di tanah datar tombol lompat tidak
+ * melakukan apa pun dan terasa "gabisa lompat". Sekarang:
+ *   - pendaratan lebih tinggi  → dipakai (naik tebing),
+ *   - pendaratan sama tinggi   → dipakai kalau itu satu-satunya jalan
+ *     (lompat menyamping melewati satu kotak),
+ *   - tidak ada pijakan sama sekali → alasan ditulis jelas ke pemain.
+ */
 function jump(room, player) {
   const candidates = [
     [0, -2], [1, -2], [-1, -2],
     [0, -1], [1, -1], [-1, -1],
   ]
   let best = null
+  let samping = null
   for (const [dx, dy] of candidates) {
     const x = player.x + dx
     const y = player.y + dy
@@ -260,13 +288,24 @@ function jump(room, player) {
     if (playerAt(room, x, y, player)) continue
     const probe = { x, y }
     applyGravity(room, probe)
-    if (probe.y >= player.y) continue
-    const better = !best
-      || probe.y < best.y
-      || (probe.y === best.y && Math.abs(probe.x - player.x) < Math.abs(best.x - player.x))
-    if (better) best = probe
+    if (probe.y < player.y) {
+      const better = !best
+        || probe.y < best.y
+        || (probe.y === best.y && Math.abs(probe.x - player.x) < Math.abs(best.x - player.x))
+      if (better) best = probe
+    } else if (probe.y === player.y && dx !== 0 && !samping) {
+      /* Lompat menyamping hanya berguna untuk MELOMPATI penghalang:
+       * jalan datar di sisi itu terhalang, tetapi bagian atasnya kosong.
+       * Tanpa syarat ini, tombol lompat di tanah lapang cuma geser kanan-kiri
+       * dan terasa seperti bug. */
+      const terhalang = isSolid(room, player.x + dx, player.y) || playerAt(room, player.x + dx, player.y, player)
+      if (terhalang && !isSolid(room, probe.x, probe.y) && !playerAt(room, probe.x, probe.y, player)) {
+        samping = probe
+      }
+    }
   }
-  if (!best) return { moved: false, reason: 'Tidak ada pijakan di atas. Cari tempat lain.' }
+  if (!best && !samping) return { moved: false, reason: 'Di sini tidak ada tebing untuk dipanjat. Dekati tebing lalu lompat.' }
+  if (!best) best = samping
   player.x = best.x
   player.y = best.y
   return { moved: true }

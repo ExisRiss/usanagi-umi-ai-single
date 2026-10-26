@@ -65,6 +65,16 @@ globalThis.fetch = async (url, options) => {
   return fetchAsli(url, options)
 }
 
+
+/* ── util: atur mode tampilan menu (teks / rich) ──────────────── */
+const fsMod = await import('node:fs')
+const pathMod = await import('node:path')
+const SETTINGS_FILE = pathMod.resolve(process.cwd(), 'data', 'umi-menu.json')
+function setMode(style) {
+  fsMod.mkdirSync(pathMod.dirname(SETTINGS_FILE), { recursive: true })
+  fsMod.writeFileSync(SETTINGS_FILE, JSON.stringify({ system: 'umi', style }))
+}
+
 const hasil = []
 const cek = (nama, lulus, info = '') => {
   hasil.push(lulus)
@@ -160,6 +170,7 @@ function pesanTiruan(text, extra = {}) {
 }
 
 {
+  setMode('text')
   const { conn, kiriman } = connTiruan()
   const m = pesanTiruan('menu')
   m.command = 'menu'
@@ -174,6 +185,7 @@ function pesanTiruan(text, extra = {}) {
 }
 
 {
+  setMode('html')
   const { conn, kiriman } = connTiruan()
   const m = pesanTiruan('$$menu')
   m.command = 'menu'
@@ -188,6 +200,7 @@ function pesanTiruan(text, extra = {}) {
   cek('MENU RICH: daftar native ikut dikirim', adaNative)
 }
 {
+  setMode('text')
   const { conn, kiriman } = connTiruan()
   const m = pesanTiruan('menu_all')
   m.command = 'menu_all'
@@ -200,6 +213,7 @@ function pesanTiruan(text, extra = {}) {
 
 /* ── 3. Ping: prefix ganda = kartu rich ───────────────────────── */
 {
+  setMode('html')
   const pingHandler = (await import('../plugins/main/usanagi-ping.js')).default
   const { conn, kiriman } = connTiruan()
   const m = pesanTiruan('$$ping')
@@ -226,6 +240,7 @@ function pesanTiruan(text, extra = {}) {
 
 /* ── 4. menuinfo: semua angka yang diminta ────────────────────── */
 {
+  setMode('text')
   const menuinfo = (await import('../plugins/main/usanagi-menuinfo.js')).default
   const { conn } = connTiruan()
   const m = pesanTiruan('menuinfo', {
@@ -263,6 +278,7 @@ function pesanTiruan(text, extra = {}) {
   cek('MENUINFO — aturan prefix ditampilkan', teksInfo.includes('bot utama') && teksInfo.includes('$$menu'))
 }
 {
+  setMode('text')
   const menuinfo = (await import('../plugins/main/usanagi-menuinfo.js')).default
   const { conn } = connTiruan()
   const m = pesanTiruan('menuinfo', { __botKind: 'jadibot', isGroup: false })
@@ -304,6 +320,7 @@ function pesanTiruan(text, extra = {}) {
   cek('MENUINFO RICH: memuat pelaku', kartu.includes('Penguji') && kartu.includes('628123456789'))
 }
 {
+  setMode('html')
   const menuinfo = (await import('../plugins/main/usanagi-menuinfo.js')).default
   const { conn, kiriman } = connTiruan()
   const m = pesanTiruan('$$menuinfo', { __botKind: 'main', __richMenu: true })
@@ -328,7 +345,9 @@ function pesanTiruan(text, extra = {}) {
     stats: { commands: 10, aliases: 20, categories: 3 }, prefix: '$', assets: {}, menuOptions: [], categories: [], top: [], jadibot: 0,
   })
   cek('MENU: banner memakai wallpaper baru (class wall)', beranda.includes('class="wall" src="data:image/jpeg;base64,'))
-  cek('MENU: latar body memakai wallpaper lembut', beranda.includes('url("data:image/jpeg;base64,'))
+  cek('MENU: latar memakai lapisan <img> (bukan url() di CSS)',
+    beranda.includes('class="wall-layer"') && beranda.includes('<img src="data:image/jpeg;base64,'))
+  cek('MENU: warna dasar latar pekat (tidak mungkin abu-abu)', /body\{background-color:#031a2e/.test(beranda))
   cek('MENU: gambar lama bg-card tidak dipakai lagi', !beranda.includes('bg-card.jpg'))
 
   const { buildPingCard } = await import('../lib/umi-menu/ping-card.js')
@@ -338,7 +357,7 @@ function pesanTiruan(text, extra = {}) {
 
   for (const [nama, html] of [['PING', ping], ['MENUINFO', info]]) {
     cek(`${nama}: kepala kartu memakai wallpaper`, html.includes('class="wall" src="data:image/jpeg;base64,'))
-    cek(`${nama}: latar memakai wallpaper lembut`, html.includes('url("data:image/jpeg;base64,'))
+    cek(`${nama}: latar memakai lapisan <img>`, html.includes('class="wall-layer"'))
   }
 
   const { checkHtmlApp } = await import('@rexxhayanasi/elaina-baileys/src/Utils/html-app.js')
@@ -353,6 +372,28 @@ function pesanTiruan(text, extra = {}) {
   const mati = buildPingCard({ latency: 1, bot: 'Umi Usanagi AI' })
   cek('WALLPAPER: UMI_MENU_WALLPAPER=off mematikan gambar', !mati.includes('data:image/jpeg;base64,'))
   delete process.env.UMI_MENU_WALLPAPER
+}
+
+/* ── 7. Mode bawaan: TEKS (permintaan owner) ──────────────────── */
+{
+  setMode('text')
+  const { conn, kiriman } = connTiruan()
+  const m = pesanTiruan('$$menu', { __richMenu: true })
+  m.command = 'menu'; m.args = []
+  await menuHandler(m, { conn, usedPrefix: '$', args: [], command: 'menu' })
+  const adaHtml = kiriman.some(k => k.content && typeof k.content.__html === 'string')
+  const teksMenu = kiriman.map(k => k.content && k.content.text).filter(Boolean).join('\n')
+  cek('MODE TEKS: "$$menu" TIDAK mengirim kartu HTML', !adaHtml)
+  cek('MODE TEKS: "$$menu" mengirim menu teks', teksMenu.includes('MENU UTAMA'))
+}
+{
+  setMode('text')
+  const pingHandler = (await import('../plugins/main/usanagi-ping.js')).default
+  const { conn, kiriman } = connTiruan()
+  const m = pesanTiruan('$$ping', { __richMenu: true })
+  try { await pingHandler(m, { conn, usedPrefix: '$' }) } catch {}
+  cek('MODE TEKS: "$$ping" tidak mengirim kartu HTML',
+    !kiriman.some(k => k.content && typeof k.content.__html === 'string'))
 }
 
 cek('handler menuinfo memakai nama perintah yang belum dipakai', /^\^menuinfo\$/.test(String((await import('../plugins/main/usanagi-menuinfo.js')).default.command.source).replace(/^\^\(?|\$\)?\$$/g, m => m)))

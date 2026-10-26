@@ -175,6 +175,7 @@
   .chip.off b{color:#ff9a9a}
   .chip.gold b{color:var(--gold)}
 
+  .key.pressed{transform:translateY(2px) scale(.97);filter:brightness(1.25)}
   .hint{font-size:9.5px;line-height:1.5;color:var(--dim);text-align:center;margin-bottom:8px;
     background:#0f1730aa;border:1px dashed #2b3760;border-radius:10px;padding:6px 8px}
   .hint b{color:#cfd9f7}
@@ -250,9 +251,6 @@
   </div>
 
   <div class="hint" id="hint">Ambil kunci 🔑 lalu <b>semua pemain</b> masuk pintu 🚪.</div>
-  <div class="hint" id="localTools" style="display:none">
-    <button class="key" id="resetBtn" type="button" style="padding:6px 10px">↺ ULANGI LEVEL</button>
-  </div>
 
   <div class="you" id="youLine"></div>
   <div class="pads" id="pads">
@@ -274,7 +272,7 @@
     </div>
   </div>
 
-  <div class="tapnote" id="tapNote">Kalau tombol tidak bereaksi, balas <b>kiri</b> / <b>kanan</b> / <b>lompat</b> di chat.</div>
+  <div class="tapnote" id="tapNote">Keyboard: <b>A</b>/<b>D</b>/<b>W</b> untuk P1, <b>←</b>/<b>→</b>/<b>↑</b> untuk P2. Di chat: balas <b>kiri</b> / <b>kanan</b> / <b>lompat</b>.</div>
   <div class="mode" id="modeText">MODE: DEMO (tanpa bot)</div>
 </div>
 
@@ -286,68 +284,29 @@
 
   var DEFAULT_LEVEL = {
     width: 12, height: 7, floorRow: 6,
-    plates: [{ x: 1, y: 5 }, { x: 8, y: 2 }],
-    bridges: [{ x: 6, y: 4 }, { x: 7, y: 4 }],
-    ledges: [{ x: 8, y: 3 }, { x: 9, y: 3 }, { x: 10, y: 3 }, { x: 11, y: 3 }],
-    key: { x: 10, y: 2 },
-    door: [{ x: 9, y: 2 }, { x: 11, y: 2 }],
-    spawn: [{ x: 4, y: 5 }, { x: 5, y: 5 }]
+    plates: [],
+    bridges: [],
+    ledges: [
+      { x: 2, y: 4 }, { x: 3, y: 4 },
+      { x: 4, y: 2 }, { x: 5, y: 2 }, { x: 6, y: 2 }, { x: 7, y: 2 }, { x: 8, y: 2 }
+    ],
+    key: { x: 6, y: 1 },
+    door: [{ x: 7, y: 1 }, { x: 8, y: 1 }],
+    spawn: [{ x: 1, y: 5 }, { x: 2, y: 5 }]
   }
-
-  /* Task110: tiga level yang sama dengan versi bot, supaya mode lokal
-     (dipakai kalau WebView WhatsApp tidak punya jembatan ke bot) tetap bisa
-     dimainkan sampai selesai. */
-  var LEVELS = [
-    DEFAULT_LEVEL,
-    {
-      width: 12, height: 7, floorRow: 6, name: 'Jembatan Panjang',
-      hint: 'Jembatannya lebih panjang — jangan lepas plat sebelum partner mendarat.',
-      spawn: [{ x: 3, y: 5 }, { x: 4, y: 5 }],
-      plates: [{ x: 1, y: 5 }, { x: 8, y: 2 }],
-      bridges: [{ x: 5, y: 4 }, { x: 6, y: 4 }, { x: 7, y: 4 }],
-      ledges: [{ x: 8, y: 3 }, { x: 9, y: 3 }, { x: 10, y: 3 }, { x: 11, y: 3 }],
-      key: { x: 11, y: 2 }, door: [{ x: 9, y: 2 }, { x: 10, y: 2 }]
-    },
-    {
-      width: 12, height: 7, floorRow: 6, name: 'Kotak Penolong',
-      hint: 'Dorong kotak ke plat kiri supaya jembatan tetap menyala, lalu naik berdua.',
-      spawn: [{ x: 4, y: 5 }, { x: 5, y: 5 }],
-      plates: [{ x: 1, y: 5 }],
-      bridges: [{ x: 6, y: 4 }, { x: 7, y: 4 }],
-      ledges: [{ x: 8, y: 3 }, { x: 9, y: 3 }, { x: 10, y: 3 }, { x: 11, y: 3 }],
-      key: { x: 10, y: 2 }, door: [{ x: 9, y: 2 }, { x: 11, y: 2 }],
-      boxes: [{ x: 3, y: 5 }]
-    }
-  ]
-
-  /* Apakah halaman ini dijalankan di dalam kerangka yang bisa mengirim pesan
-     ke bot? Di WebView WhatsApp biasanya TIDAK ada — dulu karena itu semua
-     tombol terasa mati. */
-  var BRIDGE = (function () {
-    try {
-      if (window.ReactNativeWebView && window.ReactNativeWebView.postMessage) return 'rn'
-      if (window.UsanagiBridge && window.UsanagiBridge.postMessage) return 'usanagi'
-      if (window.AndroidNative && window.AndroidNative.postMessage) return 'android'
-      if (window.webkit && window.webkit.messageHandlers && window.webkit.messageHandlers.usanagi) return 'ios'
-      if (window.parent && window.parent !== window) return 'parent'
-    } catch (e) {}
-    return ''
-  })()
 
   var state = BOT_STATE || {
     roomCode: 'DEMO', status: 'playing', levelIndex: 0, levelCount: 3,
     levelName: 'Hello Pico Park', level: DEFAULT_LEVEL, hint: '',
     players: [
-      { slot: 1, name: 'Player 1', x: 4, y: 5 },
-      { slot: 2, name: 'Player 2', x: 5, y: 5 }
+      { slot: 1, name: 'Player 1', x: 1, y: 5 },
+      { slot: 2, name: 'Player 2', x: 2, y: 5 }
     ],
     boxes: [], bridgeActive: false, keyTaken: false, doorUnlocked: false,
     winner: null, levelClear: null, moves: 0
   }
   var viewer = Number((BOT_STATE && BOT_STATE.viewer) || 0)
-  /* Task110: mode lokal aktif kalau tidak ada jembatan ke bot. Ini yang
-     membuat game benar-benar bisa dimainkan dari WhatsApp. */
-  var localMode = !BOT_STATE || !BRIDGE
+  var localMode = !BOT_STATE
   var prev = {}            // posisi sebelumnya, untuk animasi jalan/lompat
 
   var stage = document.getElementById('stage')
@@ -443,35 +402,6 @@
   }
 
   /* ---------------- HUD ---------------- */
-  /* Tombol di dalam overlay (dipakai mode lokal): LANJUT / MAIN LAGI. */
-  function overlayButton(id, label, handler) {
-    var wrap = document.getElementById('overlayText')
-    var existing = document.getElementById(id)
-    if (existing) { existing.onclick = handler; existing.textContent = label; return existing }
-    var btn = document.createElement('button')
-    btn.id = id
-    btn.className = 'key'
-    btn.style.marginTop = '10px'
-    btn.textContent = label
-    btn.onclick = function (event) { event.preventDefault(); handler() }
-    wrap.appendChild(btn)
-    return btn
-  }
-  function showNextButton() {
-    var idx = Number(state.levelIndex || 0)
-    if (idx + 1 >= LEVELS.length) return overlayButton('overlayNext', '🔁 MAIN LAGI', restartGame)
-    return overlayButton('overlayNext', '▶ LANJUT', nextLevel)
-  }
-  function restartGame() {
-    state.levelIndex = 0
-    state.level = LEVELS[0]
-    state.levelName = LEVELS[0].name || 'Level 1'
-    state.hint = LEVELS[0].hint || ''
-    state.winner = null
-    state.levelClear = null
-    resetLevel()
-  }
-
   function renderHud() {
     var lv = level()
     document.getElementById('roomCode').textContent = state.roomCode || '----'
@@ -504,15 +434,11 @@
       document.getElementById('overlayTitle').textContent = '🏆 SEMUA LEVEL SELESAI!'
       document.getElementById('overlayText').textContent = (state.winner.players || []).join(' & ') +
         ' menang dalam ' + (state.moves || 0) + ' gerakan.'
-      if (localMode) overlayButton('overlayNext', '🔁 MAIN LAGI', restartGame)
       confetti()
     } else if (state.levelClear) {
       overlay.classList.add('show')
       document.getElementById('overlayTitle').textContent = '✅ LEVEL ' + state.levelClear.level + ' SELESAI'
-      document.getElementById('overlayText').innerHTML = localMode
-        ? 'Tekan <b>LANJUT</b> untuk level berikutnya.'
-        : 'Maju ke ' + (state.levelClear.nextName || 'level berikutnya') + '…'
-      if (localMode) showNextButton()
+      document.getElementById('overlayText').textContent = 'Maju ke ' + (state.levelClear.nextName || 'level berikutnya') + '…'
     } else {
       overlay.classList.remove('show')
     }
@@ -552,6 +478,16 @@
   function playerAt(x, y, except) {
     return (state.players || []).filter(function (p) { return p !== except && !p.inDoor && p.x === x && p.y === y })[0]
   }
+  /* Pesan singkat di baris petunjuk (dipakai saat aksi tidak mungkin). */
+  var flashTimer = null
+  function flash(msg) {
+    var el = document.getElementById('hint')
+    if (!el) return
+    el.textContent = msg
+    if (flashTimer) clearTimeout(flashTimer)
+    flashTimer = setTimeout(function () { if (typeof renderHud === 'function') renderHud(); else el.textContent = '' }, 1600)
+  }
+
   function localAction(p, act) {
     var lv = level()
     if (act === 'left' || act === 'right') {
@@ -566,17 +502,28 @@
         p.x += dx; gravity(p)
       }
     } else if (act === 'jump') {
+      /* Task117c — lompat harus terasa: naik 1-2 baris (boleh geser 1 kolom),
+       * dan kalau tidak ada tebing, boleh melompat menyamping selama tidak
+       * jatuh lebih rendah. Dulu lompatan di tanah datar langsung ditolak
+       * sehingga tombol LOMPAT seperti mati. */
       var cand = [[0, -2], [1, -2], [-1, -2], [0, -1], [1, -1], [-1, -1]]
-      var best = null
+      var best = null, samping = null
       for (var i = 0; i < cand.length; i++) {
-        var x = p.x + cand[i][0], y = p.y + cand[i][1]
+        var dx = cand[i][0], x = p.x + dx, y = p.y + cand[i][1]
         if (isSolid(x, y) || playerAt(x, y, p)) continue
         var probe = { x: x, y: y }
         gravity(probe)
-        if (probe.y >= p.y) continue
-        if (!best || probe.y < best.y) best = probe
+        if (probe.y < p.y) {
+          if (!best || probe.y < best.y) best = probe
+        } else if (probe.y === p.y && dx !== 0 && !samping) {
+          /* menyamping hanya untuk melompati penghalang setinggi 1 kotak */
+          var halang = isSolid(p.x + dx, p.y) || playerAt(p.x + dx, p.y, p)
+          if (halang && !isSolid(probe.x, probe.y) && !playerAt(probe.x, probe.y, p)) samping = probe
+        }
       }
+      if (!best) best = samping
       if (best) { p.x = best.x; p.y = best.y }
+      else { flash('Di sini tidak ada tebing. Dekati tebing lalu lompat lagi.') }
     }
     state.bridgeActive = (state.players || []).some(function (q) {
       return (lv.plates || []).some(function (t) { return sameTile(q, t) })
@@ -591,7 +538,7 @@
     state.players.forEach(function (q) {
       if (state.keyTaken && !q.inDoor && (lv.door || []).some(function (t) { return sameTile(q, t) })) q.inDoor = true
     })
-    var allInDoor = state.keyTaken && state.players.length > 1 && state.players.every(function (q) { return q.inDoor })
+    var allInDoor = state.keyTaken && state.players.length > 0 && state.players.every(function (q) { return q.inDoor })
     if (allInDoor) state.levelClear = { level: (state.levelIndex || 0) + 1, nextName: 'level berikutnya' }
     render()
   }
@@ -609,22 +556,16 @@
 
   function sendAction(slot, act) {
     if (state.winner && state.winner.final) return
-    var p = (state.players || []).filter(function (q) { return q.slot === slot })[0]
-    if (!p || p.inDoor) return
-    if (localMode) {
-      localAction(p, act)
-      render()
-      return
-    }
     var sent = post({
       action: act === 'jump' ? 'jump' : 'move',
       player: slot,
       direction: act === 'jump' ? undefined : act,
       roomCode: state.roomCode
     })
-    /* Jembatan ada tapi gagal kirim → tetap jalankan lokal supaya tombol
-       tidak terasa mati. */
-    if (!sent) { localAction(p, act); render() }
+    if (!sent && localMode) {
+      var p = (state.players || []).filter(function (q) { return q.slot === slot })[0]
+      if (p) localAction(p, act)
+    }
   }
 
   Array.prototype.forEach.call(document.querySelectorAll('.key'), function (btn) {
@@ -636,6 +577,34 @@
       if (mine && mine !== slot) return   // kartu ini bukan milikmu
       sendAction(slot, btn.getAttribute('data-act'))
     })
+  })
+
+  /* Keyboard (dibuka di browser/desktop): P1 = A/D + W, P2 = panah + panah atas.
+   * Task117c — dulu halaman ini hanya punya tombol, jadi pemain desktop merasa
+   * "gabisa lompat". Sekarang keduanya jalan. */
+  var PETA_TOMBOL = {
+    a: [1, 'left'], d: [1, 'right'], w: [1, 'jump'], a2: [2, 'left'],
+    ArrowLeft: [2, 'left'], ArrowRight: [2, 'right'], ArrowUp: [2, 'jump'],
+    ' ': [1, 'jump']
+  }
+  document.addEventListener('keydown', function (event) {
+    var peta = PETA_TOMBOL[event.key]
+    if (!peta) return
+    var mine = Number(state.viewer) || 0
+    if (mine && mine !== peta[0]) return
+    event.preventDefault()
+    var btn = document.querySelector('.pad[data-slot="' + peta[0] + '"] .key[data-act="' + peta[1] + '"]')
+    if (btn) {
+      btn.classList.add('pressed')
+      setTimeout(function () { btn.classList.remove('pressed') }, 90)
+    }
+    sendAction(peta[0], peta[1])
+  })
+  document.addEventListener('keyup', function (event) {
+    var peta = PETA_TOMBOL[event.key]
+    if (!peta) return
+    var btn = document.querySelector('.pad[data-slot="' + peta[0] + '"] .key[data-act="' + peta[1] + '"]')
+    if (btn) btn.classList.remove('pressed')
   })
 
   /* dipanggil bot setiap kirim ulang WebView */
@@ -671,65 +640,10 @@
     } catch (e) {}
   })
 
-  /* ---------------- kendali papan ketik (versi web) ---------------- */
-  var KEYMAP = {
-    a: [1, 'left'], d: [1, 'right'], w: [1, 'jump'],
-    arrowleft: [2, 'left'], arrowright: [2, 'right'], arrowup: [2, 'jump']
-  }
-  document.addEventListener('keydown', function (event) {
-    var combo = KEYMAP[String(event.key || '').toLowerCase()]
-    if (!combo) return
-    event.preventDefault()
-    if (viewer && viewer !== combo[0]) return
-    sendAction(combo[0], combo[1])
-  })
-
-  /* ---------------- ulangi level (mode lokal) ---------------- */
-  function resetLevel() {
-    var lv = level()
-    state.bridgeActive = false
-    state.keyTaken = false
-    state.doorUnlocked = false
-    state.winner = null
-    state.levelClear = null
-    state.moves = 0
-    state.boxes = JSON.parse(JSON.stringify(lv.boxes || []))
-    state.players = (state.players || []).map(function (p, i) {
-      var spawn = (lv.spawn || [])[p.slot - 1] || (lv.spawn || [])[i] || { x: 1, y: 1 }
-      return { slot: p.slot, name: p.name, x: spawn.x, y: spawn.y, inDoor: false }
-    })
-    if (overlay) overlay.classList.remove('show')
-    render()
-  }
-  window.picoparkReset = resetLevel
-  /* Hook baca-saja untuk pengujian otomatis (tidak mengubah permainan). */
-  window.picoparkState = function () { return JSON.parse(JSON.stringify(state)) }
-
-  /* ---------------- lanjut level (mode lokal) ---------------- */
-  function nextLevel() {
-    var idx = Number(state.levelIndex || 0)
-    if (idx + 1 >= LEVELS.length) { state.winner = { final: true }; render(); return }
-    var lv = LEVELS[idx + 1]
-    state.levelIndex = idx + 1
-    state.level = lv
-    state.levelName = lv.name
-    state.hint = lv.hint || ''
-    state.levelClear = null
-    state.winner = null
-    resetLevel()
-  }
-  window.picoparkNext = nextLevel
-
-  var resetBtn = document.getElementById('resetBtn')
-  if (resetBtn && localMode) {
-    resetBtn.onclick = function (event) { event.preventDefault(); resetLevel() }
-    document.getElementById('localTools').style.display = 'block'
-  }
-
   applyViewer()
   render()
   document.getElementById('modeText').textContent = localMode
-    ? (BOT_STATE ? 'MODE: LOKAL · 2 pemain di layar ini' : 'MODE: DEMO · tekan tombol untuk coba')
+    ? 'MODE: DEMO · tekan tombol untuk coba'
     : 'MODE: BOT · room ' + state.roomCode + (viewer ? ' · pemain ' + viewer : '')
 })()
 </script>

@@ -274,9 +274,14 @@ const handler = async (m, { conn, usedPrefix }) => {
     )
   )
 
+  /* Task117b — kartu ping hanya dipakai kalau owner menyalakan mode rich
+   * (`.umimenu style html`). Mode bawaan = teks/tampilan lama. */
   if (m.__richMenu === true) {
-    const terkirim = await sendRichPing(conn, m, stats)
-    if (terkirim) return
+    const { richEnabled } = await import('../../lib/umi-menu/router.js')
+    if (richEnabled()) {
+      const terkirim = await sendRichPing(conn, m, stats)
+      if (terkirim) return
+    }
   }
 
   const image = makeCanvas(stats)
