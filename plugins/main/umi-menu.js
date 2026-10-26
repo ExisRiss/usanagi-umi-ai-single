@@ -9,6 +9,11 @@
  *   .menu_all [_halaman]   → All Menu versi HTML (BARU, terpisah)
  *   .menu_owner|group|game|tools → menu lama seperti semula (teks kategori)
  *
+ * Task120 — aturan tampilan mengikuti jumlah prefix (tanpa setting tambahan):
+ *   `.menu`  (satu prefix) → menu TEKS
+ *   `..menu` (prefix ganda) → menu RICH: foto header + 2 tombol interaktif
+ *                             (Owner Bot + daftar menu single_select)
+ *
  * Perintah lama TIDAK diambil alih lagi:
  *   .allmenu                → tetap milik plugins/main/usanagi-allmenu.js
  *   .kategori / .listmenu   → tetap milik plugins/main/usanagi-kategori.js
@@ -24,6 +29,7 @@ import {
 } from '../../lib/umi-menu/router.js'
 import { buildCatalogue } from '../../lib/umi-menu/registry.js'
 import { isOwner } from '../../lib/awang-cekakses.js'
+import { sendModernMenu } from '../../lib/awang-menu.js'
 
 const COMMAND_RE = /^(umimenu|lmenu|menu|menu_all(?:_\d+)?|menu_(?:owner|group|game|tools))$/i
 
@@ -95,9 +101,12 @@ let handler = async function (m, extra = {}) {
    *   prefix ganda    (`$$menu`, `//menu`) → menu RICH (kartu HTML + daftar native)
    * Penanda `rich` dipasang handler.js saat pesan diawali prefix dua kali.
    */
-  // Task117b: prefix ganda hanya meminta tampilan rich; kartunya benar-benar
-  // dipakai kalau owner sudah menyalakan `.umimenu style html`.
-  const rich = m.__richMenu === true && richEnabled()
+  /* Task120: prefix GANDA selalu berarti rich — tidak lagi bergantung pada
+   * setelan `.umimenu style`. Sebelumnya setelan `style: text` membuat
+   * `..menu` tetap mengirim menu teks (keluhan owner). */
+  const rich = m.__richMenu === true
+  // Kartu HTML (`.menu_all` / dashboard) tetap menghormati setelan style.
+  const richHtml = rich && richEnabled()
 
   // .umimenu system|style …
   if ((command === 'umimenu' || command === 'lmenu') && ['system', 'style'].includes(String(args[0] || '').toLowerCase())) {
@@ -110,14 +119,14 @@ let handler = async function (m, extra = {}) {
     const parsed = wanted ? parseActionId(wanted) : null
     if (parsed) return dispatchMenuCommand(m, { conn, prefix, action: parsed.action, page: parsed.page })
     return rich
-      ? dispatchMenuCommand(m, { conn, prefix, action: 'menu_dashboard' })
+      ? sendModernMenu(conn, m, prefix)
       : sendTextMenu(conn, m, { prefix, action: 'menu' })
   }
 
-  // .menu → teks (prefix tunggal) atau kartu HTML (prefix ganda)
+  // .menu → teks (prefix tunggal) atau menu tombol rich (prefix ganda)
   if (command === 'menu') {
     return rich
-      ? dispatchMenuCommand(m, { conn, prefix, action: 'menu_dashboard' })
+      ? sendModernMenu(conn, m, prefix)
       : sendTextMenu(conn, m, { prefix, action: 'menu' })
   }
 
@@ -125,7 +134,7 @@ let handler = async function (m, extra = {}) {
   if (command === 'menu_all' || /^menu_all_\d+$/.test(command)) {
     const fromCommand = Number((command.match(/_all_(\d+)$/) || [])[1]) || 0
     const page = Number(String(args[0] || '').replace(/\D/g, '')) || fromCommand || null
-    return rich
+    return richHtml
       ? dispatchMenuCommand(m, { conn, prefix, action: 'menu_all', page })
       : sendTextMenu(conn, m, { prefix, action: 'menu_all', page })
   }
@@ -159,7 +168,7 @@ handler.command = COMMAND_RE
 handler.help = ['menu', 'menu_all', 'menu_owner', 'menu_group', 'menu_game', 'menu_tools']
 handler.tags = ['main']
 handler.category = 'main'
-handler.description = 'Menu utama Umi Usanagi AI — prefix tunggal = menu teks, prefix ganda = menu rich (kartu HTML + tombol)'
+handler.description = 'Menu utama Umi Usanagi AI — prefix tunggal (.menu) = menu teks, prefix ganda (..menu) = menu rich bertombol'
 handler.limit = false
 
 /**

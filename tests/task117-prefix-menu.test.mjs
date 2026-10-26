@@ -192,12 +192,12 @@ function pesanTiruan(text, extra = {}) {
   m.args = []
   m.__richMenu = true
   await menuHandler(m, { conn, usedPrefix: '$', args: [], command: 'menu' })
-  const adaHtml = kiriman.some(k => k.content && typeof k.content.__html === 'string')
-  // Pesan daftar native dari elaina-baileys 1.4.7 dibungkus viewOnceMessage
-  // (protokol WA terbaru), bukan interactiveMessage polos.
-  const adaNative = kiriman.some(k => k.content && (k.content.interactiveMessage || k.content.viewOnceMessage || k.content.buttonsMessage))
-  cek('MENU RICH: kartu HTML dikirim', adaHtml)
-  cek('MENU RICH: daftar native ikut dikirim', adaNative)
+  /* Task120: `..menu` kini mengirim SATU pesan interaktif bertombol
+   * (interactiveMessage polos, tanpa bungkus view-once), bukan kartu HTML. */
+  const adaInteraktif = kiriman.some(k => k.content && k.content.interactiveMessage)
+  const adaViewOnce = kiriman.some(k => k.content && (k.content.viewOnceMessage || k.content.buttonsMessage))
+  cek('MENU RICH: pesan interaktif bertombol dikirim', adaInteraktif)
+  cek('MENU RICH: tidak memakai bungkus view-once / buttonsMessage', !adaViewOnce)
 }
 {
   setMode('text')
@@ -374,7 +374,7 @@ function pesanTiruan(text, extra = {}) {
   delete process.env.UMI_MENU_WALLPAPER
 }
 
-/* ── 7. Mode bawaan: TEKS (permintaan owner) ──────────────────── */
+/* ── 7. Task120: prefix ganda SELALU rich (tidak lagi ikut setelan style) ── */
 {
   setMode('text')
   const { conn, kiriman } = connTiruan()
@@ -382,9 +382,11 @@ function pesanTiruan(text, extra = {}) {
   m.command = 'menu'; m.args = []
   await menuHandler(m, { conn, usedPrefix: '$', args: [], command: 'menu' })
   const adaHtml = kiriman.some(k => k.content && typeof k.content.__html === 'string')
+  const adaInteraktif = kiriman.some(k => k.content && k.content.interactiveMessage)
   const teksMenu = kiriman.map(k => k.content && k.content.text).filter(Boolean).join('\n')
-  cek('MODE TEKS: "$$menu" TIDAK mengirim kartu HTML', !adaHtml)
-  cek('MODE TEKS: "$$menu" mengirim menu teks', teksMenu.includes('MENU UTAMA'))
+  cek('PREFIX GANDA: "$$menu" mengirim menu interaktif walau style=text', adaInteraktif)
+  cek('PREFIX GANDA: "$$menu" tidak mengirim kartu HTML', !adaHtml)
+  cek('PREFIX GANDA: bukan menu teks biasa', !teksMenu.includes('MENU UTAMA'))
 }
 {
   setMode('text')
