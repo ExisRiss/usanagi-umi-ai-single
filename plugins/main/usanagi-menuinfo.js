@@ -137,25 +137,16 @@ function ringkasPelaku(m) {
   }
 }
 
-let handler = async function (m, extra = {}) {
-  const conn = extra.conn || this
-  const jenisBot = m.__botKind || botKind(extra.botConfig)
-  const prefix = sanitizeActivePrefix(jenisBot, extra.usedPrefix || settings.defaultPrefix)
-  const ganda = prefix + prefix
-  const waktu = formatClock(settings.timezone)
 
-  const [status, grup, layanan] = await Promise.all([
-    collectStatus({ conn, chat: m.chat, timezone: settings.timezone, cpuSampleMs: 120 }).catch(() => ({})),
-    getGroupStats(conn, m.chat, { timeoutMs: 5000 }).catch(() => ({ available: false })),
-    statusLayanan(),
-  ])
-
+/** Laporan versi TEKS — format lama, isinya sama dengan kartu rich. */
+function susunTeks(laporan) {
+  const {
+    waktu, jenisBot, prefix, aturan, versi, status, grup, jadibot, fitur, top, layanan, pelaku,
+  } = laporan
   const server = status.server || {}
   const users = status.users || {}
-  const jadibot = ringkasJadibot()
-  const fitur = ringkasFitur()
-  const pelaku = ringkasPelaku(m)
   const koneksi = status.connection || {}
+  const ganda = prefix + prefix
 
   const baris = []
   baris.push(`🧭 *MENUINFO* · ${teks(status.botName, settings.botName)}`)
@@ -165,8 +156,8 @@ let handler = async function (m, extra = {}) {
   baris.push('🤖 *BOT*')
   baris.push(`├ Nama   : ${teks(status.botName, settings.botName)}`)
   baris.push(`├ Jenis  : ${jenisBot === 'jadibot' ? 'jadibot (sewa)' : 'bot utama'}`)
-  baris.push(`├ Prefix : ${prefix} — ${describeBotPrefixRule(jenisBot)}`)
-  baris.push(`├ Versi  : ${teks(settings.botVersion)}`)
+  baris.push(`├ Prefix : ${prefix} — ${aturan}`)
+  baris.push(`├ Versi  : ${teks(versi)}`)
   baris.push(`├ Koneksi: ${teks(koneksi.label, koneksi.connected ? 'Terhubung' : 'Tidak terhubung')}`)
   baris.push(`├ Aktif  : ${server.uptimeSeconds == null ? 'Tidak tersedia' : formatDuration(server.uptimeSeconds)}`)
   baris.push(`└ Pemilik: ${teks(status.ownerName, settings.ownerName)}`)
@@ -197,13 +188,12 @@ let handler = async function (m, extra = {}) {
   baris.push('')
 
   baris.push('🏆 *TOP 10 FITUR PALING SERING DIPAKAI*')
-  const top = topCommands(10)
   if (!top.length) {
     baris.push('└ Belum ada data pemakaian.')
   } else {
     top.forEach((item, index) => {
-      const prefixBaris = index === top.length - 1 ? '└' : '├'
-      baris.push(`${prefixBaris} ${index + 1}. ${prefix}${item.command} — ${formatNumber(item.count)}x`)
+      const awalan = index === top.length - 1 ? '└' : '├'
+      baris.push(`${awalan} ${index + 1}. ${prefix}${item.command} — ${formatNumber(item.count)}x`)
     })
   }
   baris.push('')
@@ -225,7 +215,65 @@ let handler = async function (m, extra = {}) {
   baris.push('')
   baris.push(`Menu teks: ${prefix}menu · menu rich: ${ganda}menu · ping rich: ${ganda}ping`)
 
-  await m.reply(baris.join('\n'))
+  return baris.join('\n')
+}
+
+let handler = async function (m, extra = {}) {
+  const conn = extra.conn || this
+  const jenisBot = m.__botKind || botKind(extra.botConfig)
+  const prefix = sanitizeActivePrefix(jenisBot, extra.usedPrefix || settings.defaultPrefix)
+  const ganda = prefix + prefix
+  const waktu = formatClock(settings.timezone)
+
+  const [status, grup, layanan] = await Promise.all([
+    collectStatus({ conn, chat: m.chat, timezone: settings.timezone, cpuSampleMs: 120 }).catch(() => ({})),
+    getGroupStats(conn, m.chat, { timeoutMs: 5000 }).catch(() => ({ available: false })),
+    statusLayanan(),
+  ])
+
+  const server = status.server || {}
+  const users = status.users || {}
+  const jadibot = ringkasJadibot()
+  const fitur = ringkasFitur()
+  const pelaku = ringkasPelaku(m)
+  const koneksi = status.connection || {}
+
+  /* Satu sumber data untuk dua penyaji: teks (prefix tunggal) dan kartu
+   * HTML (prefix ganda). Tidak ada angka yang dihitung ulang di penyaji. */
+  const laporan = {
+    waktu,
+    jenisBot,
+    prefix,
+    aturan: describeBotPrefixRule(jenisBot),
+    versi: settings.botVersion,
+    status,
+    grup,
+    jadibot,
+    fitur,
+    top: topCommands(10),
+    layanan,
+    pelaku,
+  }
+
+  const teksLaporan = susunTeks(laporan)
+
+  if (m.__richMenu === true) {
+    try {
+      const { sendHtmlCard } = await import('../../lib/umi-menu/router.js')
+      const { buildMenuinfoCard, perkiraanTinggiMenuinfo } = await import('../../lib/umi-menu/menuinfo-card.js')
+      const kartu = await sendHtmlCard(conn, m.chat, buildMenuinfoCard(laporan), {
+        title: 'Menuinfo',
+        quoted: m.raw,
+        tinggi: perkiraanTinggiMenuinfo(),
+      })
+      if (kartu && kartu.ok) return { ok: true, mode: 'rich' }
+      console.warn('[MENUINFO] kartu rich gagal dikirim; lanjut laporan teks.')
+    } catch (error) {
+      console.warn(`[MENUINFO] kartu rich error (${error?.message || error}); lanjut laporan teks.`)
+    }
+  }
+
+  await m.reply(teksLaporan)
   return { ok: true, mode: 'text' }
 }
 

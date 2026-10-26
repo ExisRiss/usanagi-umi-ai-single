@@ -272,6 +272,47 @@ function pesanTiruan(text, extra = {}) {
   cek('MENUINFO jadibot: grup ditulis "bukan grup"', teksInfo.includes('bukan grup'))
 }
 
+/* ── 5. menuinfo versi RICH (prefix ganda) ────────────────────── */
+{
+  const { checkHtmlApp } = await import('@rexxhayanasi/elaina-baileys/src/Utils/html-app.js')
+  const { buildMenuinfoCard } = await import('../lib/umi-menu/menuinfo-card.js')
+  const kartu = buildMenuinfoCard({
+    waktu: '26/10/2026, 20.30.00 WITA', jenisBot: 'main', prefix: '$',
+    aturan: 'bot utama — hanya `$`', versi: '7.1',
+    status: {
+      botName: 'Umi Usanagi AI', ownerName: 'AlzRiss',
+      connection: { connected: true, label: 'Terhubung' },
+      server: { cpuPercent: 12, cpuCount: 4, rssMb: 210, heapMb: 88, systemFreeMb: 1200, systemTotalGb: 4, loadAverage: 0.42, nodeVersion: 'v23.11.1', platform: 'Linux 6.1', uptimeSeconds: 5400 },
+      users: { available: true, total: 253, registered: 214 },
+    },
+    grup: { available: true, members: 87, admins: 4 },
+    jadibot: { tersedia: true, total: 20, hidup: 18, mati: 2 },
+    fitur: { tersedia: 1121, dipakai: 87, eksekusi: 45212 },
+    top: [{ command: 'menu', count: 812 }, { command: 'ping', count: 120 }, { command: 'ytmp3', count: 88 }],
+    layanan: {
+      game: { online: true, detail: '45 simbol pasar · 147 akun permainan' },
+      saham: { online: true, detail: 'Pasar normal 24 jam' },
+    },
+    pelaku: { nama: 'Penguji', nomor: '628123456789', peran: 'owner · premium', terdaftar: 'sudah', limit: 37, level: 12, exp: 4200, premium: 'aktif' },
+  })
+  const laporan = checkHtmlApp(kartu, { height: 2100 })
+  cek('MENUINFO RICH: lolos validator HTML WhatsApp', laporan.ok === true, JSON.stringify(laporan.problems || []).slice(0, 160))
+  cek('MENUINFO RICH: memuat user/jadibot/hidup/mati', kartu.includes('<b>253</b>') && kartu.includes('<b>20</b>') && kartu.includes('<b>18</b>') && kartu.includes('<b>2</b>'))
+  cek('MENUINFO RICH: memuat member grup', kartu.includes('87 (4 admin)'))
+  cek('MENUINFO RICH: memuat top 10 berurutan', kartu.indexOf('812x') < kartu.indexOf('120x'))
+  cek('MENUINFO RICH: memuat status game & saham', kartu.includes('45 simbol pasar') && kartu.includes('Pasar normal 24 jam'))
+  cek('MENUINFO RICH: memuat pelaku', kartu.includes('Penguji') && kartu.includes('628123456789'))
+}
+{
+  const menuinfo = (await import('../plugins/main/usanagi-menuinfo.js')).default
+  const { conn, kiriman } = connTiruan()
+  const m = pesanTiruan('$$menuinfo', { __botKind: 'main', __richMenu: true })
+  await menuinfo(m, { conn, usedPrefix: '$', botConfig: { type: 'main' } })
+  const html = kiriman.find(k => k.content && typeof k.content.__html === 'string')
+  cek('MENUINFO RICH: handler mengirim kartu, bukan teks panjang', Boolean(html) && m.__dikirim.length === 0)
+  cek('MENUINFO RICH: kartu memakai prefix tunggal di daftar top', Boolean(html) && html.content.__html.includes('$menu'))
+}
+
 cek('handler menuinfo memakai nama perintah yang belum dipakai', /^\^menuinfo\$/.test(String((await import('../plugins/main/usanagi-menuinfo.js')).default.command.source).replace(/^\^\(?|\$\)?\$$/g, m => m)))
 
 const lulus = hasil.filter(Boolean).length
