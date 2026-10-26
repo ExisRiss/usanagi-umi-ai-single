@@ -144,7 +144,38 @@ delete global.jadibotConns
   filter.updateBotFilter({ enabled: true })
 }
 
-/* 8. Setelan awal aman */
+/* 8. Model TIDAK dipanggil untuk pesan bot (bukti biaya/kuota aman) */
+{
+  process.env.GROQ_API_KEY = 'kunci-uji-tidak-dipakai'
+  const { planAutoAI } = await import('../lib/auto-ai.js')
+  const botConfig = { type: 'jadibot', scope: 'bukti-model', values: { autoAI: { enabled: true } } }
+  const panggilan = { bot: 0, manusia: 0 }
+  const pelapor = { role: 'assistant', content: JSON.stringify({ reply: 'Halo, ada yang bisa kubantu?', commands: [] }) }
+  const sebutBot = pesan({ sender: '628111222333@s.whatsapp.net', id: 'BAE5ABC123DEF456', chat: '120363000000000000@g.us', isGroup: true, text: '@6287813709432 halo' })
+  sebutBot.mentionedJid = ['6287813709432@s.whatsapp.net']
+  await planAutoAI({ m: sebutBot, conn: MAIN, botConfig, activePrefix: '.', plugins: {} }, {
+    ignoreCooldown: true,
+    bot: {},
+    callModel: async () => { panggilan.bot += 1; return pelapor },
+  })
+  cek('pesan bot: model tidak dipanggil sama sekali', panggilan.bot === 0, `dipanggil ${panggilan.bot}x`)
+
+  const sebutManusia = pesan({ sender: '628999888777@s.whatsapp.net', id: androidId('6'), chat: '120363000000000000@g.us', isGroup: true, text: '@6287813709432 halo', pushName: 'Budi' })
+  sebutManusia.mentionedJid = ['6287813709432@s.whatsapp.net']
+  sebutManusia.fromMe = false
+  const rencana = await planAutoAI({
+    m: sebutManusia, conn: MAIN, botConfig: { ...botConfig, scope: 'bukti-model-2' }, activePrefix: '.', plugins: {},
+    isOwner: false, isAdmin: false, isPrems: false, userData: { registered: true }, chatData: {},
+  }, {
+    ignoreCooldown: true,
+    bot: {},
+    callModel: async () => { panggilan.manusia += 1; return pelapor },
+  })
+  cek('pesan manusia: model tetap dipanggil', panggilan.manusia === 1 && rencana.kind === 'answer', `dipanggil ${panggilan.manusia}x, kind=${rencana.kind}`)
+  delete process.env.GROQ_API_KEY
+}
+
+/* 9. Setelan awal aman */
 {
   try { fs.rmSync(STORE, { force: true }) } catch {}
   const s = filter.getBotFilterSettings()
