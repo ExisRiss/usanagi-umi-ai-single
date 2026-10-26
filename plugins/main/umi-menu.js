@@ -19,7 +19,7 @@
  */
 
 import {
-  dispatchMenuCommand, handleNumericSelection, parseActionId,
+  dispatchMenuCommand, handleNumericSelection, parseActionId, sendTextMenu,
   readMenuSettings, writeMenuSettings,
 } from '../../lib/umi-menu/router.js'
 import { buildCatalogue } from '../../lib/umi-menu/registry.js'
@@ -89,6 +89,13 @@ let handler = async function (m, extra = {}) {
   const prefix = extra.usedPrefix || global.prefix || '.'
   const command = String(m.command || extra.command || '').toLowerCase().replace(/[^a-z0-9_]/g, '')
   const args = Array.isArray(extra.args) ? extra.args : String(extra.text || '').trim().split(/\s+/).filter(Boolean)
+  /*
+   * Task117 — DUA SISTEM MENU:
+   *   prefix tunggal (`$menu`, `/menu`) → menu TEKS
+   *   prefix ganda    (`$$menu`, `//menu`) → menu RICH (kartu HTML + daftar native)
+   * Penanda `rich` dipasang handler.js saat pesan diawali prefix dua kali.
+   */
+  const rich = m.__richMenu === true
 
   // .umimenu system|style …
   if ((command === 'umimenu' || command === 'lmenu') && ['system', 'style'].includes(String(args[0] || '').toLowerCase())) {
@@ -100,17 +107,25 @@ let handler = async function (m, extra = {}) {
     const wanted = String(args[0] || '').trim()
     const parsed = wanted ? parseActionId(wanted) : null
     if (parsed) return dispatchMenuCommand(m, { conn, prefix, action: parsed.action, page: parsed.page })
-    return dispatchMenuCommand(m, { conn, prefix, action: 'menu_dashboard' })
+    return rich
+      ? dispatchMenuCommand(m, { conn, prefix, action: 'menu_dashboard' })
+      : sendTextMenu(conn, m, { prefix, action: 'menu' })
   }
 
-  // .menu → kartu HTML
-  if (command === 'menu') return dispatchMenuCommand(m, { conn, prefix, action: 'menu_dashboard' })
+  // .menu → teks (prefix tunggal) atau kartu HTML (prefix ganda)
+  if (command === 'menu') {
+    return rich
+      ? dispatchMenuCommand(m, { conn, prefix, action: 'menu_dashboard' })
+      : sendTextMenu(conn, m, { prefix, action: 'menu' })
+  }
 
-  // .menu_all [halaman] → All Menu versi HTML (baru, terpisah dari .allmenu)
+  // .menu_all [halaman] → All Menu teks / HTML sesuai jenis prefix
   if (command === 'menu_all' || /^menu_all_\d+$/.test(command)) {
     const fromCommand = Number((command.match(/_all_(\d+)$/) || [])[1]) || 0
     const page = Number(String(args[0] || '').replace(/\D/g, '')) || fromCommand || null
-    return dispatchMenuCommand(m, { conn, prefix, action: 'menu_all', page })
+    return rich
+      ? dispatchMenuCommand(m, { conn, prefix, action: 'menu_all', page })
+      : sendTextMenu(conn, m, { prefix, action: 'menu_all', page })
   }
 
   /*
@@ -142,7 +157,7 @@ handler.command = COMMAND_RE
 handler.help = ['menu', 'menu_all', 'menu_owner', 'menu_group', 'menu_game', 'menu_tools']
 handler.tags = ['main']
 handler.category = 'main'
-handler.description = 'Menu utama Umi Usanagi AI — kartu HTML (background foto) + daftar menu native yang bisa ditekan'
+handler.description = 'Menu utama Umi Usanagi AI — prefix tunggal = menu teks, prefix ganda = menu rich (kartu HTML + tombol)'
 handler.limit = false
 
 /**

@@ -27,6 +27,7 @@ import { collectUserIdentityKeys, mergeUserIdentityRecords } from './lib/user-id
 import { getActivePrefix } from './core/awang-prefix.js'
 import { getMainBotConfig, prefixStorageKey, isPluginDisabled } from './lib/bot-config.js'
 import { normalizePrefixMode, resolveIncomingPrefix } from './lib/prefix-policy.js'
+import { botKind, sanitizeActivePrefix, normalizeIncoming } from './lib/prefix-bot.js'
 import { limitsEnabled } from './lib/limit-mode.js'
 import { canUseOwnerPlugin } from './lib/owner-policy.js'
 import { isPremiumFeatureLocked, premiumOwnerContact } from './lib/premium-mode.js'
@@ -270,14 +271,24 @@ if (botConfig.type !== 'jadibot') {
 }
 let activePrefix = await getActivePrefix(prefixKey, runDefaultPrefix)
 /*
+ * Task117 — ATURAN PREFIX PER JENIS BOT (keras):
+ *   bot utama  → hanya `$`
+ *   jadibot    → simbol apa pun KECUALI `$`
+ * Prefix aktif dipaksa sesuai jenis bot, jadi setelan lama (mis. `.` di bot
+ * utama) tidak bisa lagi melanggar aturan ini.
+ */
+const prefixBotKind = botKind(botConfig)
+activePrefix = sanitizeActivePrefix(prefixBotKind, activePrefix, runDefaultPrefix)
+/*
  * Task112 — HANYA prefix yang disetel yang berlaku (mode ketat, bawaan).
  * Sebelumnya setiap simbol prefix diterima selama sisa teksnya nama perintah,
  * sehingga bot tetap menjawab ".menu" walaupun owner menyetel prefix "/".
  * Pemilik bot masih bisa memakai perilaku lama lewat `.setprefix mode loose`.
+ * Bot utama tetap ketat: hanya `$`.
  */
-const prefixMode = normalizePrefixMode(
-    (botConfig && botConfig.prefixMode) || (global.mainBot && global.mainBot.prefixMode)
-)
+const prefixMode = prefixBotKind === 'jadibot'
+    ? normalizePrefixMode((botConfig && botConfig.prefixMode) || (global.mainBot && global.mainBot.prefixMode))
+    : 'strict'
 const incomingPrefix = resolveIncomingPrefix({
     text: m.text,
     plugins: global.plugins,
@@ -288,6 +299,23 @@ if (incomingPrefix.alternate) {
     activePrefix = incomingPrefix.prefix
     m.__detectedPrefix = incomingPrefix.prefix
 }
+/*
+ * Task117 — prefix GANDA (`$$menu`, `//menu`) berarti minta tampilan RICH.
+ * Pesan dinormalisasi ke prefix tunggal supaya seluruh pencocokan plugin
+ * berjalan seperti biasa; penanda tampilan disimpan di `m.__richMenu`.
+ */
+const incomingNormalized = normalizeIncoming({
+    text: m.text,
+    botType: prefixBotKind,
+    activePrefix,
+})
+activePrefix = incomingNormalized.prefix
+if (incomingNormalized.rich) {
+    m.__richMenu = true
+    m.__originalText = m.text
+    m.text = incomingNormalized.text
+}
+m.__botKind = prefixBotKind
 m.__prefixMode = prefixMode
 // Activity clears AFK before private/premium/registration/only-group command gates.
 // Do this before profile merging, so a stale PN/LID field cannot overwrite the status.

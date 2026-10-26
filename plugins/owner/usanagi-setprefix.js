@@ -16,6 +16,7 @@ import { normalizePrefixMode, describePrefixMode, isPrefixMode, PREFIX_MODE_STRI
 import { saveDefaultPrefix, savePrefixMode, isValidPrefix } from '../../core/awang-prefix-text.js'
 import { saveJadibotConfig } from '../../lib/bot-config.js'
 import { clearPrefixRewriteCache } from '../../lib/prefix-rewrite.js'
+import { botKind, describeBotPrefixRule } from '../../lib/prefix-bot.js'
 
 const HELP = (p, mode = PREFIX_MODE_STRICT) => [
   `Prefix aktif saat ini: *${p}*`,
@@ -51,6 +52,23 @@ const handler = async (m, { conn, usedPrefix, botConfig, prefixStorageKey, isOwn
   const isGlobal = String(parts[0] || '').toLowerCase() === 'global'
   const value = isGlobal ? parts[1] : parts[0]
 
+  /* Task117 — aturan prefix per jenis bot (keras):
+   *   bot utama → hanya `$`
+   *   jadibot   → simbol apa pun KECUALI `$`
+   * Ditolak di sini supaya owner tidak menyimpan setelan yang pasti diabaikan. */
+  const jenisBot = botKind(botConfig)
+  const prefixRuleError = (candidate) => {
+    const simbol = String(candidate == null ? '' : candidate).trim()
+    if (!simbol) return null
+    if (jenisBot === 'main' && simbol !== '$') {
+      return `Bot utama hanya memakai prefix \`$\`. Contoh: $menu\nAturan: ${describeBotPrefixRule(jenisBot)}`
+    }
+    if (jenisBot === 'jadibot' && simbol.startsWith('$')) {
+      return `Jadibot tidak boleh memakai \`$\`. Pilih simbol lain, mis. / . & +\nAturan: ${describeBotPrefixRule(jenisBot)}`
+    }
+    return null
+  }
+
   if (!value) return conn.sendMessage(m.chat, { text: HELP(usedPrefix, botConfig?.prefixMode) }, { quoted: m.raw })
 
   /* Task112 — mode prefix.
@@ -74,6 +92,11 @@ const handler = async (m, { conn, usedPrefix, botConfig, prefixStorageKey, isOwn
       }, { quoted: m.raw })
     }
     const next = normalizePrefixMode(wanted)
+    if (next === PREFIX_MODE_LOOSE && jenisBot === 'main') {
+      return conn.sendMessage(m.chat, {
+        text: `Bot utama hanya menjalankan perintah berawalan \`$\` — mode loose tidak berlaku.\nAturan: ${describeBotPrefixRule(jenisBot)}`,
+      }, { quoted: m.raw })
+    }
     if (botConfig) botConfig.prefixMode = next
     if (botConfig?.type === 'jadibot' && botConfig.file) {
       saveJadibotConfig(botConfig)
@@ -99,6 +122,10 @@ const handler = async (m, { conn, usedPrefix, botConfig, prefixStorageKey, isOwn
     }
     if (!isValidPrefix(value)) {
       return conn.sendMessage(m.chat, { text: 'Prefix harus 1–3 karakter tanpa spasi.' }, { quoted: m.raw })
+    }
+    const aturanGlobal = prefixRuleError(value)
+    if (aturanGlobal) {
+      return conn.sendMessage(m.chat, { text: `⛔ ${aturanGlobal}` }, { quoted: m.raw })
     }
 
     if (botConfig?.type === 'jadibot' && botConfig.file) {
@@ -140,6 +167,10 @@ const handler = async (m, { conn, usedPrefix, botConfig, prefixStorageKey, isOwn
 
   if (!isValidPrefix(value)) {
     return conn.sendMessage(m.chat, { text: 'Prefix harus 1–3 karakter tanpa spasi.' }, { quoted: m.raw })
+  }
+  const aturanChat = prefixRuleError(value)
+  if (aturanChat) {
+    return conn.sendMessage(m.chat, { text: `⛔ ${aturanChat}` }, { quoted: m.raw })
   }
 
   await setPrefix(storageKey, value)

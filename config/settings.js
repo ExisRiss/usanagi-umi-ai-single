@@ -14,7 +14,8 @@ export const settings = {
     channelId: global.links?.channelId || '',
     githubLink: global.scriptUrl || ''
   },
-  defaultPrefix: '.',
+  // Task117: bot utama hanya memakai `$` (jadibot bebas, kecuali `$`).
+  defaultPrefix: '$',
   // Task64: ON/OFF limit untuk bot utama (website menulis ke global.mainBot).
   limitEnabled: global.mainBot?.limitEnabled !== false,
   timezone: 'Asia/Makassar',

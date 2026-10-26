@@ -232,6 +232,27 @@ const buildPing = s => [
   '> ╰──────────\n'
 ].join('\n')
 
+/*
+ * Task117 — prefix GANDA (`$$ping`, `//ping`) minta tampilan RICH.
+ * Prefix tunggal tetap memakai tampilan lama (canvas + tombol) di bawah.
+ */
+const sendRichPing = async (conn, m, stats) => {
+  try {
+    const { sendHtmlCard } = await import('../../lib/umi-menu/router.js')
+    const { buildPingCard, perkiraanTinggiPing } = await import('../../lib/umi-menu/ping-card.js')
+    const html = buildPingCard(stats, { botName: stats.bot })
+    const result = await sendHtmlCard(conn, m.chat, html, {
+      title: 'Ping',
+      quoted: m.raw,
+      tinggi: perkiraanTinggiPing(),
+    })
+    return result && result.ok === true
+  } catch (error) {
+    console.warn(`[PING] kartu rich gagal (${error?.message || error}); pakai tampilan biasa.`)
+    return false
+  }
+}
+
 const buildImageMessage = async (conn, image) => {
   const media = await prepareWAMessageMedia(
     { image },
@@ -252,6 +273,11 @@ const handler = async (m, { conn, usedPrefix }) => {
       )
     )
   )
+
+  if (m.__richMenu === true) {
+    const terkirim = await sendRichPing(conn, m, stats)
+    if (terkirim) return
+  }
 
   const image = makeCanvas(stats)
 
