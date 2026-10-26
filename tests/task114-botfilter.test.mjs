@@ -87,6 +87,7 @@ delete global.jadibotConns
 
 /* 5. Saklar utama */
 {
+  global.jadibotConns = new Map([['628111222333', JADIBOT_A], ['628555666777', JADIBOT_B]])
   filter.updateBotFilter({ enabled: false })
   const v = filter.botMessageVerdict(pesan({ sender: '628111222333@s.whatsapp.net', id: androidId('2') }), MAIN, { scope: 'main' })
   cek('filter dimatikan → pesan bot lolos', v.skip === false, v.reason)
