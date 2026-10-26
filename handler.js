@@ -11,7 +11,8 @@ import { runWithBotConnection } from './lib/bot-connection-context.js';
 import { smsg } from './lib/simple.js';
 import { generateWAMessageFromContent, proto } from '@rexxhayanasi/elaina-baileys'
 import { format } from 'util';
-import { recordError } from './lib/error-hub.js';
+import { recordError } from './lib/error-hub.js'
+import syncUserDatabase from './lib/database.js';
 import { errorReplyText } from './lib/umi-error.js';
 import { fileURLToPath } from 'url';
 import path from 'path';
@@ -424,7 +425,7 @@ m.exp = 0;
 m.limit = false;
 
 		if (m.sender.endsWith('@broadcast') || m.sender.endsWith('@newsletter')) return;
-		await (await import(`./lib/database.js?v=${Date.now()}`)).default(m, this);
+		syncUserDatabase(m, this);
 
 		if (typeof m.text !== 'string') m.text = '';
 
@@ -468,11 +469,22 @@ let isBotAdmin = ['admin', 'superadmin'].includes(bot?.admin)
 // the socket is identified by a phone JID (or the reverse). The legacy local
 // lookup above then misses the bot even though it is an admin. Only when the
 // fast lookup misses, use the LID-aware group access resolver as a fallback.
-if (m.isGroup && (!isAdmin || !isBotAdmin)) {
+/* Task119 — jalur LID hanya dipakai kalau memang ada kemungkinan salah cocok:
+ * metadata kosong (gagal diambil) atau ada peserta/ID berbentuk @lid.
+ * Kalau metadata berisi peserta normal dan bot/user tidak ada di situ, artinya
+ * memang bukan admin — tidak perlu memanggil WhatsApp per peserta. */
+const adaPeserta = participants.length > 0
+const adaLid = participants.some(peserta => {
+  const id = String(peserta?.id || peserta?.jid || peserta?.lid || '')
+  return id.endsWith('@lid')
+}) || String(m.sender || '').endsWith('@lid') || String(botJid || '').endsWith('@lid')
+const perluCekUlang = !adaPeserta || adaLid
+
+if (m.isGroup && perluCekUlang && (!isAdmin || !isBotAdmin)) {
   // Metadata is normally already enough. Bound the exceptional LID lookup so
   // a WhatsApp metadata delay never blocks a command indefinitely.
   const quickAccessCheck = task => new Promise(resolve => {
-    const timer = setTimeout(() => resolve(false), 2200)
+    const timer = setTimeout(() => resolve(false), 1200)
     Promise.resolve(task)
       .then(value => resolve(Boolean(value)))
       .catch(() => resolve(false))

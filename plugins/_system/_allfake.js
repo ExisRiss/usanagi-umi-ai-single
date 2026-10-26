@@ -9,20 +9,53 @@ try {
 
 let handler = m => m
 
+/* ============================================================
+ * Task119 — thumbnail TIDAK lagi dibaca dari disk tiap pesan.
+ *
+ * Dulu setiap pesan memanggil fs.readFileSync('media/thumbnail.jpg'); di
+ * server yang tidak punya folder media berarti satu exception + syscall per
+ * pesan, dan kalau file ada isinya di-resize ulang dengan sharp setiap kali
+ * (kerja native 20–80 ms per balasan). Sekarang hasil baca & resize disimpan.
+ * ============================================================ */
+
+let cacheThumb = { at: 0, mtimeMs: -1, buffer: Buffer.alloc(0) }
+let cacheResize = { key: '', at: 0, buffer: null }
+
+function bacaThumb() {
+  const file = path.resolve(process.cwd(), 'media/thumbnail.jpg')
+  try {
+    const info = fs.statSync(file)
+    if (cacheThumb.at && cacheThumb.mtimeMs === info.mtimeMs && Date.now() - cacheThumb.at < 120_000) {
+      return cacheThumb.buffer
+    }
+    const buffer = fs.readFileSync(file)
+    cacheThumb = { at: Date.now(), mtimeMs: info.mtimeMs, buffer }
+    return buffer
+  } catch {
+    cacheThumb = { at: Date.now(), mtimeMs: -1, buffer: Buffer.alloc(0) }
+    return cacheThumb.buffer
+  }
+}
+
+async function thumbKecil(thumb) {
+  if (!sharp || !thumb?.length) return thumb
+  const key = `${thumb.length}:${thumb[0]}:${thumb[thumb.length - 1]}`
+  if (cacheResize.key === key && Date.now() - cacheResize.at < 600_000) return cacheResize.buffer
+  try {
+    const kecil = await sharp(thumb).resize(300, 300, { fit: 'cover' }).jpeg({ quality: 85 }).toBuffer()
+    cacheResize = { key, at: Date.now(), buffer: kecil }
+    return kecil
+  } catch {
+    return thumb
+  }
+}
+
 handler.all = async function (m, { __dirname }) {
 
   global.wm = '❀ USANAGI UMI AI ❀'
   global.fsizedoc = 2024
 
-  let thumb
-
-  try {
-    thumb = fs.readFileSync(
-      path.resolve(process.cwd(), 'media/thumbnail.jpg')
-    )
-  } catch {
-    thumb = Buffer.alloc(0)
-  }
+  const thumb = bacaThumb()
 
   global.thumb = thumb
 
@@ -108,24 +141,16 @@ handler.all = async function (m, { __dirname }) {
         !content.nativeFlowMessage &&
         !content.interactiveMessage
 
+      /* Tanpa URL di setelan tidak ada yang bisa dipratinjau: jangan bikin
+       * objek linkPreview (dan jangan resize thumbnail) untuk setiap balasan. */
+      const urlPratinjau = String(global.links?.websiteUrl || global.scriptUrl || '').trim()
+      if (isPlainText && (!urlPratinjau || !thumb.length)) {
+        return originalSend(jid, content, options)
+      }
+
       if (isPlainText) {
 
-        let resizedThumb = thumb
-
-        if (sharp && thumb.length) {
-          try {
-            resizedThumb = await sharp(thumb)
-              .resize(300, 300, {
-                fit: 'cover'
-              })
-              .jpeg({
-                quality: 85
-              })
-              .toBuffer()
-          } catch {
-            resizedThumb = thumb
-          }
-        }
+        const resizedThumb = await thumbKecil(thumb)
 
         return originalSend(
           jid,
@@ -136,7 +161,7 @@ handler.all = async function (m, { __dirname }) {
             text: content.text,
 
             linkPreview: {
-              'matched-text': global.links?.websiteUrl || global.scriptUrl || '',
+              'matched-text': urlPratinjau,
               title: '❀ USANAGI UMI AI ❀',
               description: momentGreeting(),
               previewType: 0,

@@ -37,6 +37,55 @@ const CACHE_REFRESH_MS = 60_000
 const cooldown = new Map()
 const menuCache = new Map()
 
+/* ============================================================
+ * Task119 — CACHE GAMBAR & MEDIA MENU
+ *
+ * `.menu` dipanggil ratusan kali (407 di statistik terakhir). Dulu setiap
+ * panggilan: (a) membaca berkas thumbnail, (b) menjalankan sharp 1280×720 dan
+ * 300×300, (c) MENGUNGGAH thumbnail ke server WhatsApp lewat
+ * prepareWAMessageMedia. Kerja native + unggahan jaringan itu yang membuat
+ * menu terasa lama. Sekarang hasilnya disimpan:
+ *   - buffer hasil resize: 10 menit (kunci = isi berkas + ukuran + kualitas),
+ *   - media hasil unggah: 10 menit per koneksi.
+ * ============================================================ */
+
+const cacheGambar = new Map()
+const cacheUnggah = new WeakMap()
+const CACHE_GAMBAR_MS = 10 * 60_000
+const CACHE_UNGGAH_MS = 10 * 60_000
+
+function kunciBuffer(buf, suffix = '') {
+    if (!buf?.length) return ''
+    return `${buf.length}:${buf[0]}:${buf[buf.length - 1]}:${suffix}`
+}
+
+async function gambarTercache(buf, suffix, kerja) {
+    const key = kunciBuffer(buf, suffix)
+    if (!key) return kerja()
+    const hit = cacheGambar.get(key)
+    if (hit && hit.expires > Date.now()) return hit.value
+    const value = await kerja()
+    cacheGambar.set(key, { value, expires: Date.now() + CACHE_GAMBAR_MS })
+    while (cacheGambar.size > 24) cacheGambar.delete(cacheGambar.keys().next().value)
+    return value
+}
+
+async function unggahMediaTercache(conn, buf, kerja) {
+    const key = kunciBuffer(buf, 'unggah')
+    if (!key) return kerja()
+    let peta = cacheUnggah.get(conn)
+    if (!peta) {
+        peta = new Map()
+        cacheUnggah.set(conn, peta)
+    }
+    const hit = peta.get(key)
+    if (hit && hit.expires > Date.now()) return hit.value
+    const value = await kerja()
+    peta.set(key, { value, expires: Date.now() + CACHE_UNGGAH_MS })
+    while (peta.size > 8) peta.delete(peta.keys().next().value)
+    return value
+}
+
 // ============================================================
 // FAKE QUOTED (Contact Card)
 // ============================================================
@@ -268,19 +317,19 @@ function systemInfo() {
 async function getThumbnail(input) {
     try {
         if (input && Buffer.isBuffer(input)) {
-            return await sharp(input)
+            return await gambarTercache(input, 'thumb-300x300-80', () => sharp(input)
                 .resize(300, 300, { fit: 'cover' })
                 .jpeg({ quality: 80 })
-                .toBuffer()
+                .toBuffer())
         }
 
         if (input && typeof input === 'string' && fs.existsSync(input)) {
             const buf = fs.readFileSync(input)
 
-            return await sharp(buf)
+            return await gambarTercache(buf, 'thumb-300x300-80', () => sharp(buf)
                 .resize(300, 300, { fit: 'cover' })
                 .jpeg({ quality: 80 })
-                .toBuffer()
+                .toBuffer())
         }
 
         if (fs.existsSync(THUMB_PATH))
@@ -304,13 +353,13 @@ async function getLocalThumb(path = THUMB_PATH) {
 
         const buf = fs.readFileSync(path)
 
-        return await sharp(buf)
+        return await gambarTercache(buf, 'thumb-1280x720-90', () => sharp(buf)
             .resize(1280, 720, {
                 fit: 'cover',
                 position: 'center'
             })
             .jpeg({ quality: 90 })
-            .toBuffer()
+            .toBuffer())
     } catch (e) {
         console.error('[menu] local thumb error:', e)
         return Buffer.alloc(0)
@@ -321,13 +370,13 @@ async function createHighQualityThumbnail(conn, thumb) {
     try {
         if (!thumb?.length) return null
 
-        const { imageMessage } = await prepareWAMessageMedia(
+        const { imageMessage } = await unggahMediaTercache(conn, thumb, () => prepareWAMessageMedia(
             { image: thumb },
             {
                 upload: conn.waUploadToServer,
                 mediaTypeOverride: 'thumbnail-link'
             }
-        )
+        ))
 
         if (!imageMessage) return null
 
@@ -414,10 +463,10 @@ async function sendStyle1(
     let jpegThumbB64 = null
 
     try {
-        const smallBuf = await sharp(thumb)
+        const smallBuf = await gambarTercache(thumb, 'thumb-300x200-60', () => sharp(thumb)
             .resize(300, 200, { fit: 'cover' })
             .jpeg({ quality: 60 })
-            .toBuffer()
+            .toBuffer())
 
         jpegThumbB64 = smallBuf.toString('base64')
     } catch (e) {
@@ -427,12 +476,12 @@ async function sendStyle1(
     let imageMessage = null
 
     try {
-        const uploaded = await prepareWAMessageMedia(
+        const uploaded = await unggahMediaTercache(conn, thumb, () => prepareWAMessageMedia(
             { image: thumb },
             {
                 upload: conn.waUploadToServer
             }
-        )
+        ))
 
         imageMessage = uploaded.imageMessage
 
@@ -899,11 +948,11 @@ async function sendStyle4(
         const rawThumb = await getThumbnail()
 
         if (rawThumb?.length) {
-            const smallThumb = await sharp(rawThumb)
+            const smallThumb = await gambarTercache(rawThumb, 'thumb-300x169-70', () => sharp(rawThumb)
                 // Resize diubah ke rasio landscape 16:9 agar tidak memakan layar
-                .resize(300, 169, { fit: 'cover' }) 
+                .resize(300, 169, { fit: 'cover' })
                 .jpeg({ quality: 70 })
-                .toBuffer()
+                .toBuffer())
 
             thumb4 = smallThumb.toString('base64')
         }
