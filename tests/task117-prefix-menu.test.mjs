@@ -313,6 +313,48 @@ function pesanTiruan(text, extra = {}) {
   cek('MENUINFO RICH: kartu memakai prefix tunggal di daftar top', Boolean(html) && html.content.__html.includes('$menu'))
 }
 
+/* ── 6. Wallpaper baru pada kartu rich (menu, ping, menuinfo) ──── */
+{
+  const wp = await import('../lib/umi-menu/wallpaper.js')
+  cek('WALLPAPER: sumber dari owner', wp.WALLPAPER_SOURCE === 'https://u.pone.rs/ifcwenwn.jpg')
+  cek('WALLPAPER: banner berupa data URI JPEG', /^data:image\/jpeg;base64,[A-Za-z0-9+/=]+$/.test(wp.WALLPAPER_BANNER))
+  cek('WALLPAPER: latar berupa data URI JPEG', /^data:image\/jpeg;base64,[A-Za-z0-9+/=]+$/.test(wp.WALLPAPER_SOFT))
+  cek('WALLPAPER: terbaca sebagai gambar JPEG asli', Buffer.from(wp.WALLPAPER_BANNER.split(',')[1], 'base64').subarray(0, 3).toString('hex') === 'ffd8ff')
+  cek('WALLPAPER: ukuran wajar (< 120 KB base64)', wp.WALLPAPER_BANNER.length + wp.WALLPAPER_SOFT.length < 120 * 1024)
+
+  const { buildHomeCard } = await import('../lib/umi-menu/html.js')
+  const beranda = buildHomeCard({
+    status: { botName: 'Umi Usanagi AI', connection: { connected: true }, server: {}, users: { available: false }, group: { available: false } },
+    stats: { commands: 10, aliases: 20, categories: 3 }, prefix: '$', assets: {}, menuOptions: [], categories: [], top: [], jadibot: 0,
+  })
+  cek('MENU: banner memakai wallpaper baru (class wall)', beranda.includes('class="wall" src="data:image/jpeg;base64,'))
+  cek('MENU: latar body memakai wallpaper lembut', beranda.includes('url("data:image/jpeg;base64,'))
+  cek('MENU: gambar lama bg-card tidak dipakai lagi', !beranda.includes('bg-card.jpg'))
+
+  const { buildPingCard } = await import('../lib/umi-menu/ping-card.js')
+  const ping = buildPingCard({ latency: 43, bot: 'Umi Usanagi AI', uptime: '1j', ram: '200 MB' })
+  const { buildMenuinfoCard } = await import('../lib/umi-menu/menuinfo-card.js')
+  const info = buildMenuinfoCard({ status: { botName: 'Umi Usanagi AI', server: {}, users: {}, connection: {} }, top: [] })
+
+  for (const [nama, html] of [['PING', ping], ['MENUINFO', info]]) {
+    cek(`${nama}: kepala kartu memakai wallpaper`, html.includes('class="wall" src="data:image/jpeg;base64,'))
+    cek(`${nama}: latar memakai wallpaper lembut`, html.includes('url("data:image/jpeg;base64,'))
+  }
+
+  const { checkHtmlApp } = await import('@rexxhayanasi/elaina-baileys/src/Utils/html-app.js')
+  for (const [nama, html, tinggi] of [['MENU', beranda, 2200], ['PING', ping, 900], ['MENUINFO', info, 2100]]) {
+    const laporan = checkHtmlApp(html, { height: tinggi })
+    cek(`${nama}: lolos validator WhatsApp dengan wallpaper`, laporan.ok === true, JSON.stringify(laporan.problems || []).slice(0, 140))
+    cek(`${nama}: tetap di bawah anggaran byte pesan`, laporan.wireBytes < 960 * 1024, `${Math.round(laporan.wireBytes / 1024)} KB`)
+  }
+
+  // Bisa dimatikan lewat env (kalau owner mau latar polos lagi).
+  process.env.UMI_MENU_WALLPAPER = 'off'
+  const mati = buildPingCard({ latency: 1, bot: 'Umi Usanagi AI' })
+  cek('WALLPAPER: UMI_MENU_WALLPAPER=off mematikan gambar', !mati.includes('data:image/jpeg;base64,'))
+  delete process.env.UMI_MENU_WALLPAPER
+}
+
 cek('handler menuinfo memakai nama perintah yang belum dipakai', /^\^menuinfo\$/.test(String((await import('../plugins/main/usanagi-menuinfo.js')).default.command.source).replace(/^\^\(?|\$\)?\$$/g, m => m)))
 
 const lulus = hasil.filter(Boolean).length
