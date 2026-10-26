@@ -11,6 +11,7 @@ import fs from 'fs'
 import crypto from 'crypto'
 import { Buffer } from 'buffer'
 import { createRequire } from 'module'
+import { botMessageVerdict } from '../../lib/bot-filter.js'
 
 const require = createRequire(import.meta.url)
 const { downloadContentFromMessage } = await import('@rexxhayanasi/elaina-baileys')
@@ -389,6 +390,8 @@ export async function before(m, { conn }) {
 
     if (!text && !m.message?.imageMessage && !voMsg?.imageMessage && !m.quoted?.message?.imageMessage) return true
     if (m.fromMe) return true
+    // Task114: jalur Auto-AI lama ini juga tidak boleh membalas sesama bot.
+    if (botMessageVerdict(m, conn, conn && conn.botConfig).skip) return true
     if (/^[./#!]/.test(text) || m.message?.buttonsResponseMessage || m.message?.templateButtonReplyMessage || m.message?.listResponseMessage) return true
 
     if (!global.db) return true
