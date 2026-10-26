@@ -9,10 +9,10 @@
  *   .menu_all [_halaman]   → All Menu versi HTML (BARU, terpisah)
  *   .menu_owner|group|game|tools → menu lama seperti semula (teks kategori)
  *
- * Task120 — aturan tampilan mengikuti jumlah prefix (tanpa setting tambahan):
- *   `.menu`  (satu prefix) → menu TEKS
- *   `..menu` (prefix ganda) → menu RICH: foto header + 2 tombol interaktif
- *                             (Owner Bot + daftar menu single_select)
+ * Task121 — aturan tampilan mengikuti jumlah prefix (tanpa setting tambahan):
+ *   `.menu`  (satu prefix) → menu TEKS gaya baru (sapaan + info + daftar menu)
+ *   `..menu` (prefix ganda) → menu RICH: kartu HTML live seperti `.ping3`
+ *   `.umimenu tombol`       → menu bertombol (foto + Owner Bot + daftar menu)
  *
  * Perintah lama TIDAK diambil alih lagi:
  *   .allmenu                → tetap milik plugins/main/usanagi-allmenu.js
@@ -29,7 +29,8 @@ import {
 } from '../../lib/umi-menu/router.js'
 import { buildCatalogue } from '../../lib/umi-menu/registry.js'
 import { isOwner } from '../../lib/awang-cekakses.js'
-import { sendModernMenu } from '../../lib/awang-menu.js'
+import { sendModernMenu, sendMenuTeksBaru, teksMenuBaru } from '../../lib/awang-menu.js'
+import { kirimMenuLive } from '../../lib/umi-menu/live-menu.js'
 
 const COMMAND_RE = /^(umimenu|lmenu|menu|menu_all(?:_\d+)?|menu_(?:owner|group|game|tools))$/i
 
@@ -90,6 +91,20 @@ async function handleSettings(m, { conn, args }) {
   return { ok: false, mode: 'invalid' }
 }
 
+/** Teks cadangan kalau kartu rich gagal dikirim (tidak boleh kosong). */
+function teksCadangan(m, prefix) {
+  try {
+    return teksMenuBaru({
+      prefix,
+      pushName: m?.pushName || 'Kak',
+      contactNumber: '-',
+      isOwnerUser: m?.fromMe === true,
+    })
+  } catch {
+    return `📋 *MENU UTAMA*\n\n${prefix}menu_all\n${prefix}menu_owner\n${prefix}menu_group`
+  }
+}
+
 let handler = async function (m, extra = {}) {
   const conn = extra.conn || this
   const prefix = extra.usedPrefix || global.prefix || '.'
@@ -116,18 +131,20 @@ let handler = async function (m, extra = {}) {
   // .umimenu [aksi]
   if (command === 'umimenu' || command === 'lmenu') {
     const wanted = String(args[0] || '').trim()
+    // Varian bertombol tetap tersedia untuk owner (mis. saat kartu rich ditolak).
+    if (wanted.toLowerCase() === 'tombol') return sendModernMenu(conn, m, prefix)
     const parsed = wanted ? parseActionId(wanted) : null
     if (parsed) return dispatchMenuCommand(m, { conn, prefix, action: parsed.action, page: parsed.page })
     return rich
-      ? sendModernMenu(conn, m, prefix)
-      : sendTextMenu(conn, m, { prefix, action: 'menu' })
+      ? kirimMenuLive(conn, m, { prefix, teksCadangan: teksCadangan(m, prefix) })
+      : sendMenuTeksBaru(conn, m, { prefix })
   }
 
-  // .menu → teks (prefix tunggal) atau menu tombol rich (prefix ganda)
+  // .menu → TEKS (satu prefix) · ..menu → KARTU RICH seperti .ping3
   if (command === 'menu') {
     return rich
-      ? sendModernMenu(conn, m, prefix)
-      : sendTextMenu(conn, m, { prefix, action: 'menu' })
+      ? kirimMenuLive(conn, m, { prefix, teksCadangan: teksCadangan(m, prefix) })
+      : sendMenuTeksBaru(conn, m, { prefix })
   }
 
   // .menu_all [halaman] → All Menu teks / HTML sesuai jenis prefix
@@ -168,7 +185,7 @@ handler.command = COMMAND_RE
 handler.help = ['menu', 'menu_all', 'menu_owner', 'menu_group', 'menu_game', 'menu_tools']
 handler.tags = ['main']
 handler.category = 'main'
-handler.description = 'Menu utama Umi Usanagi AI — prefix tunggal (.menu) = menu teks, prefix ganda (..menu) = menu rich bertombol'
+handler.description = 'Menu utama Umi Usanagi AI — .menu = menu teks, ..menu = kartu rich (gaya ping3)'
 handler.limit = false
 
 /**

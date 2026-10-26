@@ -274,11 +274,16 @@ const handler = async (m, { conn, usedPrefix }) => {
     )
   )
 
-  /* Task117b — kartu ping hanya dipakai kalau owner menyalakan mode rich
-   * (`.umimenu style html`). Mode bawaan = teks/tampilan lama. */
+  /* Task121 — `..ping` = kartu rich REALTIME, sama seperti `.ping3`
+   * (angka CPU/RAM/disk & uptime berjalan sendiri di dalam kartu).
+   * Kalau kartu gagal dikirim, jatuh ke tampilan ping biasa di bawah. */
   if (m.__richMenu === true) {
-    const { richEnabled } = await import('../../lib/umi-menu/router.js')
-    if (richEnabled()) {
+    try {
+      const { default: ping3 } = await import('./usanagi-ping3.js')
+      await ping3(m, { conn, usedPrefix })
+      return
+    } catch (error) {
+      console.error('[PING] kartu rich gagal:', error?.message || error)
       const terkirim = await sendRichPing(conn, m, stats)
       if (terkirim) return
     }

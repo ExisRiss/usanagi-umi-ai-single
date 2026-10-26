@@ -167,6 +167,72 @@ export async function jalankanPemeriksaan() {
     simpan({ protobuf: { ok: false, error: String(error?.message || error).slice(0, 200) }, tahap: 'protobuf-gagal' })
   }
 
+  //── Task121: kartu rich gaya ping3 + menu teks baru ───────────
+  try {
+    const { bangunPesanKartuLive, bagianHtml } = await import('../../lib/rich-live-card.js')
+    const kartu = bangunPesanKartuLive({ bagian: bagianHtml('<h1>uji</h1>'), title: 'Uji Menu' })
+    const { proto: P } = await import('@rexxhayanasi/elaina-baileys')
+    const enc = P.Message.encode(P.Message.fromObject(kartu.message)).finish()
+    const balik = P.Message.decode(enc)
+    const isiKartu = JSON.parse(
+      Buffer.from(balik?.botForwardedMessage?.message?.richResponseMessage?.unifiedResponse?.data || '', 'base64').toString()
+    )
+    simpan({
+      kartu121: {
+        ok: true,
+        byte: enc.length,
+        adaRich: Boolean(balik?.botForwardedMessage?.message?.richResponseMessage),
+        adaViewOnce: Boolean(balik?.viewOnceMessage),
+        typename: isiKartu.__typename || null,
+        primitive: isiKartu.sections?.[0]?.view_model?.primitive?.__typename || null,
+        payload: isiKartu.sections?.[0]?.view_model?.primitive?.payload || null,
+      },
+    })
+  } catch (error) {
+    simpan({ kartu121: { ok: false, error: String(error?.message || error).slice(0, 200) } })
+  }
+
+  try {
+    const { buildMenuFooter } = await import('../../lib/awang-menu.js')
+    const { bangunTeksMenu, PILIHAN_BAWAAN } = await import('../../lib/umi-menu/menu-text.js')
+    const teks = bangunTeksMenu({
+      sapaan: 'Selamat Pagi @Alz aja',
+      info: buildMenuFooter({ prefix: '.', pushName: 'Alz aja' }),
+      pilihan: PILIHAN_BAWAAN,
+      prefix: '.',
+      watermark: 'By AlzRiss - Usanagi Umi AI',
+    })
+    simpan({
+      teks121: {
+        ok: true,
+        panjang: teks.length,
+        adaInfo: teks.includes('INFO BOT'),
+        adaDaftar: teks.includes('📋 *MENU UTAMA*') && teks.includes('.menu_all'),
+        contoh: teks.slice(0, 160),
+      },
+    })
+  } catch (error) {
+    simpan({ teks121: { ok: false, error: String(error?.message || error).slice(0, 200) } })
+  }
+
+  //── Task121: kartu menu benar-benar bisa dibangun di server ────
+  try {
+    const { htmlMenuLive } = await import('../../lib/umi-menu/live-menu.js')
+    const mulai = Date.now()
+    const kartu = await htmlMenuLive({ user: { id: '6280000000000@s.whatsapp.net' } }, 'uji@g.us', '.')
+    simpan({
+      kartuMenu: {
+        ok: true,
+        panjangHtml: kartu.html.length,
+        ms: Date.now() - mulai,
+        adaWallpaper: kartu.html.includes('data:image/jpeg;base64,'),
+        adaJudul: kartu.html.includes('MENU'),
+      },
+    })
+  } catch (error) {
+    simpan({ kartuMenu: { ok: false, error: String(error?.message || error).slice(0, 300) } })
+  }
+
   return hasil
 }
 

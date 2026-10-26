@@ -3,7 +3,7 @@
 import os from 'node:os'
 import fs from 'node:fs'
 import { execSync } from 'node:child_process'
-import { randomUUID } from 'node:crypto'
+import { kirimKartuLive } from '../../lib/rich-live-card.js'
 
 const BANNER = 'https://c.termai.cc/a199/0Dw0j.jpg'
 
@@ -193,53 +193,10 @@ setInterval(tick,1000);tick();
     }
 }
 
+/* Task121: bentuk payload rich dipindah ke lib/rich-live-card.js supaya
+ * `.ping3`, `..ping`, dan `..menu` memakai SATU bentuk yang sama. */
 async function sendLive(conn, chatId, htmlPayload, title) {
-    const responseId = randomUUID()
-    const unified = {
-        __typename: 'GenAIUnifiedResponse',
-        response_id: responseId,
-        sections: [{
-            __typename: 'GenAIUnifiedResponseSection',
-            ...htmlPayload,
-        }],
-    }
-
-    return conn.relayMessage(
-        chatId,
-        {
-            messageContextInfo: {
-                deviceListMetadata: {},
-                deviceListMetadataVersion: 2,
-                botMetadata: {
-                    messageDisclaimerText: '',
-                    botResponseId: responseId,
-                },
-            },
-            botForwardedMessage: {
-                message: {
-                    richResponseMessage: {
-                        messageType: 1,
-                        submessages: [{
-                            messageType: 2,
-                            messageText: title,
-                        }],
-                        unifiedResponse: {
-                            data: Buffer.from(JSON.stringify(unified)).toString('base64'),
-                        },
-                        contextInfo: {
-                            forwardingScore: 1,
-                            isForwarded: true,
-                            forwardedAiBotMessageInfo: {
-                                botJid: '867051314767696@bot',
-                            },
-                            forwardOrigin: 4,
-                        },
-                    },
-                },
-            },
-        },
-        { messageId: responseId }
-    )
+    return kirimKartuLive(conn, chatId, { bagian: htmlPayload, title })
 }
 
 let handler = async (m, { conn }) => {
