@@ -39,6 +39,9 @@ export const API_KEY_ENV = {
   openai: 'OPENAI_API_KEY',
   saveTubeQuality: 'UMI_SAVETUBE_VIDEO_QUALITY',
   xrina: 'UMI_XRINA_KEY',
+  // Kunci RCH (reaction channel). Boleh satu kunci, atau daftar JSON
+  //   [{"name":"VIP-1","apiKey":"...","domain":"https://..."}]
+  rch: 'UMI_RCH_KEY',
   // Statistik website (Supabase) untuk menu real-time.
   supabaseUrl: 'UMI_DATA_SUPABASE_URL',
   supabaseServiceKey: 'UMI_DATA_SERVICE_ROLE_KEY',
@@ -88,7 +91,9 @@ export function saveApiKey(name, value) {
   if (!envName) throw Object.assign(new Error(`Kunci API "${key}" tidak dikenal.`), { status: 400 })
   const text = clean(value, 1000)
   if (!text) throw Object.assign(new Error('Kunci API kosong.'), { status: 400 })
-  if (/[\s]/.test(text)) throw Object.assign(new Error('Kunci API tidak boleh mengandung spasi.'), { status: 400 })
+  // Daftar JSON (mis. kunci RCH) boleh memuat spasi; kunci tunggal tidak.
+  const daftarJson = text.startsWith('[')
+  if (!daftarJson && /[\s]/.test(text)) throw Object.assign(new Error('Kunci API tidak boleh mengandung spasi.'), { status: 400 })
   const current = { ...readFileKeys() }
   current[envName] = text
   writeFileKeys(current)
@@ -122,11 +127,11 @@ export function apiKey(name) {
 
   let value = ''
   try {
-    value = clean(globalThis.apiKeys?.[key], 1000)
+    value = clean(globalThis.apiKeys?.[key], 4000)
   } catch {}
   const envName = API_KEY_ENV[key] || `UMI_${key.toUpperCase()}_KEY`
-  if (!value) value = clean(readFileKeys()[envName], 1000)
-  if (!value) value = clean(process.env[envName], 1000)
+  if (!value) value = clean(readFileKeys()[envName], 4000)
+  if (!value) value = clean(process.env[envName], 4000)
   // Hanya nilai terisi yang di-cache: kalau kunci baru dipasang lewat halaman
   // setting/config.js saat bot berjalan, pembacaan berikutnya langsung ikut.
   if (value) cache.set(key, value)
