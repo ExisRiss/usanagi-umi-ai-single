@@ -109,3 +109,17 @@ export function saveDefaultPrefix(prefix) {
   const current = readSettings()
   return writeSettings({ ...current, defaultPrefix: prefix, updatedAt: new Date().toISOString(), revision: Date.now() })
 }
+
+/* Mode prefix bot utama (Task112): 'strict' (bawaan) atau 'loose'.
+ * Disimpan di berkas setelan yang sama supaya ikut terbaca saat boot. */
+export function storedPrefixMode() {
+  const value = String(readSettings().prefixMode || '').toLowerCase()
+  return value === 'loose' || value === 'strict' ? value : ''
+}
+
+export function savePrefixMode(mode) {
+  const value = String(mode || '').toLowerCase()
+  if (value !== 'strict' && value !== 'loose') return false
+  const current = readSettings()
+  return writeSettings({ ...current, prefixMode: value, updatedAt: new Date().toISOString() })
+}

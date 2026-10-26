@@ -23,7 +23,7 @@ import { syncMainPrefix } from './core/awang-prefix.js';
 import { getExplicitlyEnabledWelcomeGroups } from './core/awang-welcome.js';
 import { startJadibotPlatformApi } from './lib/jadibot-platform-api.js';
 import { startGameRoomNotifier } from './lib/game-room-notifier.js';
-import { normalizePluginText, storedDefaultPrefix } from './core/awang-prefix-text.js';
+import { normalizePluginText, storedDefaultPrefix, storedPrefixMode } from './core/awang-prefix-text.js';
 import { startJadibotSessionCleaner } from './lib/jadibot-session-cleaner.js';
 import { startPlatform, stopPlatform } from './lib/platform/index.js';
 import { SINGLE_MODE } from './config/single-mode.js';
@@ -110,9 +110,14 @@ installBotConfigAccessors();
 // Prefix default pilihan owner (disimpan di data/prefix-settings.json) menang
 // atas nilai bawaan config.js, supaya setelan tidak hilang saat restart.
 const savedPrefix = storedDefaultPrefix();
+const savedPrefixMode = storedPrefixMode();
 if (savedPrefix) {
     if (!global.mainBot) global.mainBot = {};
     global.mainBot.defaultPrefix = savedPrefix;
+}
+if (savedPrefixMode) {
+    if (!global.mainBot) global.mainBot = {};
+    global.mainBot.prefixMode = savedPrefixMode;
 }
 if (syncMainPrefix(global.mainBot?.defaultPrefix, global.mainBot?.prefixRevision)) {
     console.log(`Prefix bot utama disinkronkan ke: ${global.mainBot.defaultPrefix}`);

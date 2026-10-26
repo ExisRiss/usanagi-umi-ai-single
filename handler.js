@@ -26,7 +26,7 @@ import {
 import { collectUserIdentityKeys, mergeUserIdentityRecords } from './lib/user-identity.js'
 import { getActivePrefix } from './core/awang-prefix.js'
 import { getMainBotConfig, prefixStorageKey, isPluginDisabled } from './lib/bot-config.js'
-import { detectAlternatePrefix } from './lib/prefix-detect.js'
+import { normalizePrefixMode, resolveIncomingPrefix } from './lib/prefix-policy.js'
 import { limitsEnabled } from './lib/limit-mode.js'
 import { canUseOwnerPlugin } from './lib/owner-policy.js'
 import { isPremiumFeatureLocked, premiumOwnerContact } from './lib/premium-mode.js'
@@ -269,14 +269,26 @@ if (botConfig.type !== 'jadibot') {
     if (freshMainConfig && freshMainConfig.defaultPrefix) runDefaultPrefix = freshMainConfig.defaultPrefix
 }
 let activePrefix = await getActivePrefix(prefixKey, runDefaultPrefix)
-// Simbol prefix lain tetap diterima kalau sisa teksnya benar-benar nama perintah.
-if (!String(m.text || '').trim().startsWith(activePrefix)) {
-    const altPrefix = detectAlternatePrefix(m.text, global.plugins, activePrefix)
-    if (altPrefix) {
-        activePrefix = altPrefix
-        m.__detectedPrefix = altPrefix
-    }
+/*
+ * Task112 — HANYA prefix yang disetel yang berlaku (mode ketat, bawaan).
+ * Sebelumnya setiap simbol prefix diterima selama sisa teksnya nama perintah,
+ * sehingga bot tetap menjawab ".menu" walaupun owner menyetel prefix "/".
+ * Pemilik bot masih bisa memakai perilaku lama lewat `.setprefix mode loose`.
+ */
+const prefixMode = normalizePrefixMode(
+    (botConfig && botConfig.prefixMode) || (global.mainBot && global.mainBot.prefixMode)
+)
+const incomingPrefix = resolveIncomingPrefix({
+    text: m.text,
+    plugins: global.plugins,
+    activePrefix,
+    mode: prefixMode,
+})
+if (incomingPrefix.alternate) {
+    activePrefix = incomingPrefix.prefix
+    m.__detectedPrefix = incomingPrefix.prefix
 }
+m.__prefixMode = prefixMode
 // Activity clears AFK before private/premium/registration/only-group command gates.
 // Do this before profile merging, so a stale PN/LID field cannot overwrite the status.
 const afkNotify = (isOwner || m.fromMe || (botConfig.type === 'jadibot' ? botConfig.public !== false : global.db.data.settings?.[this.user.jid]?.public !== false)) && !isPluginDisabled(botConfig, '_system/_afk.js')

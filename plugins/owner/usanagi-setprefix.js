@@ -11,19 +11,22 @@
  *
  * Semua menu dan pesan perintah otomatis memakai prefix ini.
  */
-import { setPrefix, resetPrefix, syncMainPrefix } from '../../core/awang-prefix.js'
-import { readMainBotState, writeMainBotState } from '../../lib/main-bot-config.js'
-import { saveDefaultPrefix, isValidPrefix } from '../../core/awang-prefix-text.js'
+import { setPrefix, resetPrefix, syncMainPrefix, clearScopedPrefixes } from '../../core/awang-prefix.js'
+import { normalizePrefixMode, describePrefixMode, isPrefixMode, PREFIX_MODE_STRICT, PREFIX_MODE_LOOSE } from '../../lib/prefix-policy.js'
+import { saveDefaultPrefix, savePrefixMode, isValidPrefix } from '../../core/awang-prefix-text.js'
 import { saveJadibotConfig } from '../../lib/bot-config.js'
 import { clearPrefixRewriteCache } from '../../lib/prefix-rewrite.js'
 
-const HELP = (p) => [
+const HELP = (p, mode = PREFIX_MODE_STRICT) => [
   `Prefix aktif saat ini: *${p}*`,
+  `Mode prefix: *${normalizePrefixMode(mode)}* — ${describePrefixMode(mode)}`,
   '',
   'Cara pakai:',
   `${p}setprefix <prefix_baru>      → untuk chat ini`,
   `${p}setprefix default            → kembali ke prefix default`,
   `${p}setprefix global <prefix>    → [owner] default semua chat bot ini`,
+  `${p}setprefix mode strict        → hanya prefix yang disetel yang jalan (disarankan)`,
+  `${p}setprefix mode loose         → simbol prefix lain masih diterima`,
 ].join('\n')
 
 const handler = async (m, { conn, usedPrefix, botConfig, prefixStorageKey, isOwner, isAdmin, isROwner }) => {
@@ -48,7 +51,47 @@ const handler = async (m, { conn, usedPrefix, botConfig, prefixStorageKey, isOwn
   const isGlobal = String(parts[0] || '').toLowerCase() === 'global'
   const value = isGlobal ? parts[1] : parts[0]
 
-  if (!value) return conn.sendMessage(m.chat, { text: HELP(usedPrefix) }, { quoted: m.raw })
+  if (!value) return conn.sendMessage(m.chat, { text: HELP(usedPrefix, botConfig?.prefixMode) }, { quoted: m.raw })
+
+  /* Task112 — mode prefix.
+   *   strict : hanya prefix yang disetel yang dijalankan (bawaan).
+   *   loose  : simbol lain masih diterima bila sisa teksnya nama perintah.
+   * Disimpan per sesi jadibot supaya tidak mengganggu bot lain.
+   */
+  if (String(parts[0] || '').toLowerCase() === 'mode') {
+    if (!owner) {
+      return conn.sendMessage(m.chat, { text: 'Hanya owner yang boleh mengubah mode prefix.' }, { quoted: m.raw })
+    }
+    const wanted = String(parts[1] || '').toLowerCase()
+    if (!wanted) {
+      return conn.sendMessage(m.chat, {
+        text: `Mode prefix bot ini: *${normalizePrefixMode(botConfig?.prefixMode)}*\n\n${describePrefixMode(botConfig?.prefixMode)}`,
+      }, { quoted: m.raw })
+    }
+    if (!isPrefixMode(wanted)) {
+      return conn.sendMessage(m.chat, {
+        text: 'Pilihan mode: strict atau loose.\nContoh: .setprefix mode strict',
+      }, { quoted: m.raw })
+    }
+    const next = normalizePrefixMode(wanted)
+    if (botConfig) botConfig.prefixMode = next
+    if (botConfig?.type === 'jadibot' && botConfig.file) {
+      saveJadibotConfig(botConfig)
+    } else {
+      // Bot utama: disimpan di data/prefix-settings.json (berkas yang sama
+      // dengan defaultPrefix), lalu dipakai handler pada pesan berikutnya.
+      savePrefixMode(next)
+      if (!global.mainBot) global.mainBot = {}
+      global.mainBot.prefixMode = next
+    }
+    clearPrefixRewriteCache()
+    return conn.sendMessage(m.chat, {
+      text: `✅ Mode prefix: *${next}*\n${describePrefixMode(next)}\n\n` +
+        (next === PREFIX_MODE_STRICT
+          ? `Hanya *${botConfig?.defaultPrefix || usedPrefix}* yang akan dijalankan.`
+          : 'Simbol prefix lain masih diterima selama sisa teksnya nama perintah.'),
+    }, { quoted: m.raw })
+  }
 
   if (isGlobal) {
     if (!owner) {
@@ -61,16 +104,19 @@ const handler = async (m, { conn, usedPrefix, botConfig, prefixStorageKey, isOwn
     if (botConfig?.type === 'jadibot' && botConfig.file) {
       // Jadibot menyimpan default prefix di config sesinya sendiri.
       botConfig.defaultPrefix = value
+      if (botConfig.values) botConfig.values.defaultPrefix = value
       saveJadibotConfig(botConfig)
+      /* Task112 — baris prefix lama milik sesi ini harus ikut dibuang.
+       * Tanpa ini, chat yang pernah memakai prefix "." tetap memakai "."
+       * walaupun default sudah "/", lalu terlihat seperti filter prefix rusak. */
+      try {
+        if (botConfig.scope) clearScopedPrefixes(botConfig.scope)
+      } catch {}
     } else {
       saveDefaultPrefix(value)
       if (!global.mainBot) global.mainBot = {}
       global.mainBot.defaultPrefix = value
       syncMainPrefix(value, `manual-${Date.now()}`)
-      try {
-        const state = readMainBotState()
-        writeMainBotState({ ...state, enabled: state.enabled })
-      } catch {}
     }
     clearPrefixRewriteCache()
     return conn.sendMessage(
