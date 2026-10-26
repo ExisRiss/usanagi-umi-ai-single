@@ -84,34 +84,61 @@ function bungkusHook() {
 
 const DIBUNGKUS = Symbol.for('umi.latensi119.send')
 
+/* `conn.sendMessage` dibuat lewat Object.defineProperties (non-writable) di
+ * lib/simple.js, jadi penggantian harus lewat defineProperty. Kalau tidak bisa,
+ * probe mencatat metode mana yang gagal dibungkus supaya tidak menebak. */
+function pasang(conn, nama, buat) {
+  const asli = conn[nama]
+  if (typeof asli !== 'function') return false
+  const pembungkus = buat(asli.bind(conn))
+  pembungkus.__latensi119 = true
+  try {
+    Object.defineProperty(conn, nama, {
+      value: pembungkus,
+      writable: true,
+      configurable: true,
+      enumerable: true,
+    })
+    return true
+  } catch {
+    return false
+  }
+}
+
 function bungkusKirim(conn) {
-  if (!conn || conn[DIBUNGKUS] || typeof conn.sendMessage !== 'function') return
+  if (!conn || conn[DIBUNGKUS]) return
   try {
     Object.defineProperty(conn, DIBUNGKUS, { value: true, configurable: true })
   } catch {
     return
   }
-  const asli = conn.sendMessage.bind(conn)
-  conn.sendMessage = async function kirimTerukur(jid, content, options = {}) {
+
+  const terpasang = []
+
+  const ukur = nama => asli => async function terukur(...args) {
     const mulai = Date.now()
-    const jejak = awalPesan.get(String(jid || '')) || null
+    const jid = typeof args[0] === 'string' ? args[0] : ''
+    const isi = args[1] || {}
+    const jejak = awalPesan.get(jid) || null
     try {
-      const hasil = await asli(jid, content, options)
+      const hasil = await asli(...args)
       catat({
         jenis: 'kirim',
-        chat: String(jid || '').slice(0, 6),
-        grup: String(jid || '').endsWith('@g.us'),
+        lewat: nama,
+        chat: jid.slice(0, 6),
+        grup: jid.endsWith('@g.us'),
         handleMs: jejak ? mulai - jejak.at : null,
         sendMs: Date.now() - mulai,
-        isi: Object.keys(content || {}).join('+').slice(0, 40),
-        panjang: typeof content?.text === 'string' ? content.text.length : 0,
+        isi: Object.keys(isi || {}).join('+').slice(0, 40),
+        panjang: typeof isi?.text === 'string' ? isi.text.length : 0,
         perintah: jejak ? jejak.text : '',
       })
       return hasil
     } catch (error) {
       catat({
         jenis: 'kirim-gagal',
-        chat: String(jid || '').slice(0, 6),
+        lewat: nama,
+        chat: jid.slice(0, 6),
         handleMs: jejak ? mulai - jejak.at : null,
         sendMs: Date.now() - mulai,
         galat: String(error?.message || error).slice(0, 120),
@@ -119,11 +146,58 @@ function bungkusKirim(conn) {
       throw error
     }
   }
+
+  for (const nama of ['sendMessage', 'relayMessage', 'reply']) {
+    if (pasang(conn, nama, ukur(nama))) terpasang.push(nama)
+  }
+
+  catat({ jenis: 'patch', bot: String(conn?.user?.id || '').split('@')[0].slice(0, 6), terpasang })
+}
+
+/* ── pengukur macet event loop & simpan database ──────────────────
+ * Kalau bot "delay", biasanya karena event loop tersendat (proses berat
+ * menahan semua pesan). Dua pengukur ini menangkapnya langsung:
+ *   - drift timer 1 detik > 50 ms  → event loop tersendat
+ *   - global.db.write() > 50 ms    → simpan database menahan proses
+ * ───────────────────────────────────────────────────────────────── */
+let pengukurSiap = false
+
+function pasangPengukur() {
+  if (pengukurSiap) return
+  pengukurSiap = true
+
+  let terakhir = Date.now()
+  const timer = setInterval(() => {
+    const sekarang = Date.now()
+    const drift = sekarang - terakhir - 1000
+    terakhir = sekarang
+    if (drift > 50) catat({ jenis: 'lag', drift })
+  }, 1000)
+  timer.unref?.()
+
+  try {
+    const db = global.db
+    if (db && typeof db.write === 'function' && !db.write.__latensi119) {
+      const asli = db.write.bind(db)
+      const bungkus = async function tulisTerukur(...args) {
+        const mulai = Date.now()
+        try {
+          return await asli(...args)
+        } finally {
+          const durasi = Date.now() - mulai
+          if (durasi > 50) catat({ jenis: 'dbwrite', durasi })
+        }
+      }
+      bungkus.__latensi119 = true
+      db.write = bungkus
+    }
+  } catch {}
 }
 
 let handler = m => m
 
 handler.all = async function (m) {
+  pasangPengukur()
   bungkusHook()
   bungkusKirim(this)
   if (!m) return

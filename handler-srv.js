@@ -154,6 +154,9 @@ function renderGroupEventTemplate(template, {
  * @param {import('baileys').BaileysEventMap<unknown>['messages.upsert']} groupsUpdate
  */
 export async function handler(chatUpdate) {
+    // Task119: pesan masuk berarti database hampir pasti berubah, jadi penanda
+    // ini membuat penyimpanan periodeik tidak menulis saat bot benar-benar sepi.
+    global.__umiDbKotor = true;
     return runWithBotConnection(this, () => withMessageResponses(this, () => handleMessage.call(this, chatUpdate)));
 }
 

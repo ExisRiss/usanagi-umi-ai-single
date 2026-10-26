@@ -13,6 +13,7 @@ import chalk from 'chalk';
 import pino from 'pino';
 import syntaxerror from 'syntax-error';
 import { Low, JSONFile } from 'lowdb';
+import { pasangPenulisDatabase } from './lib/db-writer.js';
 
 import { makeWASocket, protoType, serialize } from './lib/simple.js';
 import { installAutoTyping } from './lib/auto-typing.js';
@@ -133,6 +134,9 @@ serialize();
  * DATABASE
  * ============================================================ */
 global.db = new Low(new JSONFile('database.json'));
+// Task119: simpan database bertahap supaya event loop tidak tersendat
+// (sebelumnya db.write() menahan proses 0,7–1,4 detik tiap 30 detik).
+pasangPenulisDatabase(global.db, 'database.json');
 
 global.loadDatabase = async function loadDatabase() {
     if (global.db.READ) {
@@ -374,7 +378,13 @@ if (!SINGLE_MODE) {
     console.log(chalk.cyan('🤖 Platform Telegram & multi-app: MATI (mode single)'));
 }
 for (const signal of ['SIGTERM', 'SIGINT']) {
-    process.on(signal, () => {
+    process.on(signal, async () => {
+        // Task119: simpan perubahan terakhir sebelum keluar (maks. 5 detik).
+        try {
+            if (global.db?.data && global.__umiDbKotor === true) {
+                await Promise.race([global.db.write(), new Promise(r => setTimeout(r, 5000))]);
+            }
+        } catch {}
         stopPlatform().catch(() => {}).finally(() => process.exit(0));
     });
 }
@@ -686,19 +696,29 @@ global.resetMainBotConfig = async function() {
 if (global.db) {
     let dbWriteInProgress = false;
 
-    // Menulis database setiap 2 detik membuat event loop tersendat ketika data
-    // membesar. Simpan terjadwal dan cegah write yang saling tumpang tindih.
+    // Task119: database sekarang ±12,5 MB (10.273 user). Menulis seluruh berkas
+    // tiap 30 detik berarti ±1,5 GB I/O per jam → disk sibuk, balasan bot telat.
+    // Sekarang: hanya menulis kalau ada perubahan (global.__umiDbKotor, dipasang
+    // handler tiap pesan) dan paling sering tiap 3 menit. Saat sepi = nol tulis.
+    const JEDA_SIMPAN_DB = Math.max(
+        30000,
+        Number(global.dbSaveIntervalMs || runtimePerformance.dbSaveIntervalMs) || 180000
+    );
     setInterval(async () => {
         if (dbWriteInProgress || !global.db.data) return;
+        if (global.__umiDbKotor !== true) return;
         dbWriteInProgress = true;
+        global.__umiDbKotor = false;
         try {
             await global.db.write();
         } catch (error) {
+            global.__umiDbKotor = true;
             console.error('[DATABASE SAVE]', error);
         } finally {
             dbWriteInProgress = false;
         }
-    }, Number(runtimePerformance.dbSaveIntervalMs) || 30000);
+    }, JEDA_SIMPAN_DB);
+    console.log(`[DATABASE] simpan otomatis: tiap ${Math.round(JEDA_SIMPAN_DB / 1000)} dtk bila ada perubahan`);
 
     // Pembersihan file sementara tidak perlu menjalankan proses `find` tiap 2 detik.
     setInterval(() => {
