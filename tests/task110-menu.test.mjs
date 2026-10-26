@@ -49,7 +49,11 @@ function cariInteractive(message) {
   const rows = params?.sections?.[0]?.rows || []
   cek('baris menu membawa perintah ber-prefix', rows.length >= 4 && rows.every(r => String(r.id).startsWith('.')), `baris=${rows.length}`)
   cek('ID baris = perintah yang diproses router', rows.some(r => r.id === '.menu_all') && rows.some(r => r.id === '.menu_owner'))
-  cek('body berisi teks menu', String(inter?.body?.text || '').includes('MENU UTAMA'))
+  // Task111: body memakai ringkasan utuh (bukan potongan teks panjang),
+  // jadi yang diperiksa: semua pilihan menu ada dan panjangnya di bawah batas.
+  const body = String(inter?.body?.text || '')
+  cek('body memuat semua pilihan menu', ['menu_all', 'menu_owner', 'menu_group', 'menu_game', 'menu_tools'].every(c => body.includes('.' + c)), `${body.length} karakter`)
+  cek('body tidak dipotong di tengah kalimat', !body.includes('…') && body.length <= 1024)
 }
 
 // 2. Kalau relay interactive ditolak → harus ada cadangan, bukan crash
