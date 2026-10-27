@@ -348,8 +348,9 @@ Untuk audio: `.ytmp3 <judul>` / `.play <judul>`.
 
 - **Auto-backup** harian + kiriman ke grup Telegram
 - **`lib/backup/`**: arsip, restore, ekspor, `REST /api/backup-system`
-- Plugin database backup (`umi-backupdb`, `umi-savedb`, `owner-backup`, `owner-backupfull`,
-  `usanagi-backup`)
+- Plugin database backup bawaan panel (`umi-backupdb`, `owner-backup`, `owner-backupfull`,
+  `usanagi-backup`). **Sejak Task132** ada cadangan dari WhatsApp: `.savedb`, `.backupdb`,
+  `.listbackup` — lihat bagian 14.
 - `/api/owner-console/auto-backup`, `/api/internal/backup/*`
 
 Backup manual: cukup salin folder `sessions/` + `database.json` ke tempat aman.
@@ -426,6 +427,39 @@ ls data/errors/
 - kredit pihak ketiga di dalam plugin (contoh: `YouTube Player • Fitur By: Anita Putri Azzahra`)
 
 **Jangan hapus atau ganti kredit itu.**
+
+---
+
+## 14. Tambahan Task132 (27 Oktober 2026)
+
+**Fitur OURIN yang dulu belum ada:**
+
+| Perintah | Fungsi |
+|---|---|
+| `.cekstres` … `.cektolol` | sudah ada sejak Task130 (`plugins/fun/fun-cek130.js`) |
+| `.akses` `.addakses <nomor>` `.delakses <nomor>` `.listakses` | daftar orang yang tetap boleh memakai bot saat **mode self** (per sesi) |
+| `.swgcall` / `.statusgrup` | ringkasan grup: anggota, admin, bot admin, saklar keamanan |
+| `.benefitpremium` | apa yang didapat user premium + sisa harinya |
+| `.whatrolethis` | peran pengguna (owner/premium/terdaftar/biasa) dari database |
+| `.carifitur <kata>` | cari perintah dari 2.000+ plugin yang benar-benar termuat |
+| `.menucat [kategori]` | jumlah perintah per kategori |
+| `.ocr` / `.bacagambar` | baca tulisan di gambar (balas gambarnya) |
+| `.tovn` / `.jadivn` / `.tovoice` | audio/video yang dibalas → voice note |
+| `.toblack` / `.hitamputih` | gambar → hitam putih, diolah di server |
+| `.savedb` `.backupdb` `.listbackup` | cadangan `database.json` + setting ke `data/backup-owner/` |
+| `.cekyt` / `.ytstatus` | **(owner)** periksa sumber YouTube dari server, lihat mana yang hidup |
+
+Semua perintah owner di atas hanya bisa dipakai nomor owner. `.access` menyimpan ke
+`database.json` (`global.db.data.akses[jid]`), jadi ikut terbawa saat backup.
+
+**Perubahan pemutar YouTube:** sumber api-faa/SaveTube/Piped/Invidious lama sudah mati
+(403/HTML). Sekarang bot memakai sumber **OURIN (izuka, azbry)** dan **Kilua (Piped)** dengan
+pemeriksaan isi berkas sebelum diputar. Audio `.ytmp3` paling stabil; video `.ytmp4` bisa gagal
+kalau YouTube memblokir IP server. Cek kondisi terkini dengan `.cekyt`.
+
+**Setting per sesi jadibot:** di website jadibot, halaman SETTINGS sekarang punya tombol
+**Auto Read**, **Auto AI**, **Sistem limit aktif**, dan **Mode Prefix** untuk tiap sesi.
+Auto Read langsung berlaku tanpa restart.
 
 ---
 
