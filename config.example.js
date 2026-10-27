@@ -9,6 +9,15 @@ global.jadibotPlatform = {
   supabaseAnonKey: 'YOUR_PUBLIC_ANON_KEY',
   ownerEmails: ['owner@example.com'],
   lockedOwnerNumber: 'YOUR_LOCKED_OWNER_NUMBER',
+  /* Origin browser yang boleh memanggil API (CORS). Website yang memakai
+   * proxy server-side tidak butuh daftar ini; situs statis seperti
+   * amprem-by-alzriss.gwenna.my.id membutuhkannya. */
+  allowedOrigins: [
+    'https://jadibot-alzriss.gwenna.my.id',
+    'https://amprem-by-alzriss.gwenna.my.id',
+  ],
+  /* Backend Alight Motion Premium (sama dengan perintah .amprem). */
+  amApiBase: 'https://am.neonode.my.id/api',
 }
 
 // ---------------------------------------------------- kunci API pihak ketiga
