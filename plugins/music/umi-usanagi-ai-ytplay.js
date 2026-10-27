@@ -374,6 +374,28 @@ async function kirimVideoYoutube(m, conn, videoUrl, meta, batas) {
   try {
     const stat = await fs.stat(media.file)
     if (stat.size < 10240) throw new Error('Berkas video kosong.')
+    if (media.audioOnly) {
+      /* Task133 — sebagian video tidak punya aliran video untuk IP server
+       * (Piped 502, azbry mengirim halaman HTML). Audionya tetap ada, jadi
+       * kirim sebagai pesan audio; pemutar WhatsApp tetap bisa memutarnya. */
+      const pakaiMp4 = /\.m4a$/i.test(media.file)
+      const caption =
+        `🎧 *${BRAND}*\n\n` +
+        `🎬 ${meta.title}\n📺 ${meta.channel}\n⏱️ ${meta.duration}\n` +
+        `📦 ${(stat.size / 1024 / 1024).toFixed(1)} MB · via ${media.provider || 'youtube'}\n\n` +
+        `_Video diblokir YouTube untuk IP server ini, jadi yang dikirim audionya._`
+      await conn.sendMessage(
+        m.chat,
+        {
+          audio: fs.createReadStream(media.file),
+          mimetype: pakaiMp4 ? 'audio/mp4' : 'audio/mpeg',
+          fileName: pakaiMp4 ? 'umi-usanagi-ai.m4a' : 'umi-usanagi-ai.mp3',
+          caption,
+        },
+        { quoted: m.raw || m }
+      )
+      return { ok: true, jalur: media.provider || 'youtube-media', byte: stat.size, audio: true }
+    }
     const caption =
       `▶️ *${BRAND}*\n\n` +
       `🎬 ${meta.title}\n📺 ${meta.channel}\n⏱️ ${meta.duration}\n` +
