@@ -9,10 +9,11 @@
  *   .menu_all [_halaman]   → All Menu versi HTML (BARU, terpisah)
  *   .menu_owner|group|game|tools → menu lama seperti semula (teks kategori)
  *
- * Task121 — aturan tampilan mengikuti jumlah prefix (tanpa setting tambahan):
- *   `.menu`  (satu prefix) → menu TEKS gaya baru (sapaan + info + daftar menu)
+ * Task122 — aturan tampilan mengikuti jumlah prefix (tanpa setting tambahan):
+ *   `.menu`  (satu prefix) → teks (sapaan + info) + TOMBOL interaktif
+ *                            (daftar "MENU UTAMA 1–6" sudah dihapus total)
  *   `..menu` (prefix ganda) → menu RICH: kartu HTML live seperti `.ping3`
- *   `.umimenu tombol`       → menu bertombol (foto + Owner Bot + daftar menu)
+ *   `.umimenu tombol`       → sama dengan `.menu` (tombol interaktif)
  *
  * Perintah lama TIDAK diambil alih lagi:
  *   .allmenu                → tetap milik plugins/main/usanagi-allmenu.js
@@ -29,10 +30,12 @@ import {
 } from '../../lib/umi-menu/router.js'
 import { buildCatalogue } from '../../lib/umi-menu/registry.js'
 import { isOwner } from '../../lib/awang-cekakses.js'
-import { sendModernMenu, sendMenuTeksBaru, teksMenuBaru } from '../../lib/awang-menu.js'
+import { sendModernMenu, teksMenuBaru } from '../../lib/awang-menu.js'
 import { kirimMenuLive } from '../../lib/umi-menu/live-menu.js'
 
-const COMMAND_RE = /^(umimenu|lmenu|menu|menu_all(?:_\d+)?|menu_(?:owner|group|game|tools))$/i
+/* Task122: `menu_refresh` ditambahkan — baris "Refresh Status" di tombol
+ * mengirim id itu, dan tanpa ini plugin tidak pernah menerimanya. */
+const COMMAND_RE = /^(umimenu|lmenu|menu|menu_all(?:_\d+)?|menu_(?:owner|group|game|tools|refresh))$/i
 
 async function handleSettings(m, { conn, args }) {
   let allowed = m.fromMe === true
@@ -140,11 +143,15 @@ let handler = async function (m, extra = {}) {
       : sendMenuTeksBaru(conn, m, { prefix })
   }
 
-  // .menu → TEKS (satu prefix) · ..menu → KARTU RICH seperti .ping3
+  /* Task122 — owner minta daftar "📋 MENU UTAMA 1–6" dihapus total:
+   *   .menu  → isi teks (sapaan + info bot/pengguna) + TOMBOL interaktif
+   *   ..menu → kartu rich seperti .ping3
+   * Daftar pilihannya hanya ada di tombol; kalau tombol ditolak WhatsApp,
+   * barulah versi teks (berisi daftar) dikirim sebagai cadangan. */
   if (command === 'menu') {
     return rich
       ? kirimMenuLive(conn, m, { prefix, teksCadangan: teksCadangan(m, prefix) })
-      : sendMenuTeksBaru(conn, m, { prefix })
+      : sendModernMenu(conn, m, prefix)
   }
 
   // .menu_all [halaman] → All Menu teks / HTML sesuai jenis prefix

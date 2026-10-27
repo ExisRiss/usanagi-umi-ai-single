@@ -94,7 +94,8 @@ test('TASK121: ping3 & pengirim bersama menghasilkan payload identik', () => {
 test('TASK121: aturan prefix — ".menu" teks, "..menu" kartu rich, "..ping" = ping3', () => {
   const plugin = baca('plugins/main/umi-menu.js')
   assert.match(plugin, /if \(command === 'menu'\) \{\s*\n\s*return rich\s*\n\s*\? kirimMenuLive\(conn, m, \{ prefix, teksCadangan/, '..menu → kartu rich')
-  assert.match(plugin, /: sendMenuTeksBaru\(conn, m, \{ prefix \}\)/, '.menu → teks baru')
+  // Task122: `.menu` kini teks + tombol interaktif (lihat tests/task122-button-menu.mjs)
+  assert.match(plugin, /: sendModernMenu\(conn, m, prefix\)/, '.menu → tombol interaktif')
   assert.match(plugin, /'tombol'\) return sendModernMenu/, 'varian bertombol masih bisa dipanggil')
 
   const ping = baca('plugins/main/usanagi-ping.js')

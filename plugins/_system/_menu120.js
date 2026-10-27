@@ -233,6 +233,59 @@ export async function jalankanPemeriksaan() {
     simpan({ kartuMenu: { ok: false, error: String(error?.message || error).slice(0, 300) } })
   }
 
+  //── Task122: tombol menu (daftar 1-6 dihapus dari isi pesan) ────
+  try {
+    const { tombolMenu, bagianMenu, jumlahBaris } = await import('../../lib/umi-menu/menu-buttons.js')
+    const { bangunInteractive, periksaPayload: periksa } = await import('../../lib/tombol-payload.js')
+    const { getAllCategories, getPluginsByCategory } = await import('../../core/awang-loader.js')
+
+    const kategori = getAllCategories()
+      .map(key => ({ key, label: String(key), total: getPluginsByCategory(key).length }))
+      .filter(item => item.total > 0)
+      .sort((a, b) => String(a.key).localeCompare(String(b.key)))
+
+    const bagian = bagianMenu({ prefix: '.', kategori })
+    const isiTombol = bangunInteractive({
+      title: 'UMI USANAGI AI',
+      subtitle: 'Selamat Pagi Kak',
+      body: [
+        '┇👋 Hai welcome saya *Umi Usanagi AI*',
+        '│ Name  : Umi Usanagi AI',
+        '│ Owner : AlzRiss',
+        '│ Status : Owner',
+      ].join('\n'),
+      footer: 'By AlzRiss - Usanagi Umi AI',
+      media,
+      buttons: tombolMenu({ prefix: '.', kategori, judulMenu: 'Umi Usanagi AI Menu' }),
+    })
+
+    const cek = periksa(isiTombol)
+    const teksPesan = `${isiTombol.interactiveMessage.body.text}\n${isiTombol.interactiveMessage.footer.text}`
+    const { proto: P2 } = await import('@rexxhayanasi/elaina-baileys')
+    const enc = P2.Message.encode(P2.Message.fromObject(isiTombol)).finish()
+    const balik = P2.Message.decode(enc)
+    const tombolBalik = balik?.interactiveMessage?.nativeFlowMessage?.buttons || []
+    const pilih = JSON.parse(tombolBalik.find(t => t.name === 'single_select')?.buttonParamsJson || '{}')
+
+    simpan({
+      tombol122: {
+        ok: cek.ok,
+        masalah: cek.masalah,
+        jumlahTombol: tombolBalik.length,
+        namaTombol: tombolBalik.map(t => t.name),
+        barisTombol: jumlahBaris(bagian),
+        idBaris: (pilih.sections?.[0]?.rows || []).map(r => r.id),
+        judulBagian: (pilih.sections || []).map(b => b.title),
+        adaMenuUtamaDiTeks: /MENU UTAMA/.test(teksPesan),
+        adaBarisBernomor: /^\s*\d+[.)]\s/m.test(teksPesan),
+        adaFoto: Boolean(balik?.interactiveMessage?.header?.hasMediaAttachment),
+        byte: enc.length,
+      },
+    })
+  } catch (error) {
+    simpan({ tombol122: { ok: false, error: String(error?.message || error).slice(0, 250) } })
+  }
+
   return hasil
 }
 
