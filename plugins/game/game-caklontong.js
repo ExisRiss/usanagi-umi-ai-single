@@ -3,7 +3,8 @@ let poin = 4999
 let handler = async (m, { conn, usedPrefix }) => {
     conn.caklontong = conn.caklontong ? conn.caklontong : {}
     let id = m.chat
-    if (id in conn.caklontong) return conn.reply(m.chat, 'Masih ada soal belum terjawab di chat ini', conn.caklontong[id][0])
+    /* Task132 — kutip `m`, bukan proto hasil sendMessage (mematikan proses bila diakses .chat) */
+    if (id in conn.caklontong) return conn.reply(m.chat, 'Masih ada soal belum terjawab di chat ini', m)
     let res = await fetch('https://raw.githubusercontent.com/BochilTeam/database/master/games/caklontong.json')
     if (!res.ok) throw 'Gagal mengambil soal caklontong'
     let data = await res.json()
@@ -18,7 +19,7 @@ Bonus: ${poin} XP
         await m.reply(caption),
         json, poin,
         setTimeout(async () => {
-            if (conn.caklontong[id]) await conn.reply(m.chat, `Waktu habis!\nJawabannya adalah *${json.jawaban}*\n${json.deskripsi}`, conn.caklontong[id][0])
+            if (conn.caklontong[id]) await conn.reply(m.chat, `Waktu habis!\nJawabannya adalah *${json.jawaban}*\n${json.deskripsi}`, m)
             delete conn.caklontong[id]
         }, timeout)
     ]
