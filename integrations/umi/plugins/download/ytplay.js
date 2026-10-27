@@ -249,16 +249,22 @@ function qualityNumber(value) {
  * Unduh audio siap kirim lewat sumber yang sudah diperiksa (OURIN izuka/azbry).
  * Batas 24 MB supaya tidak membebani WhatsApp dan disk server.
  */
-async function ambilAudioSiapKirim(youtubeUrl, { maksByte = 24 * 1024 * 1024 } = {}) {
-  const id = extractVideoId(youtubeUrl) || youtubeId(youtubeUrl);
-  if (!id) return null;
+async function ambilAudioSiapKirim(youtubeUrl, { maksByte = 24 * 1024 * 1024, urlSiap = "", sumberSiap = "" } = {}) {
   const { sumberMedia, unduhMedia } = await import("../../../../lib/yt-sumber.js");
-  const sumber = await sumberMedia(id, "audio");
-  if (!sumber?.url) return null;
-  const hasil = await unduhMedia(sumber.url, { maksByte });
+  let url = urlSiap;
+  let sumber = sumberSiap;
+  if (!url) {
+    const id = extractVideoId(youtubeUrl) || youtubeId(youtubeUrl);
+    if (!id) return null;
+    const hasilCari = await sumberMedia(id, "audio");
+    if (!hasilCari?.url) return null;
+    url = hasilCari.url;
+    sumber = hasilCari.sumber;
+  }
+  const hasil = await unduhMedia(url, { maksByte });
   if (!hasil?.buffer?.length) return null;
   const mime = /mp4|m4a|aac/.test(hasil.tipe) ? "audio/mp4" : "audio/mpeg";
-  return { buffer: hasil.buffer, mime, sumber: sumber.sumber, byte: hasil.byte };
+  return { buffer: hasil.buffer, mime, sumber, byte: hasil.byte };
 }
 
 async function getPlayableStream(youtubeUrl) {
@@ -445,7 +451,10 @@ async function handler(m, { sock }) {
      * sebagai pesan audio WhatsApp, jadi `.ytplay` tetap bisa didengarkan.
      * Untuk video populer (Piped hidup) kartu player tetap dipakai. */
     if (!stream?.url || stream.audioOnly) {
-      const audio = await ambilAudioSiapKirim(meta.url).catch((err) => {
+      const audio = await ambilAudioSiapKirim(meta.url, {
+        urlSiap: stream?.audioOnly ? stream.url : "",
+        sumberSiap: stream?.audioOnly ? stream.source || "" : "",
+      }).catch((err) => {
         console.warn("[YTPLAY] audio cadangan gagal:", err?.message || err);
         return null;
       });
