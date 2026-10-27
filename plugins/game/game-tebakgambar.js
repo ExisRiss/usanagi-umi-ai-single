@@ -13,7 +13,7 @@ if (id in conn.game)
 return conn.reply(
 m.chat,
 '❀ Masih ada game yang belum selesai',
-conn.game[id][0]
+m
 )
 
 let src = JSON.parse(fs.readFileSync('./json/tebakgambar.json'))
@@ -42,6 +42,8 @@ poin,
 setTimeout(()=>{
 if(conn.game[id]){
 
+/* Task132 — jangan kutip hasil sendMessage (proto mentah): getter `.chat`
+ * pada objek itu tidak punya conn dan mematikan proses. Kutip `m` saja. */
 conn.reply(
 m.chat,
 `❀ Waktu habis!
@@ -50,7 +52,7 @@ m.chat,
 
 Jawaban :
 ${json.jawaban}`,
-conn.game[id][0]
+m
 )
 
 delete conn.game[id]
@@ -93,7 +95,7 @@ m.chat,
 
 Jawaban :
 ${json.jawaban}`,
-room[0]
+m
 )
 
 delete this.game[id]
@@ -117,7 +119,7 @@ m.chat,
 🖼 Game : Tebak Gambar
 
 +${exp} XP`,
-room[0]
+m
 )
 
 delete this.game[id]
