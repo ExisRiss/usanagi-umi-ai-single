@@ -28,33 +28,53 @@ Waktu : ${timeout/1000} detik
 Bonus : ${poin} XP
 `.trim()
 
-/* Task133 — dulu satu gambar yang gagal diunduh (fetch failed dari server)
- * membuat seluruh perintah error dan tercatat di laporan error. Sekarang
- * gambar diganti sampai 3 kali; kalau tetap gagal, beri tahu pelapor tanpa
- * mendaftarkan game yang tidak punya gambar. */
+/* Task133/134 — server bot sometimes cannot reach the image host.
+ * `cademedia.com` is behind Cloudflare and the bot server got
+ * "ConnectTimeoutError ... 172.67.181.81:443" for every attempt, so one
+ * unloadable image killed the whole command. Now every image is tried from
+ * two places (direct, then a public image proxy) and, kalau dua-duanya gagal,
+ * soal tetap dikirim sebagai teks tanpa gambar supaya game tetap bisa dimainkan.
+ */
+const sumberGambar = (soal) => [
+soal.img,
+`https://wsrv.nl/?url=${encodeURIComponent(soal.img)}&w=1000&output=jpg`,
+]
+
 let pesanSoal = null
-for (let coba = 0; coba < 3 && !pesanSoal; coba++) {
+for (let coba = 0; coba < 2 && !pesanSoal; coba++) {
+for (const url of sumberGambar(json)) {
 try {
 pesanSoal = await conn.sendMessage(
 m.chat,
 {
-image:{ url: json.img },
+image:{ url },
 caption: susunCaption()
 },
 { quoted:m }
 )
+break
 } catch (error) {
-console.warn(`[TEBAKGAMBAR] gambar gagal dimuat (percobaan ${coba + 1}):`, error?.message || error)
-json = src[Math.floor(Math.random() * src.length)]
+console.warn(`[TEBAKGAMBAR] gambar gagal (${new URL(url).host}):`, error?.message || error)
 }
+}
+if (!pesanSoal) json = src[Math.floor(Math.random() * src.length)]
 }
 
 if (!pesanSoal) {
-return conn.reply(
+/* Tanpa gambar pun tetap jadi soal: deskripsi + jawaban sudah ada. */
+pesanSoal = await conn.reply(
 m.chat,
-'❌ Gambar soal gagal dimuat dari server gambar. Coba lagi sebentar lagi.',
+`🖼 「 *TEBAK GAMBAR* 」
+
+${json.deskripsi}
+
+⚠️ Gambar tidak bisa dimuat dari server ini (host gambar tidak terjangkau), soal tetap bisa dijawab.
+
+Waktu : ${timeout/1000} detik
+Bonus : ${poin} XP`,
 m
-)
+).catch(() => null)
+if (!pesanSoal) return
 }
 
 conn.game[id] = [
