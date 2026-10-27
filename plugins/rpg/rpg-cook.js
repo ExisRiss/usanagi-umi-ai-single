@@ -92,7 +92,7 @@ let handler = async (m, { conn, args }) => {
 
 		user[result] += count;
 
-		m.reply(m.chat, `✅ Berhasil memasak *${count} ${type}* 🍽️`, m);
+		m.reply(`✅ Berhasil memasak *${count} ${type}* 🍽️`);
 	} catch (e) {
 		console.log(e);
 		m.reply('Error');

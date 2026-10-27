@@ -36,15 +36,21 @@ async function scrapeWarna() {
 
 let timeout = 60000
 
+/* Task131 — jangan tulis `m.reply(teks, m)`.
+ * Di Umi argumen kedua `m.reply` adalah ID CHAT, bukan pesan yang dikutip.
+ * Kalau diisi objek `m`, baileys melempar:
+ *   TypeError: jid?.endsWith is not a function
+ * dan pesannya tidak terkirim sama sekali (keluhan owner: `.tebakwarna` error).
+ * `m.reply(teks)` sudah otomatis mengutip pesan yang sedang dibalas. */
 let handler = async (m, { conn, command }) => {
   conn.tebakwarna = conn.tebakwarna || {}
   const chat = m.chat
   let room = conn.tebakwarna[chat]
 
   if (command === 'tebakwarna') {
-    if (room && room.jawaban) return m.reply('❌ Masih ada soal yang belum terjawab!', m)
+    if (room && room.jawaban) return m.reply('❌ Masih ada soal yang belum terjawab!')
     let data
-    try { data = await scrapeWarna() } catch (e) { return m.reply('❌ Gagal mengambil data warna!', m) }
+    try { data = await scrapeWarna() } catch (e) { return m.reply('❌ Gagal mengambil data warna!') }
     await conn.sendFile(chat, data.img, 'warna.jpg', `🎨 *TES BUTA WARNA (Ishihara)*
 
 Kamu melihat angka berapa pada gambar ini?
@@ -66,10 +72,10 @@ Jawaban: *${data.answer}*`)
 
   if (command === 'whowarna') {
     room = conn.tebakwarna[chat]
-    if (!room || !room.jawaban) return m.reply('❌ Tidak ada game aktif.', m)
+    if (!room || !room.jawaban) return m.reply('❌ Tidak ada game aktif.')
     let ans = room.rawJawaban || room.jawaban
     let hint = ans[0] + '_'.repeat(Math.max(ans.length - 2, 1)) + ans[ans.length - 1]
-    return m.reply(`🧩 *KLU:* ${hint}`, m)
+    return m.reply(`🧩 *KLU:* ${hint}`)
   }
 }
 
