@@ -245,6 +245,22 @@ function qualityNumber(value) {
  * gagal (instance publik mati/diblokir), sehingga `.ytplay` selalu berakhir
  * dengan pesan YT PLAY ERROR tanpa penjelasan.
  */
+/**
+ * Unduh audio siap kirim lewat sumber yang sudah diperiksa (OURIN izuka/azbry).
+ * Batas 24 MB supaya tidak membebani WhatsApp dan disk server.
+ */
+async function ambilAudioSiapKirim(youtubeUrl, { maksByte = 24 * 1024 * 1024 } = {}) {
+  const id = extractVideoId(youtubeUrl) || youtubeId(youtubeUrl);
+  if (!id) return null;
+  const { sumberMedia, unduhMedia } = await import("../../../../lib/yt-sumber.js");
+  const sumber = await sumberMedia(id, "audio");
+  if (!sumber?.url) return null;
+  const hasil = await unduhMedia(sumber.url, { maksByte });
+  if (!hasil?.buffer?.length) return null;
+  const mime = /mp4|m4a|aac/.test(hasil.tipe) ? "audio/mp4" : "audio/mpeg";
+  return { buffer: hasil.buffer, mime, sumber: sumber.sumber, byte: hasil.byte };
+}
+
 async function getPlayableStream(youtubeUrl) {
   const id = extractVideoId(youtubeUrl) || youtubeId(youtubeUrl);
   if (!id) return null;
@@ -423,6 +439,32 @@ async function handler(m, { sock }) {
     }
 
     const stream = await getPlayableStream(meta.url);
+
+    /* Task133 — kalau server tidak mendapat ALIRAN VIDEO, jangan berhenti
+     * dengan pesan error. Ambil audionya lewat API OURIN (izuka) lalu kirim
+     * sebagai pesan audio WhatsApp, jadi `.ytplay` tetap bisa didengarkan.
+     * Untuk video populer (Piped hidup) kartu player tetap dipakai. */
+    if (!stream?.url || stream.audioOnly) {
+      const audio = await ambilAudioSiapKirim(meta.url).catch((err) => {
+        console.warn("[YTPLAY] audio cadangan gagal:", err?.message || err);
+        return null;
+      });
+      if (audio) {
+        await sock.sendMessage(
+          m.chat,
+          {
+            audio: audio.buffer,
+            mimetype: audio.mime,
+            fileName: `${String(meta.title || "YouTube").slice(0, 80)}.mp3`,
+            caption: `〄 *YT PLAY (AUDIO)*\n\n〄 ${meta.title || "YouTube Video"}\n〄 ${meta.channel || "YouTube"}\n\n〄 Video tidak bisa dialirkan dari server, ini audionya.\n〄 Sumber: ${audio.sumber}\n〄 Link: ${meta.url}`,
+          },
+          { quoted: m.raw || m }
+        );
+        await m.react("✅");
+        return;
+      }
+    }
+
     const poster = await posterData(meta.thumb);
     const html = playerHtml({
     title: meta.title || "YouTube Video",
