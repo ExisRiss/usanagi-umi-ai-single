@@ -189,3 +189,50 @@ test('perintah .disk menulis data/disk-watch.json', async () => {
     fs.rmSync(akar, { recursive: true, force: true })
   }
 })
+
+test('periksaSekali saat disk aman hanya mencatat', async () => {
+  const akar = siapkanAkar()
+  const asli = process.cwd()
+  process.chdir(akar)
+  try {
+    const h = await modul.periksaSekali({ status: 'aman', totalMb: 1000, bebasMb: 500, persen: 50 })
+    assert.equal(h.aksi, 'berkala')
+    const isi = JSON.parse(fs.readFileSync(path.join(akar, 'data', 'disk-watch.json'), 'utf8'))
+    assert.equal(isi.aksi, 'berkala')
+  } finally {
+    process.chdir(asli)
+    fs.rmSync(akar, { recursive: true, force: true })
+  }
+})
+
+test('periksaSekali saat disk kritis membersihkan & mencatat hasilnya', async () => {
+  const akar = siapkanAkar()
+  const sampah = path.join(akar, 'tmp', 'sisa-video.mp4')
+  buat(sampah, 16384, 30 * 60 * 1000) // 30 menit, masih kena batas darurat 15 menit
+  const asli = process.cwd()
+  process.chdir(akar)
+  try {
+    const h = await modul.periksaSekali({ status: 'kritis', totalMb: 48000, bebasMb: 120, persen: 97.4 })
+    assert.equal(h.aksi, 'otomatis-darurat')
+    assert.equal(fs.existsSync(sampah), false, 'sampah harus dibersihkan saat kritis')
+    const isi = JSON.parse(fs.readFileSync(path.join(akar, 'data', 'disk-watch.json'), 'utf8'))
+    assert.equal(isi.aksi, 'otomatis-darurat')
+    assert.ok(isi.hasil.dihapus >= 1)
+  } finally {
+    process.chdir(asli)
+    fs.rmSync(akar, { recursive: true, force: true })
+  }
+})
+
+test('disk waspada tapi sisa < 200 MB diperlakukan darurat', async () => {
+  const akar = siapkanAkar()
+  const asli = process.cwd()
+  process.chdir(akar)
+  try {
+    const h = await modul.periksaSekali({ status: 'waspada', totalMb: 1000, bebasMb: 150, persen: 85 })
+    assert.equal(h.aksi, 'otomatis-darurat')
+  } finally {
+    process.chdir(asli)
+    fs.rmSync(akar, { recursive: true, force: true })
+  }
+})

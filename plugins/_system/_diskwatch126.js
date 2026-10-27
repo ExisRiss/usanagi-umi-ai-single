@@ -227,6 +227,9 @@ function catatDisk(tambahan = {}) {
   }
 }
 
+let putaranAman = 0
+let galatBeruntun = 0
+
 function bar(persen) {
   const penuh = Math.max(0, Math.min(10, Math.round(persen / 10)))
   return `${'■'.repeat(penuh)}${'□'.repeat(10 - penuh)}`
@@ -275,25 +278,46 @@ handler.limit = false
 
 export default handler
 
-// Pemeriksaan berkala. Kalau disk lega, cukup tiap 30 menit.
-let galatBeruntun = 0
-setInterval(async () => {
-  try {
-    const r = ruangDisk()
-    if (!r.totalMb) return
-    if (r.status === 'aman' && galatBeruntun === 0) { catatDisk(); return }
-    if (r.status === 'kritis' || r.bebasMb < 200) {
-      const h = await bersihkanDisk({ darurat: true })
-      if (h.dihapus) console.log(`[DISKWATCH] darurat: hapus ${h.dihapus} entri, bebas ${h.bebasSesudahMb} MB`)
-    } else if (r.status === 'waspada') {
-      await bersihkanDisk({})
+/**
+ * Satu putaran pemeriksaan. Dipisah dari setInterval supaya bisa diuji
+ * dan dipanggil manual dari tempat lain.
+ * @param {{status:string, bebasMb:number, totalMb:number}} [kondisi] hasil ruangDisk()
+ */
+export async function periksaSekali(kondisi) {
+  const r = kondisi || ruangDisk()
+  if (!r.totalMb) return { aksi: 'tak-terbaca' }
+
+  // Disk lega: catat saja. Pembersihan ringan cukup tiap 30 menit (6 putaran).
+  if (r.status === 'aman') {
+    putaranAman += 1
+    let hasil = null
+    if (putaranAman >= 6) {
+      putaranAman = 0
+      hasil = await bersihkanDisk({})
     }
+    catatDisk({ aksi: 'berkala', hasil: hasil ? { dihapus: hasil.dihapus, mb: hasil.mbDibebaskan } : undefined })
     galatBeruntun = 0
-  } catch (error) {
+    return { aksi: 'berkala', hasil }
+  }
+
+  const darurat = r.status === 'kritis' || Number(r.bebasMb) < 200
+  const hasil = await bersihkanDisk({ darurat })
+  if (hasil.dihapus) {
+    console.log(`[DISKWATCH] ${darurat ? 'darurat' : 'waspada'}: hapus ${hasil.dihapus} entri, bebas ${hasil.bebasSesudahMb} MB`)
+  }
+  catatDisk({ aksi: darurat ? 'otomatis-darurat' : 'otomatis', hasil: { dihapus: hasil.dihapus, mb: hasil.mbDibebaskan } })
+  putaranAman = 0
+  galatBeruntun = 0
+  return { aksi: darurat ? 'otomatis-darurat' : 'otomatis', hasil }
+}
+
+const JARAK_PERIKSA = 5 * 60 * 1000
+setInterval(() => {
+  periksaSekali().catch(error => {
     galatBeruntun += 1
     if (galatBeruntun < 3) console.warn('[DISKWATCH]', error?.message || error)
-  }
-}, 5 * 60 * 1000).unref?.()
+  })
+}, JARAK_PERIKSA).unref?.()
 
 // Catat kondisi awal sekali saat boot (membantu diagnosa dari console).
 // .unref() supaya timer ini tidak menahan proses tetap hidup (mis. saat diuji).
