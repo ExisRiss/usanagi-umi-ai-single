@@ -22,6 +22,8 @@ import {
   generateMessageIDV2,
 } from '@rexxhayanasi/elaina-baileys'
 import { extractSelectionId } from '../../lib/message-response.js'
+import { actionFromLabel } from '../../lib/umi-menu/label-action.js'
+import { bangunDaftarPerintah, cocokPerintah } from '../../lib/plugin-command-match.js'
 import { getActivePrefix } from '../../core/awang-prefix.js'
 import { prefixStorageKey } from '../../lib/bot-config.js'
 
@@ -55,41 +57,17 @@ export function withPrefix(id, prefix) {
 
 /* ---------------------------------------------------------------
  * Daftar perintah yang terdaftar (di-cache sebentar supaya ringan).
+ * Pencocokan memakai `lib/plugin-command-match.js` — regex diuji UTUH,
+ * bukan dipecah dengan split('|') seperti versi lama yang membuat
+ * `menu_owner` / `menu_all` tidak pernah dikenali (Task127).
  * --------------------------------------------------------------- */
-let commandCache = { at: 0, cmd: new Set(), help: new Set() }
-
-function buildCommandCache() {
-  const cmd = new Set()
-  const help = new Set()
-  for (const key in global.plugins || {}) {
-    const plugin = global.plugins[key]
-    if (!plugin) continue
-    try {
-      if (plugin.command instanceof RegExp) {
-        const source = String(plugin.command.source || '').replace(/^\^|\$$/g, '')
-        for (const part of source.split('|')) {
-          const clean = part.replace(/[\\^$.*+?()[\]{}]/g, '').trim().toLowerCase()
-          if (clean) cmd.add(clean)
-        }
-      } else if (Array.isArray(plugin.command)) {
-        for (const item of plugin.command) cmd.add(String(item).toLowerCase())
-      } else if (plugin.command) {
-        cmd.add(String(plugin.command).toLowerCase())
-      }
-      if (Array.isArray(plugin.help)) for (const item of plugin.help) help.add(String(item).toLowerCase())
-      else if (plugin.help) help.add(String(plugin.help).toLowerCase())
-    } catch {
-      /* plugin rusak: lewati */
-    }
-  }
-  commandCache = { at: Date.now(), cmd, help }
-}
+let commandCache = { at: 0, cmd: new Set(), help: new Set(), regex: [] }
 
 function isKnownCommand(id) {
-  if (!commandCache.at || Date.now() - commandCache.at > 60_000) buildCommandCache()
-  const word = String(id || '').trim().replace(/^[^\w]+/, '').split(/\s+/)[0].toLowerCase()
-  if (!word) return false
-  return commandCache.cmd.has(word) || commandCache.help.has(word)
+  if (!commandCache.at || Date.now() - commandCache.at > 60_000) {
+    commandCache = bangunDaftarPerintah(global.plugins || {})
+  }
+  return cocokPerintah(commandCache, id)
 }
 
 function responseId(m) {
@@ -115,13 +93,17 @@ export async function all(m, chatUpdate) {
     const raw = responseId(m)
     if (!raw) return
 
-    const id = withPrefix(raw, await activePrefixFor(this, m.chat))
+    /* Task127 — label tombol ("All Menu\nseluruh perintah …") bukan nama
+     * perintah. Kalau labelnya dikenali sebagai aksi menu, jalankan aksinya;
+     * kalau tidak, lewati seperti sebelumnya. */
+    const label = raw.includes('\n') || /\s/.test(raw.trim()) ? actionFromLabel(raw) : null
+    const target = label ? label.action : raw
+    if (!label && !isKnownCommand(raw)) return
+
+    const id = withPrefix(target, await activePrefixFor(this, m.chat))
 
     // Serializer sudah memasukkan ID ke m.text → handler menanganinya sendiri.
     if (String(m.text || '').trim() === id) return
-
-    // Payload tombol yang bukan perintah: jangan dikirim ulang.
-    if (!isKnownCommand(raw)) return
 
     const messages = await generateWAMessage(
       m.chat,

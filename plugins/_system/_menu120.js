@@ -352,6 +352,34 @@ export async function jalankanPemeriksaan() {
     simpan({ menu125: { ok: false, error: String(error?.message || error).slice(0, 250) } })
   }
 
+  //── Task127: tombol menu yang tidak merespons (label → aksi) ────
+  try {
+    const { actionFromLabel } = await import('../../lib/umi-menu/label-action.js')
+    const { bangunDaftarPerintah, cocokPerintah } = await import('../../lib/plugin-command-match.js')
+    const daftar = bangunDaftarPerintah(global.plugins || {})
+    const uji = {
+      allMenu: actionFromLabel('All Menu\nseluruh perintah semua kategori, dibagi per halaman'),
+      ownerMenu: actionFromLabel('Owner Menu\nperintah khusus owner: setelan, backup, kontrol bot'),
+      berIkon: actionFromLabel('👑 OWNER MENU\nkhusus owner'),
+      teksBiasa: actionFromLabel('halo apa kabar'),
+    }
+    const dikenal = {}
+    for (const id of ['menu_all', 'menu_owner', 'menu_group', 'menu_game', 'menu_tools', 'menu_refresh']) {
+      dikenal[id] = cocokPerintah(daftar, id)
+    }
+    const semuaDikenal = Object.values(dikenal).every(Boolean)
+    const tombol127 = {
+      ok: Boolean(uji.allMenu?.action === 'menu_all' && uji.ownerMenu?.action === 'menu_owner' && uji.berIkon?.action === 'menu_owner' && uji.teksBiasa === null && semuaDikenal),
+      label: uji,
+      idDikenal: dikenal,
+      jumlahRegex: daftar.regex.length,
+      jumlahPerintah: daftar.cmd.size,
+    }
+    simpan({ tombol127 })
+  } catch (error) {
+    simpan({ tombol127: { ok: false, error: String(error?.message || error).slice(0, 250) } })
+  }
+
   //── Task124: uji jalur `.ytplay` (cari → unduh sungguhan) ──────
   try {
     const { searchYoutube } = await import('../../lib/scrape/YouTube.js')

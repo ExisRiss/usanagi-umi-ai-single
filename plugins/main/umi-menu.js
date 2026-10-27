@@ -171,15 +171,25 @@ let handler = async function (m, extra = {}) {
   const legacyMenu = command.match(/^menu_(owner|group|game|tools)$/)
   if (legacyMenu) {
     const category = legacyMenu[1]
-    const { default: kategoriHandler } = await import('./usanagi-kategori.js')
-    // Handler lama membaca nama kategori dari `m.args[0]`, bukan dari extra.
-    return kategoriHandler({ ...m, args: [category], text: category }, {
-      conn,
-      usedPrefix: prefix,
-      command: 'kategori',
-      args: [category],
-      text: category,
-    })
+    /* Task127 — dulu kalau handler kategori melempar error, tombol "Owner Menu"
+     * tidak membalas apa pun (keluhan owner). Sekarang ada cadangan: router
+     * menyusun menunya sendiri dari daftar plugin, jadi tombol selalu menjawab. */
+    try {
+      const { default: kategoriHandler } = await import('./usanagi-kategori.js')
+      if (typeof kategoriHandler === 'function') {
+        const hasil = await kategoriHandler({ ...m, args: [category], text: category }, {
+          conn,
+          usedPrefix: prefix,
+          command: 'kategori',
+          args: [category],
+          text: category,
+        })
+        if (hasil?.ok !== false) return hasil
+      }
+    } catch (error) {
+      console.warn(`[UMI-MENU] kategori "${category}" gagal:`, error?.message || error)
+    }
+    return dispatchMenuCommand(m, { conn, prefix, action: `menu_${category}` })
   }
 
   // ID tombol/list/native-flow

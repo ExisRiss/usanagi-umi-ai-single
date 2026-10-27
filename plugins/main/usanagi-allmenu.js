@@ -280,8 +280,14 @@ export function susunCaption(teks, url = '') {
   return `${kepala}${atas}\n${READ_MORE}${bawah}`
 }
 
-const handler = async (m, { conn, usedPrefix, command }) => {
-  const prefix = usedPrefix || '.'
+/**
+ * Tampilkan allmenu lengkap (animasi loading + SATU pesan).
+ * Dipakai `.allmenu`, `.menu_all`, dan tombol "All Menu" supaya ketiganya
+ * menghasilkan tampilan yang sama — dulu tombolnya memakai versi halaman
+ * (SEMUA FITUR 1/35) yang berbeda dari perintah.
+ */
+export async function tampilkanAllMenu(m, { conn, prefix = '.' } = {}) {
+  const usedPrefix = prefix
   let nama = m.pushName || ''
   if (!nama) {
     try { nama = await conn.getName(m.sender) } catch { nama = '' }
@@ -319,6 +325,9 @@ const handler = async (m, { conn, usedPrefix, command }) => {
 
   return { ok: true, mode: 'allmenu-asli+loading', kategori, perintah, panjang: caption.length, dipotong }
 }
+
+const handler = async (m, extra = {}) =>
+  tampilkanAllMenu(m, { conn: extra.conn, prefix: extra.usedPrefix || extra.prefix || '.' })
 
 handler.command = /^allmenu$/i
 handler.help = ['allmenu']
