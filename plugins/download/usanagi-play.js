@@ -416,6 +416,16 @@ async function downloadWithYtDlp(data, type, max) {
     prefix: 'usanagi-play',
   })
 
+  /* Task133 — kalau yang didapat hanya audio padahal yang diminta video,
+   * jangan kirim mp3 sebagai video. Lempar error yang jelas supaya rantai
+   * sumber lain (cobalt) dicoba dulu. */
+  if (media.audioOnly && type !== 'audio') {
+    await fs.remove(media.file).catch(() => {})
+    const err = new Error('hanya audio yang tersedia untuk video ini (diblokir YouTube untuk IP server)')
+    err.code = 'UMI_AUDIO_ONLY'
+    throw err
+  }
+
   return media.file
 }
 
