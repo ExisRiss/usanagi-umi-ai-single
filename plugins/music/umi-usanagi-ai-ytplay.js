@@ -21,8 +21,11 @@
  */
 
 import axios from 'axios'
+import fs from 'fs-extra'
 import { randomUUID } from 'node:crypto'
 import { searchYoutube, getYoutubeDirectUrl } from '../../lib/scrape/YouTube.js'
+import { downloadYoutube } from '../../lib/youtube-media.js'
+import { sendRemoteMediaFast } from '../../lib/awang-media-transfer.js'
 
 const BRAND = 'UMI Usanagi AI'
 const UA = 'Mozilla/5.0 (Linux; Android 15) AppleWebKit/537.36 Chrome/138 Mobile Safari/537.36'
@@ -346,6 +349,46 @@ async function sendRich(conn, chatId, html, { title, fallback }) {
  * Kirim video sebagai berkas WhatsApp — jalur yang selalu bisa diputar,
  * tanpa webview, tanpa API. Dipakai `.ytvideo`.
  */
+const MAX_VIDEO_BYTES = 64 * 1024 * 1024
+
+/**
+ * TASK124 — jalur putar yang BENAR-BENAR bisa dipakai.
+ *
+ * Sebelumnya `.ytplay` hanya mengirim kartu HTML. Kartu itu berjalan di WebView
+ * WhatsApp yang tidak punya akses jaringan, jadi `<video src="https://…">`
+ * tidak akan pernah memutar apa pun — pemutar terlihat, videonya tidak jalan.
+ *
+ * Sekarang urutannya:
+ *   1. yt-dlp di server (bin/yt-dlp) → video mp4 ≤360p dikirim sebagai pesan
+ *      video WhatsApp (pasti bisa diputar & diunduh penerima)
+ *   2. URL media SaveTube → dikirim langsung dari tautan (hemat memori)
+ *   3. kartu pemutar HTML (tampilan, bukan pemutar utama)
+ *   4. tautan + judul
+ */
+async function kirimVideoYoutube(m, conn, videoUrl, meta, batas) {
+  /* Satu pintu unduhan YouTube milik repo ini (lib/youtube-media.js):
+   * yt-dlp (dengan daftar player client + tangga kualitas) → api-faa →
+   * SaveTube. Urutan itu hasil uji nyata di server ini; yt-dlp saja gagal
+   * karena YouTube menolak IP datacenter. */
+  const media = await downloadYoutube(videoUrl, { type: 'video', maxBytes: batas, prefix: 'ytplay' })
+  try {
+    const stat = await fs.stat(media.file)
+    if (stat.size < 10240) throw new Error('Berkas video kosong.')
+    const caption =
+      `▶️ *${BRAND}*\n\n` +
+      `🎬 ${meta.title}\n📺 ${meta.channel}\n⏱️ ${meta.duration}\n` +
+      `📦 ${(stat.size / 1024 / 1024).toFixed(1)} MB · via ${media.provider || 'youtube'}`
+    await conn.sendMessage(
+      m.chat,
+      { video: fs.createReadStream(media.file), mimetype: 'video/mp4', caption, fileName: 'umi-usanagi-ai.mp4' },
+      { quoted: m.raw || m }
+    )
+    return { ok: true, jalur: media.provider || 'youtube-media', byte: stat.size }
+  } finally {
+    await fs.remove(media.file).catch(() => {})
+  }
+}
+
 async function sendVideoFile(m, conn, info, meta) {
   const url = info?.url
   if (!url) throw new Error('Sumber video tidak tersedia dari server.')
@@ -423,10 +466,42 @@ let handler = async (m, { conn, text, usedPrefix, command }) => {
       channel = String(oe.data?.author_name || '').trim() || channel
     } catch {}
 
-    if (asFile) {
-      const bytes = await sendVideoFile(m, conn, info, { title, channel, duration })
+    /* TASK124: `.ytplay` mengirim VIDEO-nya (bisa diputar), bukan hanya kartu. */
+    const meta = { title, channel, duration }
+    const salah = []
+    try {
+      const hasil = await kirimVideoYoutube(m, conn, videoUrl, meta, MAX_VIDEO_BYTES)
       try { await m.react('✅') } catch {}
-      return { ok: true, bytes }
+      return hasil
+    } catch (error) {
+      salah.push(`unduh: ${String(error?.message || error).slice(0, 140)}`)
+      console.warn('[ytplay] unduhan gagal:', error?.message || error)
+    }
+    if (info?.url) {
+      try {
+        await sendRemoteMediaFast(conn, m, info.url, {
+          caption: `▶️ *${BRAND}*\n\n🎬 ${title}\n📺 ${channel}\n⏱️ ${duration}`,
+          fallbackType: 'video',
+          maxBytes: MAX_VIDEO_BYTES,
+          fileName: 'umi-usanagi-ai.mp4',
+          mimeType: 'video/mp4',
+          preferDirect: true,
+        })
+        try { await m.react('✅') } catch {}
+        return { ok: true, jalur: 'url' }
+      } catch (error) {
+        salah.push(`url: ${String(error?.message || error).slice(0, 120)}`)
+        console.warn('[ytplay] kirim dari URL gagal:', error?.message || error)
+      }
+    }
+    if (asFile) {
+      try {
+        const bytes = await sendVideoFile(m, conn, info, meta)
+        try { await m.react('✅') } catch {}
+        return { ok: true, bytes, jalur: 'buffer' }
+      } catch (error) {
+        salah.push(`berkas: ${String(error?.message || error).slice(0, 120)}`)
+      }
     }
 
     const poster = await posterData(thumb)
@@ -446,7 +521,8 @@ let handler = async (m, { conn, text, usedPrefix, command }) => {
       `▶️ *${BRAND}*\n\n` +
       `🎬 ${title}\n📺 ${channel}\n⏱️ ${duration}\n\n` +
       `${videoUrl}\n\n` +
-      `_Pemutar HTML tidak didukung di perangkat ini — video tetap bisa dibuka lewat tautan di atas._`
+      (salah.length ? `_Unduhan gagal (${salah.join(' · ')}). Buka lewat tautan di atas._`
+                     : '_Buka video lewat tautan di atas._')
 
     const sent = await sendRich(conn, m.chat, html, { title: `${BRAND} • ${title}`, fallback })
     if (!sent.ok) console.warn('[ytplay] relay gagal:', sent.error?.message || sent.error)
@@ -463,7 +539,7 @@ let handler = async (m, { conn, text, usedPrefix, command }) => {
 handler.help = ['ytplay <judul/link>', 'ytp <judul/link>', 'ytvideo <judul/link>']
 handler.tags = ['music']
 handler.command = /^(ytplay|ytp|ytvideo|ytvid|ytmp4umi)$/i
-handler.description = `${BRAND} — pemutar YouTube 3 lapis (langsung, unduh, embed)`
+handler.description = `${BRAND} — putar YouTube: yt-dlp → URL media → kartu → tautan`
 handler.cooldown = 5
 
 export default handler

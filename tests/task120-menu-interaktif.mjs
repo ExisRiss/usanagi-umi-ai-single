@@ -21,7 +21,7 @@ import { fileURLToPath } from 'node:url'
 
 import {
   bangunInteractive, tombolKeNative, rapikanBagian, periksaPayload,
-  MAKS_TOMBOL, MAKS_BAGIAN, MAKS_BARIS,
+  MAKS_TOMBOL, MAKS_TOMBOL_QUICK, MAKS_BAGIAN, MAKS_BARIS, MAKS_BARIS_PER_BAGIAN,
 } from '../lib/tombol-payload.js'
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..')
@@ -113,7 +113,7 @@ test('TASK120: tombol ButtonV2 lama dipetakan ke native flow', () => {
   assert.equal(native.name, 'quick_reply')
 })
 
-test('TASK120: daftar pilihan dibatasi 5 bagian / 10 baris dan id tetap utuh', () => {
+test('TASK120: daftar pilihan dibatasi per bagian (10 baris) dan id tetap utuh', () => {
   const banyak = Array.from({ length: 9 }, (_, s) => ({
     title: `Bagian ${s + 1}`,
     rows: Array.from({ length: 6 }, (_, r) => ({
@@ -125,9 +125,12 @@ test('TASK120: daftar pilihan dibatasi 5 bagian / 10 baris dan id tetap utuh', (
   }))
   const hasil = rapikanBagian(banyak)
   assert.ok(hasil.length <= MAKS_BAGIAN, `bagian ${hasil.length} ≤ ${MAKS_BAGIAN}`)
+  for (const bagian of hasil) {
+    assert.ok(bagian.rows.length <= MAKS_BARIS_PER_BAGIAN, `"${bagian.title}" ${bagian.rows.length} ≤ ${MAKS_BARIS_PER_BAGIAN}`)
+  }
   const total = hasil.reduce((n, b) => n + b.rows.length, 0)
-  assert.ok(total <= MAKS_BARIS, `baris ${total} ≤ ${MAKS_BARIS}`)
-  assert.equal(total, MAKS_BARIS, 'baris diisi sampai batas')
+  // 9 bagian × 6 baris = 54 baris, dipotong per bagian ke 10 → 54 (semua muat)
+  assert.equal(total, Math.min(9 * 6, MAKS_BARIS, MAKS_BARIS_PER_BAGIAN * hasil.length))
 
   for (const bagian of hasil) {
     for (const baris of bagian.rows) {
@@ -142,18 +145,26 @@ test('TASK120: daftar pilihan dibatasi 5 bagian / 10 baris dan id tetap utuh', (
   assert.equal(kotor[0].rows[0].id, '.ok')
 })
 
-test('TASK120: maksimal 3 tombol native (batas WhatsApp)', () => {
-  const isi = bangunInteractive({
-    body: 'x',
-    buttons: [
-      { buttonText: { displayText: 'A' }, buttonId: '.a' },
-      { buttonText: { displayText: 'B' }, buttonId: '.b' },
-      { buttonText: { displayText: 'C' }, buttonId: '.c' },
-      { buttonText: { displayText: 'D' }, buttonId: '.d' },
-    ],
-  })
-  assert.equal(isi.interactiveMessage.nativeFlowMessage.buttons.length, MAKS_TOMBOL)
+test('TASK120: batas tombol mengikuti aturan WhatsApp Web (3, atau 10 bila pertama quick_reply)', () => {
+  const empat = [
+    { buttonText: { displayText: 'A' }, buttonId: '.a' },
+    { buttonText: { displayText: 'B' }, buttonId: '.b' },
+    { buttonText: { displayText: 'C' }, buttonId: '.c' },
+    { buttonText: { displayText: 'D' }, buttonId: '.d' },
+  ]
+  // tombol pertama quick_reply → semua 4 dipertahankan
+  const isi = bangunInteractive({ body: 'x', buttons: empat })
+  assert.equal(isi.interactiveMessage.nativeFlowMessage.buttons.length, 4)
   assert.equal(MAKS_TOMBOL, 3)
+  assert.equal(MAKS_TOMBOL_QUICK, 10)
+
+  // tombol pertama BUKAN quick_reply → dipotong jadi 3
+  const bukanQuick = [
+    { name: 'single_select', buttonParamsJson: JSON.stringify({ title: 'x', sections: [{ title: 'a', rows: [{ id: '.a', title: 'A' }] }] }) },
+    ...empat,
+  ]
+  const isi2 = bangunInteractive({ body: 'x', buttons: bukanQuick })
+  assert.equal(isi2.interactiveMessage.nativeFlowMessage.buttons.length, MAKS_TOMBOL)
 })
 
 test('TASK120: builder tidak lagi memakai view-once / buttonsMessage', () => {
@@ -171,7 +182,9 @@ test('TASK120: aturan prefix — "..menu" rich, ".menu" teks', () => {
   const plugin = baca('plugins/main/umi-menu.js')
   assert.match(plugin, /const rich = m\.__richMenu === true\s*\n/, 'rich tidak lagi bergantung setelan style')
   assert.ok(!/const rich = m\.__richMenu === true && richEnabled\(\)/.test(plugin), 'gerbang style dilepas')
-  assert.match(plugin, /if \(command === 'menu'\) \{\s*\n\s*return rich\s*\n\s*\? sendModernMenu\(conn, m, prefix\)\s*\n\s*: sendTextMenu/, '.menu → teks, ..menu → tombol')
+  // Task121/122: '.menu' = teks + tombol, '..menu' = kartu rich
+  assert.match(plugin, /if \(command === 'menu'\) \{\s*\n\s*return rich\s*\n\s*\? kirimMenuLive/, '..menu → kartu rich')
+  assert.match(plugin, /: sendModernMenu\(conn, m, prefix\)/, '.menu → tombol interaktif')
 
   const menu = baca('lib/awang-menu.js')
   assert.match(menu, /export async function sendModernMenu/, 'sendModernMenu tersedia')

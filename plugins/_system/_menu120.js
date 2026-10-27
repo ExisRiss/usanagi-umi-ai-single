@@ -235,16 +235,18 @@ export async function jalankanPemeriksaan() {
 
   //── Task122: tombol menu (daftar 1-6 dihapus dari isi pesan) ────
   try {
-    const { tombolMenu, bagianMenu, jumlahBaris } = await import('../../lib/umi-menu/menu-buttons.js')
+    const { tombolMenu, bagianMenuUtama, bagianSemuaMenu, jumlahBaris } = await import('../../lib/umi-menu/menu-buttons.js')
     const { bangunInteractive, periksaPayload: periksa } = await import('../../lib/tombol-payload.js')
-    const { getAllCategories, getPluginsByCategory } = await import('../../core/awang-loader.js')
+    // Kategori diambil lewat helper yang sama dengan `.menu` (Task123): kalau
+    // pluginStore masih kosong saat bot baru hidup, `global.plugins` dipakai.
+    const { daftarKategoriMenu } = await import('../../lib/awang-menu.js')
+    let kategori = daftarKategoriMenu()
+    for (let coba = 0; coba < 8 && !kategori.length; coba += 1) {
+      await new Promise(resolve => setTimeout(resolve, 2000))
+      kategori = daftarKategoriMenu()
+    }
 
-    const kategori = getAllCategories()
-      .map(key => ({ key, label: String(key), total: getPluginsByCategory(key).length }))
-      .filter(item => item.total > 0)
-      .sort((a, b) => String(a.key).localeCompare(String(b.key)))
-
-    const bagian = bagianMenu({ prefix: '.', kategori })
+    const bagian = bagianMenuUtama({ prefix: '.' }).concat(bagianSemuaMenu({ prefix: '.', kategori }))
     const isiTombol = bangunInteractive({
       title: 'UMI USANAGI AI',
       subtitle: 'Selamat Pagi Kak',
@@ -274,6 +276,12 @@ export async function jalankanPemeriksaan() {
         jumlahTombol: tombolBalik.length,
         namaTombol: tombolBalik.map(t => t.name),
         barisTombol: jumlahBaris(bagian),
+        jumlahKategori: kategori.length,
+        // single_select tidak menyimpan display_text: label tombolnya = params.title
+        labelTombol: (isiTombol.interactiveMessage.nativeFlowMessage.buttons || []).map(t => {
+          const p = JSON.parse(t.buttonParamsJson || '{}')
+          return p.display_text || p.title || t.name
+        }),
         idBaris: (pilih.sections?.[0]?.rows || []).map(r => r.id),
         judulBagian: (pilih.sections || []).map(b => b.title),
         adaMenuUtamaDiTeks: /MENU UTAMA/.test(teksPesan),
@@ -284,6 +292,49 @@ export async function jalankanPemeriksaan() {
     })
   } catch (error) {
     simpan({ tombol122: { ok: false, error: String(error?.message || error).slice(0, 250) } })
+  }
+
+  //── Task124: uji jalur `.ytplay` (cari → unduh sungguhan) ──────
+  try {
+    const { searchYoutube } = await import('../../lib/scrape/YouTube.js')
+    const { downloadYoutube } = await import('../../lib/youtube-media.js')
+    const yt = { cari: null, unduh: null }
+
+    const tCari = Date.now()
+    let url = ''
+    try {
+      url = await searchYoutube('alan walker faded')
+      yt.cari = { ok: true, url, ms: Date.now() - tCari }
+    } catch (error) {
+      yt.cari = { ok: false, ms: Date.now() - tCari, error: String(error?.message || error).slice(0, 200) }
+    }
+
+    if (url) {
+      const tUnduh = Date.now()
+      try {
+        // Batas 12 MB: cukup membuktikan pipeline menghasilkan berkas video
+        // yang benar-benar bisa diputar, tanpa menghabiskan disk/kuota.
+        const media = await downloadYoutube(url, { type: 'video', maxBytes: 12 * 1024 * 1024, prefix: 'ujitask124' })
+        const fsMod = await import('node:fs')
+        const ukuran = fsMod.statSync(media.file).size
+        const kepala = fsMod.readFileSync(media.file, { encoding: null, flag: 'r' }).subarray(4, 8).toString('ascii')
+        yt.unduh = {
+          ok: ukuran > 10240,
+          ms: Date.now() - tUnduh,
+          provider: media.provider,
+          mb: Math.round(ukuran / 104857.6) / 10,
+          wadah: kepala,
+          percobaanGagal: (media.attempts || []).map(a => `${a.provider}: ${String(a.error).slice(0, 80)}`),
+        }
+        fsMod.unlinkSync(media.file)
+      } catch (error) {
+        yt.unduh = { ok: false, ms: Date.now() - tUnduh, error: String(error?.message || error).slice(0, 300) }
+      }
+    }
+
+    simpan({ ytplay124: yt })
+  } catch (error) {
+    simpan({ ytplay124: { ok: false, error: String(error?.message || error).slice(0, 250) } })
   }
 
   return hasil
