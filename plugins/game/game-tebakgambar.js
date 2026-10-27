@@ -19,7 +19,7 @@ m
 let src = JSON.parse(fs.readFileSync('./json/tebakgambar.json'))
 let json = src[Math.floor(Math.random() * src.length)]
 
-let caption = `
+const susunCaption = () => `
 🖼 「 *TEBAK GAMBAR* 」
 
 ${json.deskripsi}
@@ -28,15 +28,37 @@ Waktu : ${timeout/1000} detik
 Bonus : ${poin} XP
 `.trim()
 
-conn.game[id] = [
-await conn.sendMessage(
+/* Task133 — dulu satu gambar yang gagal diunduh (fetch failed dari server)
+ * membuat seluruh perintah error dan tercatat di laporan error. Sekarang
+ * gambar diganti sampai 3 kali; kalau tetap gagal, beri tahu pelapor tanpa
+ * mendaftarkan game yang tidak punya gambar. */
+let pesanSoal = null
+for (let coba = 0; coba < 3 && !pesanSoal; coba++) {
+try {
+pesanSoal = await conn.sendMessage(
 m.chat,
 {
 image:{ url: json.img },
-caption
+caption: susunCaption()
 },
 { quoted:m }
-),
+)
+} catch (error) {
+console.warn(`[TEBAKGAMBAR] gambar gagal dimuat (percobaan ${coba + 1}):`, error?.message || error)
+json = src[Math.floor(Math.random() * src.length)]
+}
+}
+
+if (!pesanSoal) {
+return conn.reply(
+m.chat,
+'❌ Gambar soal gagal dimuat dari server gambar. Coba lagi sebentar lagi.',
+m
+)
+}
+
+conn.game[id] = [
+pesanSoal,
 json,
 poin,
 setTimeout(()=>{
