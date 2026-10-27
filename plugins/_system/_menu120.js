@@ -294,6 +294,64 @@ export async function jalankanPemeriksaan() {
     simpan({ tombol122: { ok: false, error: String(error?.message || error).slice(0, 250) } })
   }
 
+  //── Task125: ikon + deskripsi tiap pilihan menu & allmenu asli ──
+  try {
+    const { tombolMenu, bagianMenuUtama, bagianSemuaMenu, ikonKategori, deskripsiKategori } =
+      await import('../../lib/umi-menu/menu-buttons.js')
+    const { daftarKategoriMenu } = await import('../../lib/awang-menu.js')
+    let kategori = daftarKategoriMenu()
+    for (let coba = 0; coba < 6 && !kategori.length; coba += 1) {
+      await new Promise(resolve => setTimeout(resolve, 2000))
+      kategori = daftarKategoriMenu()
+    }
+
+    const utama = bagianMenuUtama({ prefix: '.' })
+    const semua = bagianSemuaMenu({ prefix: '.', kategori })
+    const tombol = tombolMenu({ prefix: '.', kategori })
+    const barisUtama = utama.flatMap(b => b.rows || [])
+    const barisSemua = semua.flatMap(b => b.rows || [])
+
+    const laporan = {
+      ok: true,
+      jumlahKategori: kategori.length,
+      labelTombol: tombol.map(t => {
+        if (!t.nativeFlowInfo) return t.buttonText.displayText
+        return JSON.parse(t.nativeFlowInfo.paramsJson || '{}').title || t.buttonText.displayText
+      }),
+      menuUtama: barisUtama.map(r => ({ ikon: r.header, judul: r.title, deskripsi: r.description, id: r.id })),
+      contohKategori: barisSemua.slice(0, 4).map(r => ({ ikon: r.header, judul: r.title, deskripsi: r.description, id: r.id })),
+      semuaPunyaIkon: barisUtama.concat(barisSemua).every(r => Boolean(r.header) && r.header !== '▸'),
+      semuaPunyaDeskripsi: barisUtama.concat(barisSemua).every(r => String(r.description || '').length >= 10),
+      kategoriTanpaIkon: kategori.filter(k => ikonKategori(k.key) === '📁').map(k => k.key),
+      contohDeskripsi: deskripsiKategori('tools', 240),
+    }
+
+    // allmenu asli: pastikan modulnya termuat dan menambah loading + satu pesan.
+    try {
+      const allmenu = await import('../main/usanagi-allmenu.js')
+      const susun = allmenu.bangunTeksAllMenu({ prefix: '.', name: 'Uji' })
+      laporan.allmenu = {
+        ok: typeof allmenu.loadingAlzRiss === 'function' && typeof allmenu.bangunTeksAllMenu === 'function',
+        adaLoading: typeof allmenu.loadingAlzRiss === 'function',
+        barisProgres: allmenu.teksLoading({ percent: 35, text: 'membaca pikiran user...' }),
+        kategori: susun.kategori,
+        perintah: susun.perintah,
+        panjangTeks: susun.teks.length,
+        byteTeks: susun.byte,
+        gaya: susun.gaya,
+        dipotong: susun.dipotong,
+        captionByte: Buffer.byteLength(allmenu.susunCaption(susun.teks, 'https://contoh.id'), 'utf8'),
+        adaReadMore: allmenu.susunCaption(susun.teks, 'https://contoh.id').includes(String.fromCharCode(8206)),
+      }
+    } catch (error) {
+      laporan.allmenu = { ok: false, error: String(error?.message || error).slice(0, 200) }
+    }
+
+    simpan({ menu125: laporan })
+  } catch (error) {
+    simpan({ menu125: { ok: false, error: String(error?.message || error).slice(0, 250) } })
+  }
+
   //── Task124: uji jalur `.ytplay` (cari → unduh sungguhan) ──────
   try {
     const { searchYoutube } = await import('../../lib/scrape/YouTube.js')

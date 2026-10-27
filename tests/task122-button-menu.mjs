@@ -33,7 +33,7 @@ test('TASK122: tombol memuat keenam pilihan menu utama dengan id ber-prefix', ()
   const bagian = bagianMenuUtama({ prefix: '$' })
   const baris = bagian[0].rows
 
-  assert.equal(bagian[0].title, 'Menu Utama')
+  assert.equal(bagian[0].title, '☰ Menu Utama')  // Task125: judul + ikon
   assert.equal(baris.length, PILIHAN_BAWAAN.length, 'enam baris')
   baris.forEach((row, index) => {
     assert.equal(row.title, PILIHAN_BAWAAN[index].label)
@@ -122,10 +122,10 @@ test('TASK123: tombol lengkap = TOOLS/MAKER/GROUP + MENU + SEMUA MENU + OWNER', 
   const tombol = tombolLengkap({ prefix: '.', kategori: [{ key: 'tools', total: 240 }, { key: 'maker', total: 90 }, { key: 'group', total: 20 }].concat(banyakKategori) })
 
   const label = tombol.map(t => t.buttonText.displayText)
-  assert.deepEqual(label.slice(0, 3), ['▸ TOOLS', '▸ MAKER', '▸ GROUP'], 'pintasan kategori utama')
-  assert.ok(label.includes('☰ MENU'), 'tombol menu utama')
+  assert.deepEqual(label.slice(0, 3), ['🛠️ TOOLS', '🎨 MAKER', '👥 GROUP'], 'pintasan kategori utama (Task125: berikon)')
+  assert.ok(label.includes('☰ PILIH MENU'), 'tombol pilih menu')
   assert.ok(label.includes('▦ SEMUA MENU'), 'tombol semua menu')
-  assert.ok(label.includes('♕ OWNER BOT'), 'tombol owner')
+  assert.ok(label.includes('👑 OWNER BOT'), 'tombol owner')
 
   // tombol pertama quick_reply → WhatsApp Web mengizinkan sampai 10 tombol
   assert.equal(tombol[0].type, 1)
