@@ -12,6 +12,8 @@ import { smsg } from './lib/simple.js';
 import { generateWAMessageFromContent, proto } from '@rexxhayanasi/elaina-baileys'
 import { format } from 'util';
 import { recordError } from './lib/error-hub.js'
+/* Task132: daftar akses per sesi (fitur OURIN `.addakses`). */
+import { punyaAkses } from './lib/akses-user.js'
 import syncUserDatabase from './lib/database.js';
 import { errorReplyText } from './lib/umi-error.js';
 import { fileURLToPath } from 'url';
@@ -459,7 +461,8 @@ m.limit = false;
 	const instancePublic = botConfig.type === 'jadibot' || botConfig.managedSettings === true
 		? botConfig.public !== false
 		: global.db.data.settings[this.user.jid].public
-	if (!instancePublic && !m.fromMe && !isOwner) return;
+	// Task132: mode self tetap melayani daftar akses sesi (.addakses).
+	if (!instancePublic && !m.fromMe && !isOwner && !punyaAkses(this, m.sender)) return;
 if (m.isBaileys) return;
 m.exp += Math.ceil(Math.random() * 10);
 
