@@ -54,12 +54,26 @@ const handler = async (m, { conn, usedPrefix }) => {
     media = hasil.file
     const kualitas = labelKualitas(hasil.provider)
 
-    await conn.sendMessage(m.chat, {
-      video: { url: media },
-      mimetype: 'video/mp4',
-      fileName: 'youtube.mp4',
-      ...(kualitas ? { caption: `🎬 YouTube ${kualitas} · ${(hasil.bytes / 1048576).toFixed(1)} MB` } : {})
-    }, { quoted: m.raw })
+    if (hasil.audioOnly) {
+      /* Task133 — sumber video memang tidak ada untuk IP server ini, tetapi
+       * audionya bisa diunduh. Kirim audionya, jangan gagal total. */
+      const pakaiMp4 = /\.m4a$/i.test(hasil.file)
+      await conn.sendMessage(m.chat, {
+        audio: { url: media },
+        mimetype: pakaiMp4 ? 'audio/mp4' : 'audio/mpeg',
+        fileName: pakaiMp4 ? 'youtube.m4a' : 'youtube.mp3',
+        caption:
+          `🎧 YouTube (audio) · ${(hasil.bytes / 1048576).toFixed(1)} MB · via ${hasil.provider}\n\n` +
+          `Video tidak tersedia dari server ini (YouTube menolak IP server).`,
+      }, { quoted: m.raw })
+    } else {
+      await conn.sendMessage(m.chat, {
+        video: { url: media },
+        mimetype: 'video/mp4',
+        fileName: 'youtube.mp4',
+        ...(kualitas ? { caption: `🎬 YouTube ${kualitas} · ${(hasil.bytes / 1048576).toFixed(1)} MB` } : {})
+      }, { quoted: m.raw })
+    }
 
     await react(conn, m, '✅')
     m.limit?.success()
