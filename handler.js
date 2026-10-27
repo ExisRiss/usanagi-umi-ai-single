@@ -30,7 +30,7 @@ import { getMainBotConfig, prefixStorageKey, isPluginDisabled } from './lib/bot-
 import { normalizePrefixMode, resolveIncomingPrefix } from './lib/prefix-policy.js'
 import { botKind, sanitizeActivePrefix, normalizeIncoming } from './lib/prefix-bot.js'
 import { limitsEnabled } from './lib/limit-mode.js'
-import { canUseOwnerPlugin } from './lib/owner-policy.js'
+import { canUseOwnerPlugin, platformOnlyReason } from './lib/owner-policy.js'
 import { isPremiumFeatureLocked, premiumOwnerContact } from './lib/premium-mode.js'
 import {
   isGroupAdmin as resolveGroupAdmin,
@@ -210,7 +210,17 @@ if (m.isBaileys) return
 // ==================
 // WhatsApp dapat mengirim pengirim sebagai PN (@s.whatsapp.net) atau LID
 // (@lid). Selalu selesaikan ke nomor telepon sebelum memeriksa akses owner.
-const resolvedSenderNumber = await resolveTargetPhoneNumber(m.sender, this, m.chat).catch(() => '')
+/* Task124: sertakan petunjuk nomor dari kunci pesan. WhatsApp kadang mengirim
+ * pengirim sebagai `@lid`; nomor aslinya biasanya ikut di senderPn /
+ * participantPn / participantAlt, sehingga owner tetap dikenali. */
+const senderNumberHints = [
+    m.key?.senderPn,
+    m.key?.participantPn,
+    m.key?.participantAlt,
+    m.senderPn,
+    m.participantAlt,
+]
+const resolvedSenderNumber = await resolveTargetPhoneNumber(m.sender, this, m.chat, senderNumberHints).catch(() => '')
 const lockedDeveloperNumbers = [
   normalizeAccessNumber(global.jadibotPlatform?.lockedOwnerNumber || 'OWNER_PHONE_PLACEHOLDER'),
   ...(global.owner || []).map(([id]) => normalizeAccessNumber(id))
@@ -218,17 +228,26 @@ const lockedDeveloperNumbers = [
 const allOwnerNumbers = getAllOwnerNumbers(this)
 
 const staticOwnerFallback = (global.owner || []).some(([id]) => sameUser(cleanJid(id), m.sender))
-// Owner yang dipilih user memperoleh akses owner biasa. Akses rowner/developer
-// tetap hanya untuk nomor permanen yang dikunci di config.js.
+// isROwner = owner PLATFORM/developer (nomor yang dikunci di config.js).
 const isROwner = Boolean(
   m.fromMe ||
   (resolvedSenderNumber && lockedDeveloperNumbers.includes(resolvedSenderNumber)) ||
   staticOwnerFallback
 )
-const isOwner = Boolean(
-  isROwner ||
-  (resolvedSenderNumber && allOwnerNumbers.includes(resolvedSenderNumber))
+/*
+ * Task124 — OWNER BOT, bukan cuma "owner biasa".
+ *
+ * Nomor yang diisi pemilik bot di setelan bot (website Jadibot `owner_number`
+ * maupun setelan bot utama) adalah PEMILIK bot itu. Sebelumnya nomor tersebut
+ * hanya mendapat `owner`, sehingga seluruh perintah bertanda `rowner`
+ * (.addowner, .addstok, .setpp, .selfthisgc, …) menjawab "khusus developer".
+ * Sekarang owner bot memakai akses penuh ke fitur bot miliknya; yang tetap
+ * dikunci hanya fitur platform/lintas akun di lib/owner-policy.js.
+ */
+const isBotOwner = Boolean(
+  resolvedSenderNumber && allOwnerNumbers.includes(resolvedSenderNumber)
 )
+const isOwner = Boolean(isROwner || isBotOwner)
 const isMods = isOwner || global.mods?.some(v => m.sender.includes(v))
 
 // ==================
@@ -786,20 +805,23 @@ if (m.isGroup && chat.adminOnly && !isAdmin && !isOwner && isCmd) {
 					fail('owner', m, this);
 					continue;
 				}
-                // Owner sesi Jadibot memakai seluruh fitur bot miliknya,
-                // termasuk perintah rowner seperti .sitagrup / .kudeta.
-                // Pengecualian hanya plugin di lib/owner-policy.js.
+                // Owner bot (bot utama MAUPUN Jadibot) memakai seluruh fitur bot
+                // miliknya, termasuk perintah rowner seperti .addowner/.sitagrup.
+                // Pengecualian hanya plugin platform di lib/owner-policy.js.
                 const jadibotOwnerAllowed =
-                    plugin.jadibotOwner === true && botConfig?.type === 'jadibot' && isOwner &&
-                    !plugin.platformOnly;
-                const jadibotOwnerFull = canUseOwnerPlugin(pluginBasename, {
+                    plugin.jadibotOwner === true && isOwner &&
+                    (botConfig?.type !== 'jadibot' || !plugin.platformOnly);
+                const botOwnerAccess = canUseOwnerPlugin(pluginBasename, {
                     isROwner,
-                    isJadibot: botConfig?.type === 'jadibot',
                     isOwner,
+                    botUtama: botConfig?.type !== 'jadibot',
                 });
-				if (plugin.rowner && !isROwner && !jadibotOwnerAllowed && !jadibotOwnerFull) {
-					// Real Owner
-					fail('rowner', m, this);
+				if (plugin.rowner && !isROwner && !jadibotOwnerAllowed && !botOwnerAccess) {
+					// Real Owner / fitur platform
+					m.__ownerDeniedReason = isOwner
+                        ? platformOnlyReason(pluginBasename) || 'fitur platform'
+                        : '';
+					fail(isOwner ? 'platform' : 'rowner', m, this);
 					continue;
 				}
 				if ((plugin.owner || plugin.ownerOnly) && !isOwner) {
@@ -1534,7 +1556,11 @@ global.dfail = (type, m, conn) => {
 
     owner: (m, conn) => conn.reply(m.chat, `Nee~ command ini khusus owner`, m),
 
-    platform: (m, conn) => conn.reply(m.chat, `Ara~ fitur ini bagian dari website/platform, jadi hanya developer bot yang bisa memakai`, m),
+    platform: (m, conn) => conn.reply(
+      m.chat,
+      `Ara~ fitur ini bagian dari website/platform: ${String(m.__ownerDeniedReason || 'data lintas akun').trim()}.\nHanya developer platform yang boleh memakainya, bukan owner bot.`,
+      m
+    ),
 
     mods: (m, conn) => conn.reply(m.chat, `Hehe~ hanya moderator yang boleh pakai fitur ini`, m),
 
