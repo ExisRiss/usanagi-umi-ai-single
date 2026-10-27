@@ -1065,6 +1065,23 @@ function validPluginFile(file) {
         pluginFilter(path.basename(resolved));
 }
 
+/**
+ * Task130 — cadangan pemuatan untuk plugin yang bukan format ESM Umi.
+ * Mendukung: potongan `case`, modul CJS (`module.exports`), dan scrapper.
+ * Tidak pernah melempar; kalau tidak dikenali → null.
+ */
+async function muatFormatLain(file, key) {
+    try {
+        const { muatPlugin } = await import('./lib/plugin-format.js');
+        const hasil = await muatPlugin(file, key);
+        if (hasil && typeof hasil.handler === 'function') return hasil;
+        return null;
+    } catch (e) {
+        console.error(`[FORMAT] ${key}: ${e.message}`);
+        return null;
+    }
+}
+
 /* ============================================================
  * LOAD PLUGINS (RECURSIVE, PLUGINS ONLY)
  * ============================================================ */
@@ -1087,15 +1104,36 @@ async function filesInit() {
                 });
 
                 if (err) {
-                    console.error(`Failed to load plugin ${key}: syntax error\n${format(err)}`);
+                    /* Task130 — berkas format "case" memang BUKAN modul sah
+                     * (`case 'x':` di luar switch), jadi pemeriksaan sintaks di
+                     * atas selalu menolaknya. Dulu langsung `continue` sehingga
+                     * jalan cadangan tak pernah dicoba. Sekarang dicoba dulu
+                     * lewat lapisan kompatibilitas; kalau tetap gagal, baru
+                     * dilaporkan seperti sebelumnya. */
+                    const cadanganCase = await muatFormatLain(file, key);
+                    if (cadanganCase) {
+                        global.plugins[key] = normalizePluginText(cadanganCase.handler);
+                        console.log(`  \x1b[36m↻\x1b[0m  Plugin ${key} dimuat sebagai format "${cadanganCase.format}"`);
+                    } else {
+                        console.error(`Failed to load plugin ${key}: syntax error\n${format(err)}`);
+                    }
                     continue;
                 }
 
                 const module = await import(`${pathToFileURL(file).href}?load=${Date.now()}`);
                 global.plugins[key] = normalizePluginText(module.default || module);
             } catch (e) {
-                console.error(`Failed to load plugin ${key}: ${e.message}`);
-                delete global.plugins[key];
+                /* Task130 — berkas dengan format lain (case / scrapper / CJS) bukan
+                 * plugin ESM. Dulu hanya dicatat sebagai error lalu dilewati.
+                 * Sekarang dicoba lewat lapisan kompatibilitas sebelum menyerah. */
+                const cadangan = await muatFormatLain(file, key);
+                if (cadangan) {
+                    global.plugins[key] = normalizePluginText(cadangan.handler);
+                    console.log(`  \x1b[36m↻\x1b[0m  Plugin ${key} dimuat sebagai format "${cadangan.format}"`);
+                } else {
+                    console.error(`Failed to load plugin ${key}: ${e.message}`);
+                    delete global.plugins[key];
+                }
             }
         }
 
