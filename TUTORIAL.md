@@ -463,6 +463,30 @@ Auto Read langsung berlaku tanpa restart.
 
 ---
 
+## 15. Pasang di panel milik orang lain (Task133)
+
+Beberapa panel (mis. egg "SimpleBot") hanya menjalankan `/usr/local/bin/${CMD_RUN}` —
+tidak ada langkah clone. Untuk server baru seperti itu, pakai `scripts/bootstrap-panel.js`:
+
+1. Unggah `scripts/bootstrap-panel.js` ke root server sebagai `bootstrap-user.js`.
+2. Set variabel startup `CMD_RUN = node bootstrap-user.js`.
+3. Nyalakan server. Skrip akan: mengambil source dari GitHub → `npm install` →
+   menjalankan `scripts/boot.js`. Semua keluaran disalin ke `boot.log`.
+
+**Memperbarui bot yang sudah jalan** (tanpa menghapus data pemilik):
+
+```
+CMD_RUN = node bootstrap-user.js --sync
+```
+
+Mode `--sync` mencadangkan `config.js`, `config/users.json`, `.main-bot.env`, dan
+folder `plugins/` ke `_user-backup/`, lalu `git fetch` + `git reset --hard`
+ke versi terbaru, memulihkan cadangan, `npm install`, dan menjalankan bot.
+`database.json`, `sessions/`, `.env*`, dan `data/` tidak disentuh karena
+tidak dilacak git. Setelah selesai, kembalikan `CMD_RUN = node bootstrap-user.js`.
+
+---
+
 ## Penutup
 
 1. `npm install` (bagian 2)
