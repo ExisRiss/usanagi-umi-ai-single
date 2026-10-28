@@ -25,6 +25,8 @@ import {
   hapusSeluruhAkun,
   parseBuatAkun,
   validasiEmail,
+  catatanAkun,
+  daftarCatatanAkun,
 } from '../../lib/akun-platform.js'
 
 const LOGIN = 'https://jadibot-alzriss.gwenna.my.id/#login'
@@ -113,17 +115,20 @@ async function tanganiBuatAkun(m, teks) {
       '',
       `Email    : ${hasil.email}`,
       `Username : @${hasil.username}`,
+      `Password : ${hasil.password}`,
       `ID       : ${String(hasil.id || '-').slice(0, 8)}…`,
       `Status   : ${hasil.profil && hasil.profil.role ? hasil.profil.role : 'free'} · email terkonfirmasi`,
       '',
       '*Langkah berikutnya*',
       `1. Buka ${LOGIN}`,
-      `2. Masuk dengan ${hasil.email} dan password yang tadi dikirim`,
+      `2. Masuk dengan ${hasil.email} dan password di atas`,
       '3. Buka *Pairing* → masukkan nomor WhatsApp yang mau dijadikan bot',
       '4. Tunggu kode pairing muncul, masukkan di WhatsApp (Perangkat Tertaut)',
       '',
-      'Password TIDAK disimpan bot. Catat sekarang.',
-      'Salah ketik data? Hapus dengan .delakun ' + hasil.email,
+      '*Data akun lengkap (termasuk password) disimpan developer*',
+      'Lokasi: data/akun-platform-data.json (mode 600, tidak masuk repo).',
+      'Lihat lagi kapan saja: .dataakun ' + hasil.email,
+      'Hapus akun: .delakun ' + hasil.email,
     ].join('\n'))
   } catch (error) {
     return m.reply('❌ Gagal membuat akun: ' + error.message)
@@ -168,12 +173,18 @@ async function tanganiDelAkun(m, conn, teks) {
     ].join('\n'))
   }
 
-  const baris = data.situs.map((s) => ({
-    title: '🗑️ ' + s.nama,
-    description: String(s.detail || '').slice(0, 60),
-    command: '.delakunhapus ' + email + '|' + s.id,
-  }))
-  baris.push({ title: '🧨 Hapus di semua server', description: 'Sekali jalan untuk semua situs', command: '.delakunall ' + email })
+  const baris = [{
+    title: '🧨 Hapus total (semua server)',
+    description: 'Website + sesi bot + catatan password · paling aman',
+    command: '.delakunall ' + email,
+  }]
+  for (const s of data.situs) {
+    baris.push({
+      title: '🗑️ ' + s.nama,
+      description: String(s.detail || '').slice(0, 60),
+      command: '.delakunhapus ' + email + '|' + s.id,
+    })
+  }
 
   const isi = [
     '🗑️ *AKUN DITEMUKAN*',
@@ -203,6 +214,39 @@ async function tanganiDelAkun(m, conn, teks) {
   }
 }
 
+/* Ringkasan penghapusan yang JUJUR: menyebut sisa data kalau ada. */
+function ringkasHapus(email, hasil) {
+  const rincian = []
+  if (typeof hasil.hapusAuth === 'number') rincian.push('akun login dihapus: ' + rupiah(hasil.hapusAuth))
+  if (typeof hasil.hapusProfil === 'number') rincian.push('baris profil dihapus: ' + rupiah(hasil.hapusProfil))
+  if (hasil.perTabel) {
+    const rinciTabel = Object.keys(hasil.perTabel)
+      .filter((k) => Number(hasil.perTabel[k]) > 0)
+      .map((k) => k + '=' + hasil.perTabel[k])
+    if (rinciTabel.length) rincian.push('rincian tabel: ' + rinciTabel.join(', '))
+  }
+  if (typeof hasil.diputus === 'number') rincian.push('sesi diputus: ' + rupiah(hasil.diputus))
+  if (typeof hasil.folder === 'number') rincian.push('folder sesi dihapus: ' + rupiah(hasil.folder))
+  if (hasil.catatanLokal) rincian.push('catatan password dihapus: ya')
+
+  const sisa = typeof hasil.sisa === 'number' ? hasil.sisa : 0
+  const baris = [
+    sisa === 0 ? '✅ *SELESAI DIHAPUS*' : '⚠️ *DIHAPUS, TAPI MASIH ADA SISA*',
+    '',
+    'Email  : ' + email,
+    'Server : ' + (hasil.situs || 'semua'),
+    '',
+    rincian.length ? rincian.map((x) => '• ' + x).join('\n') : '• tidak ada data yang cocok',
+  ]
+  if (sisa > 0) {
+    baris.push('', 'Sisa ' + sisa + ' baris: ' + (hasil.tabelSisa || []).join(', '))
+    baris.push('Kirim hasil pesan ini ke developer — penghapusan belum tuntas.')
+  }
+  if (hasil.catatan && hasil.catatan.length) baris.push('', 'Catatan: ' + hasil.catatan.slice(0, 5).join(' · '))
+  if (hasil.backup) baris.push('', 'Cadangan sebelum hapus: ' + hasil.backup.split('/').slice(-2).join('/'))
+  return baris.join('\n')
+}
+
 async function tanganiDelAkunPilih(m, teks) {
   const mentah = String(teks || '').trim()
   const potong = mentah.split('|')
@@ -214,27 +258,53 @@ async function tanganiDelAkunPilih(m, teks) {
   await m.reply('⏳ Menghapus ' + email + ' dari ' + idSitus + ' …')
   try {
     const hasil = await hapusAkunDi(email, idSitus)
-    const rincian = []
-    if (typeof hasil.hapusAuth === 'number') rincian.push(`akun login dihapus: ${rupiah(hasil.hapusAuth)}`)
-    if (typeof hasil.hapusProfil === 'number') rincian.push(`baris profil dihapus: ${rupiah(hasil.hapusProfil)}`)
-    if (typeof hasil.diputus === 'number') rincian.push(`sesi diputus: ${rupiah(hasil.diputus)}`)
-    if (typeof hasil.folder === 'number') rincian.push(`folder sesi dihapus: ${rupiah(hasil.folder)}`)
-    return m.reply([
-      '✅ *SELESAI DIHAPUS*',
-      '',
-      `Email  : ${email}`,
-      `Server : ${hasil.situs}`,
-      '',
-      rincian.length ? rincian.map((x) => '• ' + x).join('\n') : '• tidak ada data yang cocok',
-      typeof hasil.sisa === 'number' ? `\nSisa data di server itu: ${hasil.sisa}` : '',
-      hasil.backup ? `\nCadangan sebelum hapus: ${hasil.backup.split('/').slice(-2).join('/')}` : '',
-    ].filter(Boolean).join('\n'))
+    return m.reply(ringkasHapus(email, hasil))
   } catch (error) {
     return m.reply('❌ Gagal menghapus: ' + error.message)
   }
 }
 
 /* ── delakunall ────────────────────────────────────────────────────────── */
+
+async function tanganiDataAkun(m, teks) {
+  const mentah = String(teks || '').trim()
+  if (!mentah) {
+    const semua = daftarCatatanAkun()
+    if (!semua.length) return m.reply('📭 Belum ada akun yang dibuat lewat bot.')
+    const baris = semua.slice(-25).map((a) => `• ${a.email} — @${a.username} · ${a.role}`)
+    return m.reply([
+      '📇 *DATA AKUN BUATAN BOT*',
+      '',
+      `Total: ${semua.length}`,
+      '',
+      ...baris,
+      '',
+      'Password tidak ditampilkan massal. Buka satu per satu:',
+      '.dataakun <gmail>',
+    ].join('\n'))
+  }
+  const email = validasiEmail(mentah)
+  if (!email) return m.reply('Format: .dataakun <gmail>')
+  const data = catatanAkun(email)
+  if (!data) {
+    return m.reply('📭 Tidak ada catatan untuk ' + email + '.\nAkun mungkin dibuat dari website, jadi passwordnya tidak pernah lewat bot.')
+  }
+  return m.reply([
+    '📇 *DATA AKUN*',
+    '',
+    `Email      : ${data.email}`,
+    `Username   : @${data.username}`,
+    `Password   : ${data.password}`,
+    `Role       : ${data.role}`,
+    `ID         : ${String(data.id || '-').slice(0, 8)}…`,
+    `Sumber     : ${data.sumber || 'bot'}`,
+    `Dibuat     : ${jamNya(data.dibuat)}`,
+    `Diperbarui : ${jamNya(data.diperbarui)}`,
+    '',
+    'Disimpan di data/akun-platform-data.json (mode 600).',
+    'Jangan sebarkan. Hapus akun: .delakun ' + data.email,
+  ].join('\n'))
+}
 
 async function tanganiDelSemua(m, teks) {
   const arg = String(teks || '').trim()
@@ -290,17 +360,28 @@ async function tanganiDelSemua(m, teks) {
   await m.reply('🧨 Menghapus ' + email + ' di semua server website …')
   try {
     const ringkasan = await hapusAkunSemuaSitus(email)
+    let totalSisa = 0
     const baris = ringkasan.map((r) => {
       if (!r.ok) return `❌ ${r.situs} — ${r.galat}`
       const h = r.hasil || {}
+      if (typeof h.sisa === 'number') totalSisa += h.sisa
       const bagian = []
       if (h.hapusAuth) bagian.push(`${h.hapusAuth} akun login`)
       if (h.hapusProfil) bagian.push(`${h.hapusProfil} profil`)
       if (h.diputus) bagian.push(`${h.diputus} sesi`)
       if (h.folder) bagian.push(`${h.folder} folder`)
-      return `✅ ${r.situs} — ${bagian.length ? bagian.join(', ') : 'tidak ada data'}`
+      if (h.catatanLokal) bagian.push('catatan password')
+      const sisaTeks = typeof h.sisa === 'number' && h.sisa > 0 ? ` · ⚠️ sisa ${h.sisa}` : ''
+      return `✅ ${r.situs} — ${bagian.length ? bagian.join(', ') : 'tidak ada data'}${sisaTeks}`
     })
-    return m.reply(['🧨 *HASIL HAPUS SEMUA SERVER*', '', `Email: ${email}`, '', ...baris].join('\n'))
+    return m.reply([
+      totalSisa === 0 ? '🧨 *TERHAPUS DI SEMUA SERVER*' : '⚠️ *SEBAGIAN MASIH TERSISA*',
+      '',
+      `Email: ${email}`,
+      '',
+      ...baris,
+      totalSisa === 0 ? '' : `\nSisa ${totalSisa} baris — cek log untuk rinciannya.`,
+    ].filter((x) => x !== '').join('\n'))
   } catch (error) {
     return m.reply('❌ Gagal: ' + error.message)
   }
@@ -321,6 +402,7 @@ let handler = async (m, { conn, command, text = '', args = [], isROwner, isOwner
     if (cmd === 'delakun' || cmd === 'hapusakun') return await tanganiDelAkun(m, conn, text)
     if (cmd === 'delakunhapus') return await tanganiDelAkunPilih(m, text)
     if (cmd === 'delakunall' || cmd === 'hapusakunall') return await tanganiDelSemua(m, text)
+    if (cmd === 'dataakun' || cmd === 'daftarakun') return await tanganiDataAkun(m, text)
     return m.reply('Perintah tidak dikenal. Pakai .buatakun / .delakun / .delakunall.')
   } catch (error) {
     return m.reply('❌ ' + (error && error.message ? error.message : error))
@@ -333,9 +415,10 @@ handler.help = [
   'delakun email',
   'delakunall email',
   'delakunall KONFIRMASI',
+  'dataakun email',
 ]
 handler.tags = ['owner']
-handler.command = /^(buatakun|delakun|hapusakun|delakunhapus|delakunall|hapusakunall)$/i
+handler.command = /^(buatakun|delakun|hapusakun|delakunhapus|delakunall|hapusakunall|dataakun|daftarakun)$/i
 handler.description = 'Kelola akun website jadibot (developer): buat, hapus per server, atau hapus semua'
 handler.owner = false
 handler.group = false
