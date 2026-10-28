@@ -165,3 +165,61 @@ test('saklar off menghentikan penghapusan', async () => {
   await handler.all.call(conn, pesan(), {})
   assert.deepEqual(conn.terhapus, [])
 })
+
+/* ── Task143c: .autodelmsg deluser ─────────────────────────────────────── */
+
+const mDel = (extra = {}) => ({
+  isGroup: true, chat: GRUP, sender: DEV + '@s.whatsapp.net',
+  args: [], text: '.autodelmsg deluser', key: { id: 'D' + Math.random().toString(36).slice(2, 7) },
+  reply: async () => {},
+  ...extra,
+})
+const perintahDel = (m, ekstra = {}) => handler(m, {
+  conn: connTiruan(), command: 'autodelmsg', isROwner: true, isBotAdmin: true, ...ekstra,
+})
+
+test('deluser lewat @tag mengeluarkan dari daftar', async () => {
+  await daftarkan()
+  assert.ok(bacaDataAutodel().grup[GRUP].nomor[TARGET], 'harus terdaftar dulu')
+  await perintahDel(mDel({ args: ['deluser', '@' + TARGET], mentionedJid: [TARGET + '@s.whatsapp.net'] }))
+  assert.equal(bacaDataAutodel().grup[GRUP].nomor[TARGET], undefined, 'harus sudah keluar')
+})
+
+test('deluser lewat balasan pesan mengeluarkan dari daftar', async () => {
+  await daftarkan()
+  await perintahDel(mDel({
+    args: ['deluser'],
+    quoted: { sender: TARGET + '@s.whatsapp.net' },
+  }))
+  assert.equal(bacaDataAutodel().grup[GRUP].nomor[TARGET], undefined)
+})
+
+test('deluser lewat nomor manual mengeluarkan dari daftar', async () => {
+  await daftarkan()
+  await perintahDel(mDel({ args: ['deluser', TARGET], text: '.autodelmsg deluser ' + TARGET }))
+  assert.equal(bacaDataAutodel().grup[GRUP].nomor[TARGET], undefined)
+})
+
+test('deluser tanpa sasaran memberi contoh, bukan menghapus apa pun', async () => {
+  await daftarkan()
+  const balasan = []
+  await perintahDel(mDel({ args: ['deluser'], reply: async (t) => balasan.push(t) }))
+  assert.ok(bacaDataAutodel().grup[GRUP].nomor[TARGET], 'daftar tidak boleh berubah')
+  assert.match(balasan.join('\n'), /deluser @user|balas pesan/)
+})
+
+test('deluser all mengosongkan daftar', async () => {
+  await daftarkan()
+  const balasan = []
+  await perintahDel(mDel({ args: ['deluser', 'all'], text: '.autodelmsg deluser all', reply: async (t) => balasan.push(t) }))
+  assert.match(balasan.join('\n'), /dikosongkan/)
+  assert.equal(Object.keys(bacaDataAutodel().grup[GRUP].nomor).length, 0)
+})
+
+test('setelah deluser, pesannya TIDAK lagi dihapus', async () => {
+  await daftarkan()
+  await perintahDel(mDel({ args: ['deluser', '@' + TARGET], mentionedJid: [TARGET + '@s.whatsapp.net'] }))
+  const conn = connTiruan()
+  await handler.all.call(conn, pesan(), {})
+  assert.deepEqual(conn.terhapus, [], 'pesan tidak boleh dihapus lagi')
+})

@@ -77,6 +77,59 @@ function namaDariJid(jid) {
   return String(jid || '').split('@')[0]
 }
 
+/**
+ * Kumpulkan nomor sasaran dari SEMUA sumber yang wajar:
+ *   - mention  (@tag)
+ *   - pesan yang dibalas (reply)
+ *   - nomor yang diketik langsung
+ * Dipakai bersama oleh perintah tambah dan `deluser`, supaya @tag maupun
+ * balasan sama-sama dikenali.
+ */
+/**
+ * Argumen perintah. Utamakan `args` dari handler; kalau kosong (mis. dipanggil
+ * dari hook atau pengurai berbeda), teks pesan dipakai sebagai cadangan supaya
+ * `.autodelmsg deluser @user` tetap dikenali.
+ */
+function argumenPerintah(args, text, m, command) {
+  const bersihkan = (daftar) => daftar.map((x) => String(x).trim()).filter(Boolean)
+  if (Array.isArray(args) && args.length) return bersihkan(args)
+  const sumber = String(text || '').trim()
+  if (sumber) return bersihkan(sumber.split(/\s+/))
+  const mentah = String(m && m.text ? m.text : '')
+    .replace(/^[^\p{L}\p{N}]+/u, '')
+    .trim()
+  const kata = mentah.split(/\s+/).filter(Boolean)
+  const nama = String(command || 'autodelmsg').toLowerCase()
+  if (kata.length && kata[0].toLowerCase() === nama) kata.shift()
+  return bersihkan(kata)
+}
+
+function kumpulkanSasaran(m, daftarKata = []) {
+  const hasil = new Set()
+
+  for (const jid of Array.isArray(m.mentionedJid) ? m.mentionedJid : []) {
+    const n = normalizeNumber(namaDariJid(jid))
+    if (n) hasil.add(n)
+  }
+
+  /* Balasan: bentuknya beda-beda tergantung versi Baileys. */
+  const kutip = m.quoted || m.reply_message || {}
+  const jidKutip = kutip.sender || kutip.participant || kutip.key?.participant || kutip.key?.remoteJid || ''
+  if (jidKutip && String(jidKutip).endsWith('@s.whatsapp.net')) {
+    const n = normalizeNumber(namaDariJid(jidKutip))
+    if (n) hasil.add(n)
+  }
+
+  for (const kata of daftarKata) {
+    const bersih = namaDariJid(String(kata).replace('@', ''))
+    if (!/^[0-9]{8,16}$/.test(bersih)) continue
+    const n = normalizeNumber(bersih)
+    if (n) hasil.add(n)
+  }
+
+  return hasil
+}
+
 /* ── perintah ──────────────────────────────────────────────────────────── */
 
 let handler = async (m, { conn, command, args = [], text = '', isROwner, isOwner, isDeveloper, isBotAdmin, isAdmin }) => {
@@ -100,7 +153,7 @@ let handler = async (m, { conn, command, args = [], text = '', isROwner, isOwner
   const data = bacaData()
   const grup = grupDari(data, m.chat)
   const perlindungan = nomorTerlindungi({ isROwner, isOwner })
-  const argumen = args.map((x) => String(x).trim()).filter(Boolean)
+  const argumen = argumenPerintah(args, text, m, cmd)
   const sub = String(argumen[0] || '').toLowerCase()
 
   if (sub === 'list') {
@@ -114,7 +167,7 @@ let handler = async (m, { conn, command, args = [], text = '', isROwner, isOwner
       '',
       ...nomor.map((n, i) => `${i + 1}. ${grup.nomor[n].nama ? grup.nomor[n].nama + ' · ' : ''}${n}`),
       '',
-      'Hapus: .autodelmsg hapus <nomor>',
+      'Keluarkan: .autodelmsg deluser <nomor|@tag>',
       'Matikan: .autodelmsg off',
     ].join('\n'))
   }
@@ -146,46 +199,59 @@ let handler = async (m, { conn, command, args = [], text = '', isROwner, isOwner
       : '⏹️ Auto delete pesan dimatikan di grup ini. Daftar nomor tetap disimpan.')
   }
 
-  if (sub === 'hapus' || sub === 'del' || sub === 'remove') {
-    const sasaran = argumen.slice(1)
-    if (!sasaran.length) return m.reply('Format: .autodelmsg hapus <nomor|@tag|all>')
-    if (String(sasaran[0]).toLowerCase() === 'all') {
+  /* deluser / hapus / del / remove — keluarkan dari daftar.
+   * Bisa lewat @tag, balasan pesannya, nomor manual, atau `all`. */
+  if (sub === 'deluser' || sub === 'hapus' || sub === 'del' || sub === 'remove') {
+    const kata = argumen.slice(1)
+    if (String(kata[0] || '').toLowerCase() === 'all') {
+      const jumlah = Object.keys(grup.nomor).length
       grup.nomor = {}
       tulisData(data)
-      return m.reply('🧹 Daftar auto delete grup ini dikosongkan.')
+      return m.reply(`🧹 Daftar auto delete grup ini dikosongkan (${jumlah} nomor dihapus).`)
     }
-    const dicari = sasaran.map((x) => normalizeNumber(namaDariJid(String(x).replace('@', '')))).filter(Boolean)
+
+    const dicari = kumpulkanSasaran(m, kata)
+    if (!dicari.size) {
+      return m.reply([
+        '🧹 *KELUARKAN DARI DAFTAR AUTO DELETE*',
+        '',
+        'Pilih salah satu cara:',
+        '.autodelmsg deluser @user',
+        '.autodelmsg deluser (balas pesan user)',
+        '.autodelmsg deluser 62812xxxx',
+        '.autodelmsg deluser all',
+      ].join('\n'))
+    }
+
     const dihapus = []
+    const tidakAda = []
     for (const n of dicari) {
       if (grup.nomor[n]) {
+        const nama = grup.nomor[n].nama || ''
         delete grup.nomor[n]
-        dihapus.push(n)
+        dihapus.push(nama ? `${nama} · ${n}` : n)
+      } else {
+        tidakAda.push(n)
       }
     }
     tulisData(data)
-    return m.reply(dihapus.length
-      ? `✅ Dikeluarkan dari auto delete:\n${dihapus.map((x) => '• ' + x).join('\n')}`
-      : 'ℹ️ Nomor itu tidak ada di daftar grup ini.')
+
+    return m.reply([
+      '🧹 *AUTO DELETE — DAFTAR DIUBAH*',
+      '',
+      `Grup : ${m.chat}`,
+      `Sisa : ${Object.keys(grup.nomor).length} nomor terdaftar`,
+      '',
+      dihapus.length ? 'Dikeluarkan:\n' + dihapus.map((x) => '• ' + x).join('\n') : '',
+      tidakAda.length ? '\nTidak ada di daftar (tidak perlu dihapus):\n' + tidakAda.map((x) => '• ' + x).join('\n') : '',
+      '',
+      'Pesan mereka sekarang dibiarkan lagi.',
+      'Lihat daftar: .autodelmsg list',
+    ].filter(Boolean).join('\n'))
   }
 
   /* Tambah sasaran: mention, balasan, atau nomor manual. */
-  const sasaran = new Set()
-  for (const jid of Array.isArray(m.mentionedJid) ? m.mentionedJid : []) {
-    const n = normalizeNumber(namaDariJid(jid))
-    if (n) sasaran.add(n)
-  }
-  const dikutip = m.quoted || m.reply_message || (m.message && m.message.extendedTextMessage && m.message.extendedTextMessage.contextInfo && m.message.extendedTextMessage.contextInfo.participant)
-  const jidKutip = (dikutip && (dikutip.sender || dikutip.participant)) || ''
-  if (jidKutip) {
-    const n = normalizeNumber(namaDariJid(jidKutip))
-    if (n) sasaran.add(n)
-  }
-  for (const kata of argumen) {
-    const bersih = namaDariJid(String(kata).replace('@', ''))
-    if (!/^[0-9]{8,16}$/.test(bersih)) continue
-    const n = normalizeNumber(bersih)
-    if (n) sasaran.add(n)
-  }
+  const sasaran = kumpulkanSasaran(m, argumen)
 
   if (!sasaran.size) {
     return m.reply([
@@ -196,7 +262,9 @@ let handler = async (m, { conn, command, args = [], text = '', isROwner, isOwner
       '.autodelmsg (balas pesannya) — sama, tanpa mention',
       '.autodelmsg 62812xxxx — pakai nomor langsung',
       '.autodelmsg list — lihat daftar',
-      '.autodelmsg hapus @user | hapus all',
+      '.autodelmsg deluser @user — keluarkan dari daftar',
+      '.autodelmsg deluser (balas pesannya)',
+      '.autodelmsg deluser all',
       '.autodelmsg on | off',
       '',
       '*Syarat*',
@@ -387,8 +455,10 @@ handler.help = [
   'autodelmsg @user',
   'autodelmsg (balas pesan)',
   'autodelmsg list',
+  'autodelmsg deluser @user',
+  'autodelmsg deluser (balas pesan)',
+  'autodelmsg deluser all',
   'autodelmsg hapus @user',
-  'autodelmsg hapus all',
   'autodelmsg on',
   'autodelmsg off',
 ]
