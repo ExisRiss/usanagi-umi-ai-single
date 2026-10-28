@@ -30,7 +30,7 @@ import { collectUserIdentityKeys, mergeUserIdentityRecords } from './lib/user-id
 import { getActivePrefix } from './core/awang-prefix.js'
 import { getMainBotConfig, prefixStorageKey, isPluginDisabled } from './lib/bot-config.js'
 import { normalizePrefixMode, resolveIncomingPrefix } from './lib/prefix-policy.js'
-import { botKind, sanitizeActivePrefix, normalizeIncoming } from './lib/prefix-bot.js'
+import { botKind, sanitizeActivePrefix, normalizeIncoming, splitDoublePrefix } from './lib/prefix-bot.js'
 import { limitsEnabled } from './lib/limit-mode.js'
 import { canUseOwnerPlugin, platformOnlyReason } from './lib/owner-policy.js'
 import { isPremiumFeatureLocked, premiumOwnerContact } from './lib/premium-mode.js'
@@ -38,7 +38,9 @@ import {
   isGroupAdmin as resolveGroupAdmin,
   isBotAdmin as resolveBotGroupAdmin,
 } from './lib/awang-aksesgrub.js'
+import { powerNyala, perintahPower, scopeDariConfig, setPower, powerInfo } from './lib/bot-power.js'
 import { parseCommandInput } from './lib/command-parser.js'
+import { cariAksi } from './lib/pending-aksi.js'
 import { sendInteractive } from './lib/awang-tombol.js'
 import {
   getSessionWelcomeTemplate,
@@ -252,6 +254,42 @@ const isBotOwner = Boolean(
 const isOwner = Boolean(isROwner || isBotOwner)
 const isMods = isOwner || global.mods?.some(v => m.sender.includes(v))
 
+/*
+ * Task135 — saklar bot per sesi (.bot off / .bot on).
+ * Saat OFF, bot TIDAK membalas apa pun di sesi itu. Pengecualian hanya
+ * owner/developer yang mengetik .bot on / .bot off / .bot status, supaya
+ * sesi bisa dinyalakan lagi dari WhatsApp maupun dari website Jadibot.
+ */
+try {
+    const _scopePower = scopeDariConfig(botConfig)
+    if (!powerNyala(_scopePower)) {
+        const _aksiPower = perintahPower(m.text)
+        const _bolehPower = Boolean(isROwner || isOwner || m.fromMe)
+        if (!_bolehPower) return
+        /* Owner/developer: tangani langsung supaya tetap jalan apa pun
+         * prefix-nya (".bot on", "..bot on", "/bot on") tanpa lewat dispatch
+         * plugin — plugin tidak akan dieksekusi saat saklar mati. */
+        if (_aksiPower === 'on') {
+            setPower(_scopePower, true, String(m.sender || '').split('@')[0])
+            await this.reply(m.chat, `✅ Bot *ON* untuk sesi ${_scopePower}.\nSemua perintah dijawab lagi.`, m)
+            return
+        }
+        if (_aksiPower === 'off') {
+            setPower(_scopePower, false, String(m.sender || '').split('@')[0])
+            await this.reply(m.chat, `⛔ Bot sudah *OFF* untuk sesi ${_scopePower}.`, m)
+            return
+        }
+        if (_aksiPower === 'status') {
+            const _info = powerInfo(_scopePower)
+            await this.reply(m.chat, `⚙️ Saklar bot sesi ${_scopePower}: *${_info.enabled ? 'ON' : 'OFF'}*`, m)
+            return
+        }
+        return
+    }
+} catch (powerError) {
+    console.log(`[bot-power] gagal memeriksa saklar: ${powerError?.message || powerError}`)
+}
+
 // ==================
 // 🚫 USER BLACKLIST
 // ==================
@@ -337,6 +375,11 @@ const incomingNormalized = normalizeIncoming({
 activePrefix = incomingNormalized.prefix
 if (incomingNormalized.rich) {
     m.__richMenu = true
+    /* Task136 — plugin non-menu (mis. .statusmc / .mcmenu) memakai penanda
+     * __richRequest. Sebelumnya penanda itu dipasang di blok lain yang baru
+     * berjalan SETELAH teks dinormalkan, jadi tidak pernah aktif dan
+     * "..statusmc" selalu dibalas teks biasa. */
+    m.__richRequest = true
     m.__originalText = m.text
     m.text = incomingNormalized.text
 }
@@ -402,6 +445,23 @@ const isPrems = isOwner || userData.premiumTime > 0
 // ==================
 const isStatus = m.key?.remoteJid === 'status@broadcast' || m.key?.participant === 'status@broadcast'
 if (isStatus) return
+
+// ==================
+// ⏳ AKSI YANG MENUNGGU BALASAN USER
+// ==================
+/* Task136 — `.deploysubdomain` menunggu user mengirim berkas .zip / .html.
+ * Berkas tanpa caption TIDAK punya prefix, jadi harus diperiksa di sini:
+ * sebelum gerbang "chat pribadi tanpa prefix" di bawah yang membuat handler
+ * berhenti diam-diam (bot seolah tidak membalas). */
+try {
+    const _aksiPending = cariAksi(m)
+    if (_aksiPending) {
+        const _hasilPending = await _aksiPending.jalankan.call(this, m)
+        if (_hasilPending !== false) return
+    }
+} catch (_pendingError) {
+    console.log(`[pending] gagal memproses: ${_pendingError?.message || _pendingError}`)
+}
 
 // ==================
 // 🚫 PRIVATE CHAT
@@ -591,6 +651,27 @@ if (m.isGroup && chat.adminOnly && !isAdmin && !isOwner && isCmd) {
                     : note;
             }
         }
+        /*
+         * Task135 — prefix ganda. `.statusmc` = teks + foto, `..statusmc` =
+         * rich message (kartu + tombol). Prefix berulang dinormalisasi di sini
+         * supaya parser perintah tetap membaca nama perintah yang sama, lalu
+         * plugin mengecek m.__richRequest untuk memilih tampilan.
+         */
+        /*
+         * Task139 — prefix ganda HANYA sah kalau memakai prefix sesi ini.
+         * Dulu blok ini memakai /^([.\/!#]{2,})/ sehingga `//pingmc` juga
+         * dijalankan oleh bot yang prefix-nya `.` atau `★`. Aturan deteksi
+         * sekarang ada di lib/prefix-bot.js (splitDoublePrefix) supaya bisa
+         * diuji langsung tanpa WhatsApp.
+         */
+        try {
+            const _ganda = splitDoublePrefix(m.text, activePrefix)
+            if (_ganda.rich) {
+                m.__richRequest = true
+                m.text = _ganda.text
+            }
+        } catch (prefixError) { }
+
         const aiDispatchText = aiDispatchPlan ? `${activePrefix}${aiDispatchPlan.command}${aiDispatchPlan.args ? ' ' + aiDispatchPlan.args : ''}` : selfAIRequest ? '' : m.text;
         if (aiPlan.kind === 'answer') { m.__autoAIHandled = true; m.__autoAIAnswer = aiPlan.answer; m.__autoAIConversation = aiPlan.conversation; }
         if (aiDispatchPlan) {
