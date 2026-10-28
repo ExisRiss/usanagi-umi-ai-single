@@ -31,6 +31,7 @@ import { getActivePrefix } from './core/awang-prefix.js'
 import { getMainBotConfig, prefixStorageKey, isPluginDisabled } from './lib/bot-config.js'
 import { normalizePrefixMode, resolveIncomingPrefix } from './lib/prefix-policy.js'
 import { botKind, sanitizeActivePrefix, normalizeIncoming, splitDoublePrefix } from './lib/prefix-bot.js'
+import { nomorOwnerUtama as daftarNomorOwnerUtama } from './lib/owner-utama.js'
 import { limitsEnabled } from './lib/limit-mode.js'
 import { canUseOwnerPlugin, platformOnlyReason } from './lib/owner-policy.js'
 import { isPremiumFeatureLocked, premiumOwnerContact } from './lib/premium-mode.js'
@@ -239,6 +240,16 @@ const isROwner = Boolean(
   staticOwnerFallback
 )
 /*
+ * Task143 — OWNER UTAMA.
+ * Nomor di data/owner-utama.json (atau global.ownerUtama di config.js) punya
+ * akses SETARA developer: semua perintah, termasuk yang bertanda `rowner`.
+ * Daftar developer sendiri tetap terkunci (Task113).
+ */
+const nomorOwnerUtama = daftarNomorOwnerUtama()
+const isOwnerUtama = Boolean(resolvedSenderNumber && nomorOwnerUtama.includes(resolvedSenderNumber))
+/* aksesPenuh dipakai seluruh gerbang perintah di bawah. */
+const aksesPenuh = Boolean(isROwner || isOwnerUtama)
+/*
  * Task124 — OWNER BOT, bukan cuma "owner biasa".
  *
  * Nomor yang diisi pemilik bot di setelan bot (website Jadibot `owner_number`
@@ -251,7 +262,7 @@ const isROwner = Boolean(
 const isBotOwner = Boolean(
   resolvedSenderNumber && allOwnerNumbers.includes(resolvedSenderNumber)
 )
-const isOwner = Boolean(isROwner || isBotOwner)
+const isOwner = Boolean(aksesPenuh || isBotOwner)
 const isMods = isOwner || global.mods?.some(v => m.sender.includes(v))
 
 /*
@@ -264,7 +275,7 @@ try {
     const _scopePower = scopeDariConfig(botConfig)
     if (!powerNyala(_scopePower)) {
         const _aksiPower = perintahPower(m.text)
-        const _bolehPower = Boolean(isROwner || isOwner || m.fromMe)
+        const _bolehPower = Boolean(aksesPenuh || isOwner || m.fromMe)
         if (!_bolehPower) return
         /* Owner/developer: tangani langsung supaya tetap jalan apa pun
          * prefix-nya (".bot on", "..bot on", "/bot on") tanpa lewat dispatch
@@ -603,7 +614,7 @@ if (m.isGroup && chat.adminOnly && !isAdmin && !isOwner && isCmd) {
         const selfAIRequest = isSelfAIRequest(m, botConfig);
         const aiPlan = await planAutoAI({
             m, conn: this, botConfig, activePrefix, bot, plugins: global.plugins,
-            isROwner, isOwner, isMods, isAdmin, isBotAdmin, isPrems,
+            isROwner: aksesPenuh, isOwner, isOwnerUtama, isDeveloper: isROwner, isMods, isAdmin, isBotAdmin, isPrems,
             userData: _user, chatData: chat,
             isCommandDisabled: (name, command) => isPluginDisabled(botConfig, name, command)
         });
@@ -775,8 +786,10 @@ if (m.isGroup && chat.adminOnly && !isAdmin && !isOwner && isCmd) {
 						groupMetadata,
 						user: groupUser ,
 						bot,
-						isROwner,
+						isROwner: aksesPenuh,
 						isOwner,
+						isOwnerUtama,
+						isDeveloper: isROwner,
 						isRAdmin,
 						isAdmin,
 						isBotAdmin,
@@ -880,11 +893,11 @@ if (m.isGroup && chat.adminOnly && !isAdmin && !isOwner && isCmd) {
 				// plugin, data lintas akun) tetap milik owner platform. Pemilik
 				// sesi Jadibot tidak boleh memakainya walau punya akses penuh
 				// ke fitur bot miliknya.
-				if (plugin.platformOnly && botConfig?.type === 'jadibot' && !isROwner) {
+				if (plugin.platformOnly && botConfig?.type === 'jadibot' && !aksesPenuh) {
 					fail('platform', m, this);
 					continue;
 				}
-				if (plugin.rowner && plugin.owner && !(isROwner || isOwner)) {
+				if (plugin.rowner && plugin.owner && !(aksesPenuh || isOwner)) {
 					// Both Owner
 					fail('owner', m, this);
 					continue;
@@ -896,11 +909,11 @@ if (m.isGroup && chat.adminOnly && !isAdmin && !isOwner && isCmd) {
                     plugin.jadibotOwner === true && isOwner &&
                     (botConfig?.type !== 'jadibot' || !plugin.platformOnly);
                 const botOwnerAccess = canUseOwnerPlugin(pluginBasename, {
-                    isROwner,
+                    isROwner: aksesPenuh,
                     isOwner,
                     botUtama: botConfig?.type !== 'jadibot',
                 });
-				if (plugin.rowner && !isROwner && !jadibotOwnerAllowed && !botOwnerAccess) {
+				if (plugin.rowner && !aksesPenuh && !jadibotOwnerAllowed && !botOwnerAccess) {
 					// Real Owner / fitur platform
 					m.__ownerDeniedReason = isOwner
                         ? platformOnlyReason(pluginBasename) || 'fitur platform'
@@ -1034,8 +1047,10 @@ if (m.isGroup && chat.adminOnly && !isAdmin && !isOwner && isCmd) {
 					groupMetadata,
 					user: groupUser ,
 					bot,
-					isROwner,
+					isROwner: aksesPenuh,
 					isOwner,
+					isOwnerUtama,
+					isDeveloper: isROwner,
 					isRAdmin,
 					isAdmin,
 					isBotAdmin,
