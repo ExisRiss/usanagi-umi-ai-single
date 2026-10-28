@@ -200,6 +200,28 @@ tidak mendukung, bot membalas pesan biasa (bukan error).
 - `.ytvideo <judul/link>` — kirim berkas videonya langsung (paling aman untuk
   semua perangkat, tidak butuh webview).
 
+## Video Editor (cinematic typography)
+
+`.edit` membuat video cinematic typography dari foto/video yang kamu kirim —
+semua diproses lokal dengan FFmpeg, tanpa shell, tanpa API luar.
+
+- `.edit` — panduan singkat + template yang benar-benar ada.
+- `.edit mulai` — buka sesi; kirim 1–4 foto/video, lalu `.edit render`.
+- `.edit mulai nature` / `editorial` / `minimal` / `script` / `gaming` / `gallery`
+  — langsung pilih template (nama di luar daftar ditolak, bukan template palsu).
+- `.edit judul <teks>` · `.edit sub <teks>` · `.edit meta <teks>` — tulis judul,
+  subjudul, dan baris kecil (foto tim, tanggal).
+- `.edit durasi <detik>` · `.edit slow <0.4-1>` · `.edit kualitas <tinggi|sedang|hemat>`.
+- `.edit logo` / `.edit tanpa logo` — pakai logo bot di panel teks atau tidak.
+- `.edit status` · `.edit batal` — cek isi sesi / batalkan render yang antre.
+
+Kanvas mengikuti **ukuran dan rotasi video utama** (portrait, landscape, square,
+atau ukuran aneh 1024x436) tanpa di-stretch; semua elemen diskalakan
+proporsional. Ada blur reveal → tajam → hold → exit, gerak kamera halus,
+slow motion, kolase dengan sudut membulat, dan audio asli dipertahankan bila
+ada. Sesi per pengguna + chat dengan TTL 30 menit, antrean 2 render paralel,
+dan pembatalan. Dokumentasi lengkap: [`docs/VIDEO-EDITOR.md`](docs/VIDEO-EDITOR.md).
+
 ## API Rin (284 endpoint)
 
 `plugins/xrina/xrina.js` menyambungkan bot ke [Rin API](https://apiii-xrina.my.id)
