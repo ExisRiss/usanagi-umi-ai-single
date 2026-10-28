@@ -60,7 +60,7 @@ restart. Fitur ini **hanya ada di source code** — tidak muncul di website.
 • Ditolak mentah-mentah: data/, sessions/, node_modules/, tmp/, database.json, .env
 • Setiap berkas .js wajib lolos \`node --check\` sebelum ditulis
 • Berkas lama dibackup ke data/auto-update-backup/<waktu>/
-• Berkas yang pernah diedit manual di server tidak ditimpa kecuali pakai "paksa"
+• Berkas yang diedit manual SETELAH commit terbaru tidak ditimpa kecuali pakai "paksa"\n• Berkas yang dihapus di repo ikut dihapus di server (dibackup dulu)
 • Restart lewat API panel; kalau kredensial panel kosong, bot mencoba perintah
   restart.cmd lalu (terakhir) keluar proses
 
@@ -79,23 +79,25 @@ function ringkasCek(cek) {
     `Berkas diperiksa : ${cek.diperiksa}`,
     `Sama             : ${cek.sama}`,
     `Berubah          : ${cek.berubah.length}`,
+    `Hilang di repo   : ${(cek.dihapus || []).length}`,
   ]
-  if (cek.baselineBaru) {
-    baris.push('', '🆕 *Pemindaian pertama (baseline)*',
-      'Bot mencatat isi berkas yang sekarang dulu. Belum ada yang ditulis.',
-      'Setelah ini, hanya commit BARU yang diterapkan otomatis.',
-      'Berkas yang memang beda sejak awal dianggap versi server (aman dari downgrade).')
-  }
   if (cek.berubah.length) {
     baris.push('')
     for (const item of cek.berubah.slice(0, 15)) {
-      const tanda = item.jenis === 'baru' ? '➕' : item.dieditLokal ? '⚠️' : '✏️'
-      baris.push(`${tanda} ${item.path}${item.dieditLokal ? ' (diedit manual)' : ''}`)
+      const tanda = item.jenis === 'baru' ? '➕' : item.aman ? '✏️' : '⚠️'
+      baris.push(`${tanda} ${item.path}${item.aman ? '' : ' (diedit manual)'}`)
     }
     if (cek.berubah.length > 15) baris.push(`… dan ${cek.berubah.length - 15} berkas lain`)
-    baris.push('', 'Terapkan: .autoupdate now')
-  } else {
+  }
+  if ((cek.dihapus || []).length) {
+    baris.push('', '🗑️ *Akan dihapus di server:*')
+    for (const item of cek.dihapus.slice(0, 10)) baris.push(`• ${item.path}`)
+  }
+  if (!cek.berubah.length && !(cek.dihapus || []).length) {
     baris.push('', '✅ Bot sudah paling baru.')
+  } else {
+    baris.push('', 'Terapkan: .autoupdate now')
+    if (cek.berubah.some((x) => !x.aman)) baris.push('Paksa (timpa yang diedit manual): .autoupdate paksa')
   }
   return baris.join('\n')
 }
@@ -106,8 +108,12 @@ function ringkasTerap(hasil, restart) {
     '',
     `Commit : ${String(hasil.commit.sha).slice(0, 10)} — ${hasil.commit.pesan || '-'}`,
     `Ditulis: ${hasil.ditulis.length} berkas`,
-    hasil.ditulis.length ? hasil.ditulis.slice(0, 15).map((x) => '• ' + x).join('\n') : '• tidak ada',
+    hasil.ditulis.length ? hasil.ditulis.slice(0, 12).map((x) => '• ' + x).join('\n') : '• tidak ada',
   ]
+  if ((hasil.dihapus || []).length) {
+    baris.push('', `🗑️ Dihapus (${hasil.dihapus.length}):`)
+    baris.push(hasil.dihapus.slice(0, 8).map((x) => '• ' + x).join('\n'))
+  }
   if (hasil.dilewati.length) {
     baris.push('', `⏭️ Dilewati (${hasil.dilewati.length}):`)
     baris.push(hasil.dilewati.slice(0, 8).map((x) => '• ' + x).join('\n'))
@@ -200,7 +206,7 @@ let handler = async (m, { conn, command, text = '', isROwner }) => {
       const paksa = arg === 'paksa'
       await m.reply(paksa ? '⬇️ Menerapkan pembaruan (mode paksa)…' : '⬇️ Menerapkan pembaruan…')
       const hasil = await terapkanPembaruan({ paksa })
-      if (!hasil.ditulis.length) {
+      if (!hasil.ditulis.length && !(hasil.dihapus || []).length) {
         return m.reply([
           'ℹ️ *TIDAK ADA YANG DITULIS*',
           '',
@@ -211,7 +217,7 @@ let handler = async (m, { conn, command, text = '', isROwner }) => {
       /* Beri pesan dulu, baru restart, supaya developer tahu apa yang terjadi. */
       await m.reply(ringkasTerap(hasil, null))
       const restart = await restartBot()
-      return m.reply(ringkasTerap({ ...hasil, ditulis: [] }, restart))
+      return m.reply(ringkasTerap({ ...hasil, ditulis: [], dihapus: [] }, restart))
     }
 
     if (arg === 'log') {
@@ -255,7 +261,7 @@ handler.help = ['autoupdate', 'autoupdate cek', 'autoupdate now', 'autoupdate on
 handler.tags = ['owner']
 handler.command = /^autoupdate$/i
 handler.description = 'Auto update bot dari repo GitHub + restart (developer, source code saja)'
-handler.owner = false
+handler.owner = true
 handler.group = false
 handler.private = false
 handler.limit = false

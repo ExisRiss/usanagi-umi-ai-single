@@ -101,3 +101,81 @@ menaruhnya di `config.js`, repo, atau pesan chat.
 - Menelan galat `catch {}` saat verifikasi database → akun terlihat "sudah
   dihapus" padahal masih ada (lihat Task141 di `lib/akun-platform.js`).
 - Menganggap "panel STARTING" berarti mati, lalu restart berulang.
+---
+
+## Task145 — kenapa dulu "auto update tidak berfungsi"
+
+Gejala di server (log `data/auto-update-log.jsonl`, 11:56 sampai 13:37):
+setiap siklus 10 menit menulis `"ditulis": []` dan `"dilewati": [...]`
+untuk berkas yang sama terus-menerus. Tidak ada satu berkas pun yang pernah
+diperbarui otomatis.
+
+Penyebabnya satu baris logika yang salah desain: pemindaian **pertama**
+mencatat setiap berkas yang isinya beda dari repo ke `state.dasar`, lalu
+berkas itu dianggap "diedit manual" **selamanya**. Akibatnya enam berkas tidak
+pernah bisa ikut ter-update lagi:
+
+```
+lib/chat.json
+lib/jadibot-platform-api.js
+plugins/group/group-jadwalbukatutup.js
+plugins/main/usanagi-allmenu.js
+lib/akun-platform.js
+plugins/owner/developer-akun.js
+```
+
+Salah satu berkas itu (`plugins/main/usanagi-allmenu.js`) bahkan sudah punya
+versi baru di GitHub, tetapi karena tersangkut di `dasar`, bot terus memakai
+versi lama.
+
+### Aturan baru (tanpa `state.dasar`)
+
+Untuk setiap berkas di repo, urutannya:
+
+1. **isinya identik** dengan blob Git repo → tidak diapa-apakan (tidak diunduh);
+2. isi server **sama dengan yang terakhir ditulis bot** → aman ditimpa;
+3. `mtime` berkas **lebih tua** dari waktu commit → ketinggalan, ditimpa;
+4. `mtime` berkas **lebih baru** dari waktu commit → kemungkinan diedit tangan,
+   dilewati dengan alasan tertulis. Pakai `.autoupdate paksa` kalau memang mau
+   ditimpa.
+
+Aturannya berbasis bukti (waktu & isi), bukan catatan sekali-jadi.
+
+### Tiga bug lain yang ikut diperbaiki
+
+1. **Catatan "tulisan bot" salah isi.** Versi baru sempat mencatat hash isi
+   server sebagai "berkas ini tulisan bot", sehingga edit tangan ikut ditimpa.
+   Sekarang catatan hanya diisi untuk berkas yang benar-benar sudah ditulis
+   bot, dan berkas yang berbeda dari repo justru dicabut catatannya.
+2. **`node --check` tidak memeriksa ESM.** Berkas sementara ditulis `.js`, dan
+   Node memeriksa `.js` sebagai CommonJS. Isi ESM yang rusak gagal di-parse CJS,
+   lalu Node menganggapnya "bukan CJS" dan keluar status 0 — artinya
+   `export const = ;` **lolos** pemeriksaan. Sekarang berkas sementara memakai
+   ekstensi `.mjs` sehingga benar-benar divalidasi sebagai ES module.
+3. **Berkas yang dihapus di repo tidak pernah dihapus di server.** Duplikat
+   seperti `plugins/music/play2.js` tertinggal dan bentrok dengan plugin lain.
+   Sekarang berkas yang hilang dari repo ikut dihapus di server (dibackup dulu),
+   dan hanya kalau tidak diedit manual setelah commit.
+
+Tambahan kecil: siklus pertama dijalankan **45 detik** setelah bot hidup
+(dulu menunggu satu interval penuh), log diputar supaya tidak membengkak,
+dan `state.berkas` tidak lagi menyimpan ribuan entri (dari 593 KB menjadi
+beberapa KB).
+
+### Uji
+
+```
+node tests/task145-autoupdate.mjs     → 41/41 lolos (GitHub tiruan)
+```
+
+Yang diuji antara lain: berkas ketinggalan benar-benar ditulis ulang,
+berkas hasil edit tangan dilewati, berkas yang dihapus di repo ikut terhapus,
+berkas bersintaks rusak ditolak, mode paksa bekerja, dan pemeriksaan kedua
+tidak lagi "menyangkut".
+
+### Kalau masih ada yang tidak ter-update
+
+Lihat `.autoupdate cek`. Kalau muncul `⚠️ ... (diedit manual)`, itu **bukan
+bug**: isi berkas di server lebih baru daripada commit GitHub. Kalau memang
+repo yang benar, jalankan `.autoupdate paksa` — bot membackup dulu lalu
+menimpanya.
