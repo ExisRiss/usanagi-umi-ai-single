@@ -210,6 +210,9 @@ tidak mendukung, bot membalas pesan biasa (bukan error).
   aktifkan dengan `/restart`.
 - `.autoupdate` — status lengkap, `.autoupdate cek|now|paksa|log|restart`.
 
+Auto update juga tidak lagi menimpa data runtime (`lib/chat.json`) dan tidak
+lagi "macet" ketika ada berkas yang sengaja diedit manual.
+
 Tiga penyebab "bot tidak membalas" juga ditutup: pesan pribadi yang memakai
 prefix salah, sesi bermode **Only Group**, dan sesi bermode **privat** sekarang
 dijawab dengan penjelasan (maks. sekali per 10 menit per chat) alih-alih dibuang

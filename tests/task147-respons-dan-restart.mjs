@@ -166,12 +166,15 @@ const nilaiLewat = au.nilaiBerkas(
 )
 cek('berkas yang sudah diputuskan tidak diusulkan lagi', nilaiLewat.jenis === 'dilewati', nilaiLewat.jenis)
 
-fs.writeFileSync(path.join(kerja, 'lib', 'chat.json'), JSON.stringify({ manual: true, suntinganBaru: 1 }))
-const nilaiSetelahSunting = au.nilaiBerkas(
-  { path: 'lib/chat.json', sha: stateSetelah.dilewati['lib/chat.json'].blob },
-  au.bacaState(),
-  Date.now(),
-)
+/* Ingatan "diedit manual" diuji pada berkas biasa (bukan data runtime). */
+fs.writeFileSync(path.join(kerja, 'lib', 'lain.json'), JSON.stringify({ a: 1 }))
+au.simpanHasilTerap({ commit: { sha: 's3', pesan: 'z' }, berubah: [{ path: 'lib/lain.json', blob: 'blob-lain' }] }, {
+  commit: { sha: 's3', pesan: 'z' }, ditulis: [], dihapus: [], dilewati: ['lib/lain.json (diedit manual)'], gagal: [], kering: false,
+})
+const nilaiLewatLain = au.nilaiBerkas({ path: 'lib/lain.json', sha: 'blob-lain' }, au.bacaState(), Date.now())
+cek('berkas manual biasa tidak diusulkan lagi', nilaiLewatLain.jenis === 'dilewati', nilaiLewatLain.jenis)
+fs.writeFileSync(path.join(kerja, 'lib', 'lain.json'), JSON.stringify({ a: 1, baru: 2 }))
+const nilaiSetelahSunting = au.nilaiBerkas({ path: 'lib/lain.json', sha: 'blob-lain' }, au.bacaState(), Date.now())
 cek('berkas diedit lagi dinilai ulang', nilaiSetelahSunting.jenis !== 'dilewati', nilaiSetelahSunting.jenis)
 cek('gitBlobSha membaca isi', sidikChat.length === 40)
 
@@ -181,6 +184,11 @@ au.simpanHasilTerap({ commit: { sha: 's2', pesan: 'y' }, berubah: [] }, {
   commit: { sha: 's2', pesan: 'y' }, ditulis: ['lib/chat.json'], dihapus: [], dilewati: [], gagal: [], kering: false,
 })
 cek('catatan dilewati hilang setelah berkas ditulis', !au.bacaState().dilewati['lib/chat.json'], JSON.stringify(au.bacaState().dilewati))
+
+/* Data runtime tidak boleh dianggap "ketinggalan" untuk ditimpa. */
+cek('lib/chat.json terdaftar sebagai berkas runtime', au.BERKAS_RUNTIME.includes('lib/chat.json'))
+const nilaiRuntime = au.nilaiBerkas({ path: 'lib/chat.json', sha: 'blob-lain' }, au.bacaState(), Date.now())
+cek('data runtime dinilai dilewati, bukan ditimpa', nilaiRuntime.jenis === 'dilewati' && nilaiRuntime.aman === false, JSON.stringify(nilaiRuntime))
 
 const stateGagal = au.simpanHasilTerap({ commit: { sha: 'commit-gagal', pesan: 'x' }, berubah: [] }, {
   commit: { sha: 'commit-gagal', pesan: 'x' }, ditulis: [], dihapus: [], dilewati: [], gagal: ['lib/rusak.js (sintaks rusak)'], kering: false,

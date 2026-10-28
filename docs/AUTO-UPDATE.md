@@ -255,3 +255,25 @@ aturan petunjuk prefix, batas waktu petunjuk, `state.sha` maju walau ada berkas
 dilewati, ingatan "diedit manual", `siklusAuto()` dengan tiruan (ON vs OFF),
 `/restart` yang benar-benar mengeksekusi `restart.cmd`, dan `/autorestart`
 yang menyimpan setelan.
+
+### Bug tambahan yang ditemukan saat verifikasi Task147 — `lib/chat.json` ditimpa
+
+Siklus auto update 28-10-2026 pukul 14:35 **menimpa `lib/chat.json`**
+(10.254 B → 1.230 B) dengan salinan repo. Berkas itu lolos `IZIN_PATH` karena
+berada di `lib/`, padahal isinya statistik chat yang ditulis bot saat hidup
+(dipakai `.totalchat`). Penyebabnya aturan nomor 3 lama: mtime berkas lebih tua
+dari commit baru, jadi dianggap "ketinggalan".
+
+Perbaikan:
+
+- Daftar `BERKAS_RUNTIME` (`lib/chat.json`) **tidak pernah** diusulkan untuk
+  ditimpa otomatis — `nilaiBerkas()` mengembalikan `jenis: 'dilewati'`.
+- `terapkanPembaruan()` punya sabuk kedua: berkas runtime dilewati kecuali
+  `.autoupdate paksa`.
+- Berkasnya sudah dipulihkan dari
+  `data/auto-update-backup/2026-10-28T14-35-51-286Z/lib/chat.json` lalu
+  **digabung** dengan isi terbaru supaya statistik yang tercatat selama
+  beberapa menit tidak hilang (38 chat / 231 pasangan).
+
+Kalau nanti ada berkas data lain di dalam `lib/`/`plugins/`, tambahkan path-nya
+ke `BERKAS_RUNTIME` — jangan mengandalkan mtime.
