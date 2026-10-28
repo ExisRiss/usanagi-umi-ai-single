@@ -23,6 +23,11 @@ import {
   saveMainPremiumConfig,
   searchFeatures,
   setPremiumSystem,
+  /* Task148 — kontak yang ditampilkan saat pengguna kena kunci premium */
+  bacaKontakPremium,
+  simpanKontakPremium,
+  premiumOwnerContact,
+  nomorPlatform,
 } from '../../lib/premium-mode.js'
 
 const MAX_SHOW = 40
@@ -67,6 +72,7 @@ function statusText(profile, prefix) {
     `${prefix}premium set <fitur,fitur>`,
     `${prefix}premium reset`,
     `${prefix}premium cari <kata>`,
+    `${prefix}premium kontak <nomor>  — nomor yang muncul di pesan "hubungi owner"`,
   )
   if (!system.enabled) lines.push('', '_Mode premium dimatikan owner platform. Semua fitur gratis._')
   return lines.join('\n')
@@ -109,6 +115,45 @@ let handler = async (m, { conn, args, usedPrefix, command, isOwner, isROwner }) 
       '',
       `Tambah ke premium: *${prefix}premium add ${results[0].commands[0] || results[0].basename.replace('.js', '')}*`,
     ].join('\n'))
+  }
+
+  /*
+   * Task148 — nomor yang ditampilkan pada pesan "FITUR PREMIUM ... Hubungi
+   * owner bot: wa.me/<nomor>". Dulu nomornya diambil dari owner sesi pertama,
+   * sehingga di sesi yang punya beberapa owner bisa muncul nomor orang lain.
+   * `.premium kontak` memperlihatkan nomor yang benar-benar akan dipakai, dan
+   * developer bisa memaksanya untuk semua bot.
+   */
+  if (action === 'kontak' || action === 'contact' || action === 'nomor') {
+    const sekarang = premiumOwnerContact(profile)
+    const manual = bacaKontakPremium(true)
+    if (!rest) {
+      return m.reply([
+        '📞 *KONTAK PREMIUM*',
+        '',
+        `Nomor yang tampil sekarang: ${sekarang ? 'wa.me/' + sekarang : '(belum ada)'}`,
+        `Sumber: ${manual ? 'disetel manual' : 'otomatis (developer/owner bot)'}`,
+        '',
+        'Nomor otomatis yang tersedia:',
+        nomorPlatform().slice(0, 4).map((nomor, i) => `${i + 1}. wa.me/${nomor}`).join('\n') || '• belum ada',
+        '',
+        `Kunci ke satu nomor: *${prefix}premium kontak 6287813709432*`,
+        `Kembali otomatis: *${prefix}premium kontak auto*`,
+        '',
+        '_Hanya developer / owner utama yang boleh mengubah._',
+      ].join('\n'))
+    }
+    if (!isROwner) return m.reply('🚫 Nomor kontak premium hanya bisa diubah developer / owner utama.')
+    if (['auto', 'otomatis', 'reset', 'hapus'].includes(rest.toLowerCase())) {
+      simpanKontakPremium('', m.sender)
+      return m.reply(`✅ Kontak premium kembali otomatis.\nSekarang: wa.me/${premiumOwnerContact(profile) || '-'}`)
+    }
+    const nomor = String(rest).replace(/[^0-9]/g, '').replace(/^0/, '62')
+    if (nomor.length < 9 || nomor.length > 15) {
+      return m.reply('⚠️ Nomor tidak valid. Contoh: *' + prefix + 'premium kontak 6287813709432*')
+    }
+    simpanKontakPremium(nomor, m.sender)
+    return m.reply(`✅ Kontak premium dikunci ke wa.me/${nomor} untuk SEMUA bot.\nKembalikan otomatis: *${prefix}premium kontak auto*`)
   }
 
   if (action === 'global') {

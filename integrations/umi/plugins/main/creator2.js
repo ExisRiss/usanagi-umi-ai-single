@@ -30,8 +30,37 @@ export const FEATURE_CREDIT = "Fitur By: Anita Putri Azzahra\nFitur SC Bot Rimur
 
 
 import { generateWAMessageFromContent } from '@rexxhayanasi/elaina-baileys'
+import { premiumOwnerContact } from '../../../../lib/premium-mode.js'
 
-let handler = async (m, { sock }) => {
+/*
+ * Task148 — "laporan bug / hubungi owner" tidak boleh mengarah ke nomor kosong
+ * atau nomor orang lain.
+ *
+ * Berkas asli Rimuru memakai `global.nomorown`, `global.linkch`, dan
+ * `global.wm` yang TIDAK PERNAH didefinisikan di bot ini, sehingga tombol
+ * "Hubungi Owner" berisi nomor kosong. Sekarang nomornya diambil dari
+ * resolver yang sama dengan pesan premium (developer/owner utama lebih dulu),
+ * dan tautan saluran jatuh ke `global.links.channelUrl`.
+ */
+function nomorKontak(conn) {
+  try {
+    return premiumOwnerContact(conn?.botConfig) || ''
+  } catch (error) {
+    return ''
+  }
+}
+
+function tautanSaluran() {
+  const links = global.links || {}
+  const kandidat = [global.linkch, links.channelUrl, global.jadibotPlatform?.channelUrl]
+  return kandidat.map((x) => String(x || '').trim()).find(Boolean) || 'https://wa.me/' + (nomorKontak() || '')
+}
+
+let handler = async (m, { sock, conn }) => {
+  const nomor = nomorKontak(conn || sock || this)
+  if (!nomor) {
+    return m.reply('Nomor owner belum diatur. Developer bisa menyetelnya dengan *.premium kontak <nomor>*.')
+  }
   const msg = generateWAMessageFromContent(
     m.chat,
     {
@@ -44,7 +73,7 @@ let handler = async (m, { sock }) => {
           text: `Hai, jika ada pertanyaan, laporan bug, atau keperluan lainnya silakan hubungi owner melalui tombol di bawah ini.`
         },
         footer: {
-          text: global.wm
+          text: String(global.wm || global.namebot || 'Usanagi Umi AI')
         },
         nativeFlowMessage: {
           buttons: [
@@ -52,28 +81,28 @@ let handler = async (m, { sock }) => {
               name: 'cta_call',
               buttonParamsJson: JSON.stringify({
                 display_text: 'Hubungi Owner',
-                phone_number: global.nomorown
+                phone_number: '+' + nomor
               })
             },
             {
               name: 'cta_url',
               buttonParamsJson: JSON.stringify({
                 display_text: 'Chat WhatsApp',
-                url: `https://wa.me/${global.nomorown}`
+                url: `https://wa.me/${nomor}`
               })
             },
             {
               name: 'cta_url',
               buttonParamsJson: JSON.stringify({
                 display_text: 'Saluran WhatsApp',
-                url: global.linkch
+                url: tautanSaluran()
               })
             },
             {
               name: 'cta_copy',
               buttonParamsJson: JSON.stringify({
                 display_text: 'Salin Nomor Owner',
-                copy_code: global.nomorown
+                copy_code: nomor
               })
             },
             {

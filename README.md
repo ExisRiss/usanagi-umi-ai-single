@@ -200,6 +200,19 @@ tidak mendukung, bot membalas pesan biasa (bukan error).
 - `.ytvideo <judul/link>` — kirim berkas videonya langsung (paling aman untuk
   semua perangkat, tidak butuh webview).
 
+## Kontak premium & laporan bug
+
+Pesan "FITUR PREMIUM … Hubungi owner bot" dan kartu "laporan bug" memakai satu
+resolver nomor yang sama (`premiumOwnerContact`). Urutannya: nomor yang dikunci
+manual → nomor developer/owner utama yang juga owner sesi itu → owner sesi
+pertama. Jadi nomor pemilik platform tidak lagi kalah oleh nomor owner lain di
+daftar owner sesi.
+
+- `.premium kontak` — lihat nomor yang benar-benar dipakai + sumbernya.
+- `.premium kontak 6287813709432` — kunci nomor ini untuk SEMUA bot
+  (developer / owner utama; tersimpan di `data/premium-contact.json`, mode 600).
+- `.premium kontak auto` — kembali ke pemilihan otomatis.
+
 ## Restart & auto update
 
 - `/restart` — restart server langsung dari WhatsApp (developer / owner utama;
