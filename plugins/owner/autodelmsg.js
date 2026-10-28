@@ -23,7 +23,8 @@
 
 import fs from 'fs'
 import path from 'path'
-import { normalizeNumber } from '../../lib/awang-cekakses.js'
+import { normalizeNumber, resolveTargetPhoneNumber } from '../../lib/awang-cekakses.js'
+import { isBotAdmin as botAdminGrup } from '../../lib/awang-aksesgrub.js'
 import { nomorOwnerUtama } from '../../lib/owner-utama.js'
 
 const BERKAS = path.join(process.cwd(), 'data', 'autodelmsg.json')
@@ -116,6 +117,25 @@ let handler = async (m, { conn, command, args = [], text = '', isROwner, isOwner
       'Hapus: .autodelmsg hapus <nomor>',
       'Matikan: .autodelmsg off',
     ].join('\n'))
+  }
+
+  if (sub === 'status' || sub === 'cek' || sub === 'debug') {
+    /* Diagnosa cepat: kalau pesan tidak terhapus, di sini kelihatan sebabnya. */
+    const admin = await botAdminGrup(conn, m.chat).catch(() => false)
+    const nomorSaya = await nomorPengirim(conn, m)
+    const dilindungi = terlindungi()
+    return m.reply([
+      '🧹 *STATUS AUTO DELETE (GRUP INI)*',
+      '',
+      `Saklar        : ${grup.aktif ? 'AKTIF' : 'NONAKTIF'}`,
+      `Nomor terdaftar: ${Object.keys(grup.nomor).length}`,
+      `Bot admin     : ${admin ? 'ya' : 'TIDAK — penghapusan tidak akan jalan'}`,
+      `Nomormu dibaca sebagai: ${nomorSaya.join(', ') || '(tidak terbaca)'}`,
+      `Nomormu dilindungi    : ${nomorSaya.some((n) => dilindungi.has(n)) ? 'ya (owner/developer)' : 'tidak'}`,
+      '',
+      admin ? 'Penghapusan siap berjalan.' : 'Jadikan bot admin grup (izin hapus pesan) lalu ulangi.',
+      Object.keys(grup.nomor).length ? '' : 'Belum ada nomor terdaftar: .autodelmsg @user',
+    ].filter(Boolean).join('\n'))
   }
 
   if (sub === 'on' || sub === 'off') {
@@ -219,44 +239,148 @@ let handler = async (m, { conn, command, args = [], text = '', isROwner, isOwner
 
 /* ── penghapus otomatis ────────────────────────────────────────────────── */
 
-handler.all = async function (m, { isBotAdmin, isAdmin } = {}) {
+/*
+ * BUG YANG DIPERBAIKI (laporan 28-10-2026, grup 120363430111128574):
+ *   ".autodelmsg sudah aktif tapi pesan user tidak terhapus".
+ *
+ * Ada DUA penyebab nyata di kode lama:
+ *   1. handler.all dipanggil handler.js dengan konteks { chatUpdate, __dirname,
+ *      __filename } SAJA — `isBotAdmin` tidak pernah dikirim. Variabel itu
+ *      undefined, pengecekan admin jadi false, dan hook berhenti diam-diam
+ *      SETIAP pesan. Sekarang status admin bot diambil sendiri dari metadata
+ *      grup (lib/awang-aksesgrub.js).
+ *   2. Di grup, WhatsApp sering mengirim pengirim sebagai `@lid`, bukan nomor
+ *      telepon. Nomor terdaftar (62882…) tidak pernah cocok dengan LID.
+ *      Sekarang nomor diselesaikan lewat resolveTargetPhoneNumber() yang juga
+ *      membaca senderPn / participantPn / participantAlt.
+ */
+
+/* Penjaga agar satu pesan tidak diproses dua kali (all + before). */
+const SUDAH = new Map()
+const TTL_SUDAH = 60000
+
+function sudahDiproses(kunci) {
+  const sekarang = Date.now()
+  if (SUDAH.size > 2000) {
+    for (const [k, waktu] of SUDAH) if (sekarang - waktu > TTL_SUDAH) SUDAH.delete(k)
+  }
+  const lama = SUDAH.get(kunci)
+  if (lama && sekarang - lama < TTL_SUDAH) return true
+  SUDAH.set(kunci, sekarang)
+  return false
+}
+
+/** Nomor-nomor yang pesannya TIDAK BOLEH dihapus. */
+function terlindungi(nomorTambahan = []) {
+  const set = new Set()
+  for (const [id] of Array.isArray(global.owner) ? global.owner : []) {
+    const n = normalizeNumber(id || '')
+    if (n) set.add(n)
+  }
+  const terkunci = normalizeNumber(global.jadibotPlatform?.lockedOwnerNumber || '')
+  if (terkunci) set.add(terkunci)
+  for (const n of nomorOwnerUtama()) if (n) set.add(n)
+  for (const n of nomorTambahan) if (n) set.add(normalizeNumber(n))
+  return set
+}
+
+/** Semua nomor yang mungkin mewakili pengirim (PN, LID yang sudah dipetakan). */
+async function nomorPengirim(conn, m) {
+  const kandidat = new Set()
+  const langsung = normalizeNumber(m.sender || m.key?.participant || '')
+  if (langsung) kandidat.add(langsung)
   try {
-    if (!m || !m.isGroup || !m.chat) return
-    if (m.key && m.key.fromMe) return
-    /* Jangan pernah menyentuh perintah bot sendiri (biar admin tetap bisa
-     * memakai .autodelmsg / .autodelmsg list walaupun nomornya terdaftar). */
-    const teksAwal = String(m.text || '').trim()
-    if (/^[.$/!#]/.test(teksAwal) && /autodel/i.test(teksAwal)) return
+    const selesai = await resolveTargetPhoneNumber(
+      m.sender || m.key?.participant,
+      conn,
+      m.chat,
+      [m.key?.senderPn, m.key?.participantPn, m.key?.participantAlt, m.senderPn, m.participantAlt],
+    )
+    if (selesai) kandidat.add(normalizeNumber(selesai))
+  } catch (error) { /* biarkan kandidat apa adanya */ }
+  return [...kandidat].filter((x) => x && x.length >= 7)
+}
 
-    const data = bacaData()
-    const grup = data.grup[m.chat]
-    if (!grup || !grup.aktif) return
-    if (!grup.nomor || !Object.keys(grup.nomor).length) return
+/**
+ * Inti penghapus. Dipakai handler.all DAN handler.before.
+ * @param {object} conn
+ * @param {object} m
+ * @param {{ isBotAdmin?: boolean, groupMetadata?: object }} konteks
+ */
+async function hapusOtomatis(conn, m, konteks = {}) {
+  if (!m || !m.isGroup || !m.chat) return false
+  if (!m.key || m.key.fromMe) return false
+  const kelas = String(m.mtype || (m.message ? Object.keys(m.message)[0] : '') || '')
+  if (kelas === 'protocolMessage' || kelas === 'senderKeyDistributionMessage') return false
 
-    const nomorPengirim = normalizeNumber(namaDariJid(m.sender))
-    if (!nomorPengirim || !grup.nomor[nomorPengirim]) return
+  const teks = String(m.text || '')
+  if (/^[.$/!#].{0,3}autodel/i.test(teks)) return false
 
-    /* Perlindungan keras: owner/developer/owner utama tidak pernah dihapus. */
-    if (nomorTerlindungi({}).has(nomorPengirim)) return
-    if (isAdmin === true) {
-      /* admin grup lain tetap dihapus kalau memang didaftarkan; hanya
-       * owner/developer yang dilindungi. */
+  const data = bacaData()
+  const grup = data.grup[m.chat]
+  if (!grup || !grup.aktif) return false
+  const daftar = grup.nomor || {}
+  if (!Object.keys(daftar).length) return false
+
+  const kandidat = await nomorPengirim(conn, m)
+  if (!kandidat.length) return false
+  const cocok = kandidat.find((n) => daftar[n])
+  if (!cocok) return false
+
+  /* Perlindungan keras: owner/developer/owner utama tidak pernah dihapus.
+   * PENTING: daftar ini TIDAK boleh diisi nomor pengirim (pernah salah dan
+   * membuat semua pesan dianggap terlindungi sehingga tidak ada yang dihapus). */
+  const lindung = terlindungi()
+  if (kandidat.some((n) => lindung.has(n))) return false
+
+  /* Bot harus admin. Kalau konteks tidak memberi jawabannya, tanya metadata. */
+  let admin = typeof konteks.isBotAdmin === 'boolean' ? konteks.isBotAdmin : undefined
+  if (admin === undefined) {
+    try {
+      admin = await botAdminGrup(conn, m.chat, konteks.groupMetadata || null)
+    } catch (error) {
+      admin = false
     }
+  }
+  if (!admin) {
+    console.log('[autodelmsg] lewati: bot bukan admin di ' + m.chat)
+    return false
+  }
 
-    const admin = typeof isBotAdmin === 'boolean' ? isBotAdmin : (m.isBotAdmin === true)
-    if (!admin) return
+  if (sudahDiproses(m.chat + '|' + (m.key.id || m.id || ''))) return false
 
-    await this.sendMessage(m.chat, {
+  try {
+    await conn.sendMessage(m.chat, {
       delete: {
         remoteJid: m.chat,
         fromMe: false,
         id: m.key.id,
-        participant: m.sender,
+        participant: m.key.participant || m.sender,
       },
     })
+    return true
   } catch (error) {
-    /* Diam: jangan pernah membanjiri grup dengan galat hapus pesan. */
+    console.log('[autodelmsg] gagal hapus: ' + (error && error.message ? error.message : error))
+    return false
   }
+}
+
+/* Hook 1 — all: konteksnya minim, jadi admin dicari sendiri. */
+handler.all = async function (m, konteks = {}) {
+  try {
+    return await hapusOtomatis(this, m, konteks)
+  } catch (error) {
+    return false
+  }
+}
+
+/* Hook 2 — before: handler.js mengirim isBotAdmin/groupMetadata di sini.
+ * Dipakai sebagai jalur cadangan kalau hook all dilewati. */
+handler.before = async function (m, konteks = {}) {
+  try {
+    await hapusOtomatis(this, m, konteks)
+  } catch (error) { /* diam */ }
+  return undefined
 }
 
 handler.help = [
