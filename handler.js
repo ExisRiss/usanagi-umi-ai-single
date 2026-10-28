@@ -31,7 +31,9 @@ import { getActivePrefix } from './core/awang-prefix.js'
 import { getMainBotConfig, prefixStorageKey, isPluginDisabled } from './lib/bot-config.js'
 import { normalizePrefixMode, resolveIncomingPrefix } from './lib/prefix-policy.js'
 import { botKind, sanitizeActivePrefix, normalizeIncoming, splitDoublePrefix } from './lib/prefix-bot.js'
-import { nomorOwnerUtama as daftarNomorOwnerUtama } from './lib/owner-utama.js'
+import { nomorOwnerUtama as daftarNomorOwnerUtama } from './lib/owner-utama.js';
+/* Task147: jangan pernah diam saat pesan berbentuk perintah dibuang gerbang. */
+import { cariPesanPrefix, bolehHint, petunjukOnlyGroup, petunjukPrivat } from './lib/prefix-hint.js';
 import { limitsEnabled } from './lib/limit-mode.js'
 import { canUseOwnerPlugin, platformOnlyReason } from './lib/owner-policy.js'
 import { isPremiumFeatureLocked, premiumOwnerContact } from './lib/premium-mode.js'
@@ -480,6 +482,35 @@ try {
 const realmAccessCommand = isRealmAccessCommand(m.text, activePrefix)
 const prefix = { test: text => String(text || '').startsWith(activePrefix) }
 
+/*
+ * Task147 — BOT TIDAK BOLEH DIAM.
+ *
+ * Dulu pesan pribadi yang memakai prefix lain (mis. `.menu` pada sesi
+ * ber-prefix `/`, `,`, atau `★`) dibuang tanpa penjelasan, sehingga pemilik
+ * bot mengira botnya mati. Sekarang di chat pribadi bot menjelaskan prefix
+ * yang benar sekali (maks. 1×/10 menit per chat). Prefix yang benar tetap
+ * diproses dispatcher seperti biasa — aturan Task112 tidak dilanggar.
+ */
+if (!isGroup) {
+    try {
+        const hintPrefix = cariPesanPrefix({
+            text: m.text,
+            activePrefix,
+            plugins: global.plugins,
+            botType: botConfig.type,
+            isDisabled: (nama, perintah) => isPluginDisabled(botConfig, nama, perintah),
+            /* cache 5 detik per sesi — 2.100 plugin tidak dipindai tiap pesan */
+            kunci: botConfig,
+        })
+        if (hintPrefix && bolehHint(m.chat, 'prefix')) {
+            await this.reply(m.chat, hintPrefix.pesan, m)
+            return
+        }
+    } catch (hintError) {
+        console.log(`[prefix-hint] gagal memeriksa: ${hintError?.message || hintError}`)
+    }
+}
+
 // AutoAI di chat pribadi: percakapan 1:1 tidak perlu mention seperti di grup.
 const autoAIEnabledForBot = (cfg = {}) => {
   if (global.umiAutoAI?.enabled === false) return false
@@ -528,12 +559,29 @@ m.limit = false;
 	// - onlyGroup: seluruh command ditolak di private chat.
 	// - self: hanya owner session, developer terkunci, atau bot sendiri.
 	// Bot utama juga menghormati Only Group bila owner mengaktifkannya dari web.
-	if (botConfig.onlyGroup === true && !m.isGroup && !realmAccessCommand) return;
+	if (botConfig.onlyGroup === true && !m.isGroup && !realmAccessCommand) {
+		/* Task147: sebelumnya `return` diam-diam. Pemilik bot yang lupa bahwa
+		 * setelan Only Group menyala melihat botnya seperti mati. */
+		try {
+			if (bolehHint(m.chat, 'onlygroup')) {
+				await this.reply(m.chat, petunjukOnlyGroup(botConfig.name || botConfig.namebot), m)
+			}
+		} catch (hintError) { /* balasan petunjuk tidak boleh menggagalkan handler */ }
+		return;
+	}
 	const instancePublic = botConfig.type === 'jadibot' || botConfig.managedSettings === true
 		? botConfig.public !== false
 		: global.db.data.settings[this.user.jid].public
 	// Task132: mode self tetap melayani daftar akses sesi (.addakses).
-	if (!instancePublic && !m.fromMe && !isOwner && !punyaAkses(this, m.sender)) return;
+	if (!instancePublic && !m.fromMe && !isOwner && !punyaAkses(this, m.sender)) {
+	/* Task147: mode self/privat dulu tidak menjawab apa pun. */
+	try {
+		if (bolehHint(m.chat, 'privat') && String(m.text || '').trim()) {
+			await this.reply(m.chat, petunjukPrivat(), m)
+		}
+	} catch (hintError) { /* diamkan */ }
+	return;
+}
 if (m.isBaileys) return;
 m.exp += Math.ceil(Math.random() * 10);
 

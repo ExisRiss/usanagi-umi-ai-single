@@ -200,6 +200,21 @@ tidak mendukung, bot membalas pesan biasa (bukan error).
 - `.ytvideo <judul/link>` — kirim berkas videonya langsung (paling aman untuk
   semua perangkat, tidak butuh webview).
 
+## Restart & auto update
+
+- `/restart` — restart server langsung dari WhatsApp (owner & developer).
+  Bot membalas dulu, lalu memanggil API panel `power/restart`. Satu restart
+  per 45 detik. `/restart status` memperlihatkan metode yang siap dipakai.
+- `/autorestart on|off` — mengatur apakah bot **restart sendiri** setelah
+  pembaruan dari GitHub diterapkan. Saat `off`, berkas pembaruan tetap ditulis;
+  aktifkan dengan `/restart`.
+- `.autoupdate` — status lengkap, `.autoupdate cek|now|paksa|log|restart`.
+
+Tiga penyebab "bot tidak membalas" juga ditutup: pesan pribadi yang memakai
+prefix salah, sesi bermode **Only Group**, dan sesi bermode **privat** sekarang
+dijawab dengan penjelasan (maks. sekali per 10 menit per chat) alih-alih dibuang
+tanpa suara. Dokumentasi: [`docs/AUTO-UPDATE.md`](docs/AUTO-UPDATE.md).
+
 ## Video Editor (cinematic typography)
 
 `.edit` membuat video cinematic typography dari foto/video yang kamu kirim —

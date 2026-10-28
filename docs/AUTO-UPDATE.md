@@ -179,3 +179,79 @@ Lihat `.autoupdate cek`. Kalau muncul `⚠️ ... (diedit manual)`, itu **bukan
 bug**: isi berkas di server lebih baru daripada commit GitHub. Kalau memang
 repo yang benar, jalankan `.autoupdate paksa` — bot membackup dulu lalu
 menimpanya.
+
+---
+
+## Task147 — state.sha macet & saklar `/autorestart`
+
+### Gejala nyata di server (28-10-2026, sebelum perbaikan)
+
+`data/auto-update-log.jsonl` setiap ±10 menit menulis:
+
+```json
+{"kejadian":"terapkan","sha":"6c464d9383…","ditulis":[],"dihapus":[],"dilewati":["lib/chat.json (server lebih baru dari commit (diedit manual) — pakai .autoupdate paksa)"]}
+```
+
+padahal `data/auto-update-state.json` masih menyimpan
+`"sha": "70c04cf1c9…"` (commit Task144). Artinya commit baru **tidak pernah
+dianggap selesai**, sehingga:
+
+1. setiap siklus mengunduh ulang seluruh daftar berkas (`git/trees?recursive=1`);
+2. `.autoupdate` selalu menampilkan "Commit lokal" yang lama;
+3. owner membaca itu sebagai **"auto update tidak berfungsi"**, walaupun berkas
+   yang berubah sudah ter-update.
+
+### Penyebab
+
+Satu berkas yang sah-sah saja **tidak** ditimpa (`lib/chat.json` diedit manual
+di server) membuat syarat berikut tidak pernah terpenuhi:
+
+```js
+if (!hasil.dilewati.length && !hasil.gagal.length) state.sha = cek.commit.sha
+```
+
+### Aturan baru
+
+- **Keputusan "dilewati" disimpan** di `state.dilewati[path] = { blob, sha256, alasan }`.
+  Selama isi repo (`blob`) dan isi server (`sha256`) tidak berubah, berkas itu
+  tidak diusulkan lagi dan tidak muncul sebagai "berubah".
+- Kalau owner mengedit berkas itu lagi, `sha256` berbeda → berkas dinilai ulang
+  (dan tetap dilewati bila masih lebih baru dari commit, sesuai aturan Task145).
+- `state.sha` **selalu maju** ke commit yang baru diproses, kecuali ada
+  **kegagalan nyata** (`gagal`: sintaks rusak / gagal tulis) — kegagalan
+  memang harus dicoba lagi pada siklus berikutnya.
+- `state.perluRestart` menyala setiap kali ada berkas yang benar-benar ditulis,
+  dan padam saat `restartBot()` dipanggil.
+
+### Saklar restart otomatis
+
+| Perintah | Arti |
+|---|---|
+| `/autorestart` / `/autorestart status` | tampilkan status (ON/OFF, interval, commit, sisa restart) |
+| `/autorestart on` | pembaruan diterapkan → bot **restart sendiri** (bawaan) |
+| `/autorestart off` | pembaruan tetap ditulis, tetapi bot **tidak** restart; aktifkan dengan `/restart` |
+
+Disimpan sebagai `restartOtomatis: true|false` di `data/auto-update.json`
+(mode 600, tidak pernah masuk repo). `siklusAuto()` memakai
+`putuskanRestart()`; saat OFF ia mencatat `{"kejadian":"restart","cara":"dimatikan"}`
+ke log dan mengembalikan `{ ditunda: true }`.
+
+### `/restart`
+
+Perintah terpisah (`plugins/owner/restart.js`, khusus owner/developer):
+
+1. balas dulu ("Restart server diminta…"),
+2. tunggu 1,2 detik supaya pesan benar-benar terkirim,
+3. `restartBot()` → `POST /api/client/servers/<id>/power {"signal":"restart"}`.
+
+Pengaman: satu restart per 45 detik. Kalau kredensial panel kosong, perintah
+menjelaskan bahwa bot akan keluar proses dan butuh auto-restart dari panel —
+bukan diam. `/restart status` menampilkan metode yang siap dipakai.
+
+### Uji
+
+`node tests/task147-respons-dan-restart.mjs` — 64 cek: sintaks enam berkas,
+aturan petunjuk prefix, batas waktu petunjuk, `state.sha` maju walau ada berkas
+dilewati, ingatan "diedit manual", `siklusAuto()` dengan tiruan (ON vs OFF),
+`/restart` yang benar-benar mengeksekusi `restart.cmd`, dan `/autorestart`
+yang menyimpan setelan.

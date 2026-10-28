@@ -152,6 +152,11 @@ let handler = async (m, { conn, command, text = '', isROwner }) => {
         `Penjadwal    : ${jadwal.berjalan ? 'jalan' : 'berhenti'}`,
         `Commit lokal : ${state.sha ? String(state.sha).slice(0, 10) : 'belum pernah sinkron'}`,
         `Restart panel: ${cfg.restart && cfg.restart.panelUrl ? 'siap' : 'belum diisi'}`,
+        /* Task147 — dua baris ini menjawab keluhan "auto update tidak berfungsi":
+         * status harus memperlihatkan saklar restart dan sisa pekerjaan. */
+        `Auto restart : ${cfg.restartOtomatis !== false ? 'ON' : 'OFF (pakai /restart)'}`,
+        `Perlu restart: ${state.perluRestart ? 'ya — ketik /restart' : 'tidak'}`,
+        `Dilewati     : ${Object.keys(state.dilewati || {}).length} berkas (diedit manual)`,
       ].join('\n')
       try {
         return await sendInteractive(conn, m.chat, {
