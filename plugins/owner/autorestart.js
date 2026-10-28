@@ -14,6 +14,9 @@
  * Nilainya disimpan di data/auto-update.json (`restartOtomatis`) sehingga
  * tetap berlaku setelah bot menyala ulang. Kredensial panel tidak pernah
  * dicetak ke chat.
+ *
+ * Akses: developer / owner utama saja (`rowner` + PLATFORM_ONLY_PLUGINS),
+ * karena setelan ini berlaku untuk seluruh server, bukan satu sesi.
  */
 
 import { bacaKonfig, simpanKonfig, bacaState, putuskanRestart } from '../../lib/auto-update.js'
@@ -81,8 +84,8 @@ let handler = async function (m, { text = '' } = {}) {
 handler.help = ['autorestart', 'autorestart on', 'autorestart off', 'autorestart status']
 handler.tags = ['owner']
 handler.command = /^autorestart$/i
-handler.description = 'Saklar restart otomatis setelah auto update (owner & developer)'
-handler.owner = true
+handler.description = 'Saklar restart otomatis setelah auto update (developer / owner utama)'
+handler.rowner = true
 handler.group = false
 handler.private = false
 handler.limit = false

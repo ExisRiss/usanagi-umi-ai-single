@@ -69,6 +69,7 @@ const berkasDiubah = [
   'plugins/owner/restart.js',
   'plugins/owner/autorestart.js',
   'plugins/owner/auto-update.js',
+  'lib/owner-policy.js',
 ]
 for (const relatif of berkasDiubah) {
   const asal = path.join(AKAR, relatif)
@@ -240,7 +241,8 @@ const restartPlugin = (await impor('plugins/owner/restart.js')).default
 const balasanRestart = []
 const mRestart = { chat: '628999@s.whatsapp.net', reply: async (teks) => { balasanRestart.push(String(teks)) } }
 cek('handler.command cocok dengan "restart"', restartPlugin.command.test('restart') && !restartPlugin.command.test('restartbiasa'))
-cek('handler khusus owner', restartPlugin.owner === true)
+cek('handler khusus developer/owner utama', restartPlugin.rowner === true && !restartPlugin.owner)
+cek('/restart terdaftar platform-only', (await impor('lib/owner-policy.js')).isPlatformOnlyPlugin('restart.js'))
 await restartPlugin(mRestart, { text: '' })
 cek('membalas sebelum restart', balasanRestart.length === 1 && balasanRestart[0].includes('Restart server diminta'), balasanRestart[0])
 cek('belum restart sebelum jeda 1,2 detik', !fs.existsSync(penandaRestart))
@@ -260,7 +262,8 @@ const autoPlugin = (await impor('plugins/owner/autorestart.js')).default
 const balasAuto = []
 const connAuto = { chat: '628999@s.whatsapp.net', reply: async (t) => balasAuto.push(String(t)) }
 cek('handler.command cocok dengan "autorestart"', autoPlugin.command.test('autorestart'))
-cek('handler khusus owner', autoPlugin.owner === true)
+cek('handler khusus developer/owner utama', autoPlugin.rowner === true && !autoPlugin.owner)
+cek('/autorestart terdaftar platform-only', (await impor('lib/owner-policy.js')).isPlatformOnlyPlugin('autorestart.js'))
 await autoPlugin(connAuto, { text: 'off' })
 cek('/autorestart off menulis setelan', au.bacaKonfig(true).restartOtomatis === false)
 cek('/autorestart off membalas DIMATIKAN', balasAuto[0].includes('DIMATIKAN'), balasAuto[0])

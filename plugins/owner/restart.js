@@ -15,7 +15,9 @@
  *      `restart.cmd`, terakhir keluar proses.
  *
  * Pengaman:
- *   • hanya owner / developer (`handler.owner = true`);
+ *   • hanya developer / owner utama (`rowner` + terdaftar di
+ *     PLATFORM_ONLY_PLUGINS). Restart mematikan SEMUA sesi Jadibot, jadi
+ *     pemilik satu sesi tidak boleh memicunya;
  *   • satu restart per 45 detik, supaya perintah dobel tidak memicu restart
  *     beruntun yang membuat bot tidak pernah selesai menyala;
  *   • kalau kredensial panel kosong, perintah MENJELASKAN itu, bukan diam.
@@ -89,8 +91,8 @@ let handler = async function (m, { text = '' } = {}) {
 handler.help = ['restart', 'restart status']
 handler.tags = ['owner']
 handler.command = /^restart$/i
-handler.description = 'Restart server/bot lewat panel (owner & developer)'
-handler.owner = true
+handler.description = 'Restart server/bot lewat panel (developer / owner utama)'
+handler.rowner = true
 handler.group = false
 handler.private = false
 handler.limit = false

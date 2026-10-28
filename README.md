@@ -202,10 +202,11 @@ tidak mendukung, bot membalas pesan biasa (bukan error).
 
 ## Restart & auto update
 
-- `/restart` — restart server langsung dari WhatsApp (owner & developer).
+- `/restart` — restart server langsung dari WhatsApp (developer / owner utama;
+  pemilik sesi jadibot tidak boleh karena semua sesi ikut mati).
   Bot membalas dulu, lalu memanggil API panel `power/restart`. Satu restart
   per 45 detik. `/restart status` memperlihatkan metode yang siap dipakai.
-- `/autorestart on|off` — mengatur apakah bot **restart sendiri** setelah
+- `/autorestart on|off` — sama-sama khusus developer; mengatur apakah bot **restart sendiri** setelah
   pembaruan dari GitHub diterapkan. Saat `off`, berkas pembaruan tetap ditulis;
   aktifkan dengan `/restart`.
 - `.autoupdate` — status lengkap, `.autoupdate cek|now|paksa|log|restart`.

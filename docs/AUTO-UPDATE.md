@@ -238,7 +238,9 @@ ke log dan mengembalikan `{ ditunda: true }`.
 
 ### `/restart`
 
-Perintah terpisah (`plugins/owner/restart.js`, khusus owner/developer):
+Perintah terpisah (`plugins/owner/restart.js`, **developer/owner utama saja** —
+keduanya terdaftar di `PLATFORM_ONLY_PLUGINS` karena restart mematikan semua
+sesi Jadibot):
 
 1. balas dulu ("Restart server diminta…"),
 2. tunggu 1,2 detik supaya pesan benar-benar terkirim,
