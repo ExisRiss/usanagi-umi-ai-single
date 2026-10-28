@@ -39,7 +39,7 @@ kolase (maksimal 4).
 | `.edit logo` | pakai PNG yang sedang dibalas |
 | `.edit tanpa logo` | lepas logo |
 | `.edit durasi 15` | panjang hasil (detik) |
-| `.edit slow 0.6` | slow motion (0.4–1, 1 = normal) |
+| `.edit slow 0.6` | slow motion, rentang 0.4–1 (1 = normal) |
 | `.edit kualitas tinggi` | rendah / sedang / tinggi |
 | `.edit render` | render sekarang |
 | `.edit batal` | batalkan + hapus berkas sementara |

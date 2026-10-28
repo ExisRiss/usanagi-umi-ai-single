@@ -211,7 +211,7 @@ semua diproses lokal dengan FFmpeg, tanpa shell, tanpa API luar.
   — langsung pilih template (nama di luar daftar ditolak, bukan template palsu).
 - `.edit judul <teks>` · `.edit sub <teks>` · `.edit meta <teks>` — tulis judul,
   subjudul, dan baris kecil (foto tim, tanggal).
-- `.edit durasi <detik>` · `.edit slow <0.4-1>` · `.edit kualitas <tinggi|sedang|hemat>`.
+- `.edit durasi <detik>` · `.edit slow <0.4-1>` · `.edit kualitas <rendah|sedang|tinggi>`.
 - `.edit logo` / `.edit tanpa logo` — pakai logo bot di panel teks atau tidak.
 - `.edit status` · `.edit batal` — cek isi sesi / batalkan render yang antre.
 

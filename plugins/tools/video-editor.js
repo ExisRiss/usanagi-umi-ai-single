@@ -15,7 +15,7 @@
  *   .edit logo                   pakai gambar PNG yang sedang dibalas
  *   .edit tanpa logo
  *   .edit durasi <detik>
- *   .edit slow <0.5-1>           slow motion (1 = normal)
+ *   .edit slow <0.4-1>           slow motion (1 = normal)
  *   .edit kualitas <rendah|sedang|tinggi>
  *   .edit render                 render sekarang
  *   .edit batal                  batalkan + hapus berkas sementara
