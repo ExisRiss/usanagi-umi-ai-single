@@ -1,0 +1,6 @@
+{
+  "host": "upload.gwenna.my.id",
+  "maksUkuran": 104857600,
+  "simpanHari": 90,
+  "inline": ["image/", "video/", "audio/", "application/pdf", "text/plain"]
+}

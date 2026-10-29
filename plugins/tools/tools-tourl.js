@@ -120,8 +120,11 @@ let handler = async (m, { usedPrefix, command }) => {
   }
 }
 
-handler.help = ['tourl']
+handler.help = ['tolink']
 handler.tags = ['tools']
-handler.command = /^(tourl|tolink|upload)$/i
+/* Task155 — `tourl` & `upload` kini milik layanan upload server bot
+ * (plugins/tools/usanagi-tourl.js → upload.gwenna.my.id). Plugin ini tetap
+ * tersedia lewat nama `tolink` / `poneurl` sebagai alternatif host luar. */
+handler.command = /^(tolink|poneurl)$/i
 
 export default handler

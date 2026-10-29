@@ -1,101 +1,172 @@
-/* By AlzRiss - Usanagi Umi AI */
+/* By AlzRiss - Usanagi Umi AI
+ *
+ * Task155 — `.tourl` / `.upload`: media & berkas dari WhatsApp menjadi tautan
+ * unduhan di server bot sendiri.
+ *
+ *   https://upload.gwenna.my.id/<id akun>/<nama berkas>
+ *
+ * Mendukung foto, video, audio, stiker, dokumen (zip, 7z, rar, apk, pdf, …).
+ * Cara pakai: kirim/reply berkas lalu ketik `.tourl`, atau kirim berkas dengan
+ * keterangan `.tourl`. Tanpa berkas → tutorial singkat.
+ *
+ * Catatan Task155: sebelumnya plugin ini mengunggah ke host pihak ketiga
+ * (catbox, dll.) yang sering mati. Sekarang berkas disimpan di server bot dan
+ * disajikan oleh API bot lewat host `upload.gwenna.my.id`.
+ */
 
-import { sendInteractive } from '../../lib/awang-tombol.js'
-import { uploaders, mimeLookup } from '../../lib/scraper/awang-uploaders.js'
-import { downloadMediaBuffer, getMediaSource, getFileName, getMimeType, getExtensionFromMime, react } from '../../lib/awang-media.js'
+import {
+  simpanBerkas,
+  daftarFolder,
+  hostUpload,
+  batasUkuranUpload,
+  idAkun,
+  bacaKonfigUpload,
+  layaniUpload,
+  bersihkanLama,
+} from '../../lib/upload-publik.js'
+import { getMediaSource, downloadMediaBuffer, getMimeType, getFileName, react } from '../../lib/awang-media.js'
+import { adaLampiran, unduhLampiran, namaBerkasLampiran, mimeLampiran, captionLampiran } from '../../lib/lampiran.js'
 
-const handler = async (m, { rawConn, settings, usedPrefix }) => {
-  const source = getMediaSource(m, ['image', 'video', 'audio', 'sticker', 'document'])
-  if (!source) {
-    await m.reply(`💬 Reply atau kirim media lalu ketik *${usedPrefix}tourl*.`)
-    return
+const TUTORIAL = [
+  '📤 *TO URL — upload ke server bot*',
+  '',
+  '*Cara pakai*',
+  '1. Kirim berkasnya (foto/video/dokumen), atau balas berkas yang sudah ada',
+  '2. Ketik `.tourl`',
+  '   atau kirim berkas dengan keterangan `.tourl`',
+  '',
+  '*Yang didukung*',
+  '• foto & video (jpg, png, webp, mp4, webm …)',
+  '• audio, stiker, voice note',
+  '• dokumen: zip, 7z, rar, apk, pdf, txt, …',
+  '',
+  '*Hasil*',
+  `https://${hostUpload()}/<id akun>/<nama berkas>`,
+  '',
+  '*Perintah lain*',
+  '`.tourl list` — daftar berkas yang pernah kamu upload',
+  '',
+  `Batas ${Math.round(batasUkuranUpload() / 1024 / 1024)} MB per berkas · ` +
+    `disimpan ${bacaKonfigUpload().simpanHari} hari.`,
+].join('\n')
+
+function ukuranTeks(n) {
+  if (n >= 1024 * 1024) return `${(n / 1024 / 1024).toFixed(2)} MB`
+  if (n >= 1024) return `${(n / 1024).toFixed(1)} KB`
+  return `${n} B`
+}
+
+/** Ambil buffer + nama + mime dari media langsung maupun kutipan. */
+async function ambilBerkas(m, conn) {
+  /* Jalur 1: helper media bot (foto/video/audio/stiker/dokumen). */
+  try {
+    const source = getMediaSource(m, ['image', 'video', 'audio', 'sticker', 'document'])
+    if (source) {
+      const buffer = await downloadMediaBuffer(source)
+      if (buffer && buffer.length) {
+        return {
+          buffer,
+          nama: getFileName(source, ''),
+          mime: getMimeType(source, ''),
+          tipe: source.type || '',
+        }
+      }
+    }
+  } catch (error) { /* lanjut ke jalur 2 */ }
+
+  /* Jalur 2: modul lampiran (sudah terbukti untuk dokumen & berkas besar). */
+  if (adaLampiran(m)) {
+    const buffer = await unduhLampiran(conn, m).catch(() => null)
+    if (buffer && buffer.length) {
+      return {
+        buffer,
+        nama: namaBerkasLampiran(m) || '',
+        mime: mimeLampiran(m) || '',
+        tipe: m.mtype || '',
+      }
+    }
+  }
+  return null
+}
+
+const handler = async (m, extra = {}) => {
+  const { conn, args = [], text = '', usedPrefix = '.' } = extra
+  const perintah = usedPrefix || '.'
+
+  /* Daftar berkas milik pengirim. */
+  if (/^(list|daftar|mine)$/i.test(String(args[0] || '').trim())) {
+    const id = idAkun(m.sender) || ''
+    const daftar = id ? daftarFolder(id) : []
+    if (!daftar.length) {
+      return m.reply([
+        `📂 Belum ada berkas atas nama kamu di ${hostUpload()}.`,
+        '',
+        `Kirim berkas lalu ketik *${perintah}tourl*.`,
+      ].join('\n'))
+    }
+    const total = daftar.reduce((s, x) => s + Number(x.ukuran || 0), 0)
+    const baris = daftar.slice(0, 20).map((x, i) => {
+      const tanggal = new Date(x.waktu).toLocaleString('id-ID', { timeZone: 'Asia/Makassar', dateStyle: 'short', timeStyle: 'short' })
+      return `${i + 1}. ${x.nama}\n   ${ukuranTeks(x.ukuran)} · ${tanggal}\n   https://${hostUpload()}/${id}/${encodeURIComponent(x.nama)}`
+    })
+    if (daftar.length > 20) baris.push(`… dan ${daftar.length - 20} berkas lain.`)
+    return m.reply([
+      `📂 *BERKAS KAMU* (${daftar.length} · ${ukuranTeks(total)})`,
+      '',
+      ...baris,
+      '',
+      `Semua di folder: https://${hostUpload()}/${id}/`,
+    ].join('\n'))
   }
 
-  await react(rawConn, m, '🕕')
+  const berkas = await ambilBerkas(m, conn)
+  if (!berkas) return m.reply(TUTORIAL)
+
+  try { await react(conn, m, '⏳') } catch (error) { /* reaksi opsional */ }
+
   try {
-    const buffer = await downloadMediaBuffer(source)
-    const mime = getMimeType(source, 'application/octet-stream')
-    const filename = getFileName(source, `file.${getExtensionFromMime(mime)}`)
-    const results = []
-    const failed = []
-    const skipped = []
-
-    for (const uploader of uploaders) {
-      if (uploader.optional && !process.env.USANAGI_TERMAI_KEY) {
-        skipped.push(`${uploader.name}: key belum diset`)
-        continue
-      }
-      try {
-        results.push(await uploader.fn(buffer, filename))
-      } catch {
-        failed.push(uploader.name)
-      }
-    }
-
-    if (!results.length) {
-      await react(rawConn, m, '❌')
-      return m.reply(`❌ Upload gagal. Berhasil: *0* • Gagal: *${failed.length}* • Dilewati: *${skipped.length}*`)
-    }
-
-    const sizeLabel = buffer.length >= 1024 * 1024
-      ? `${(buffer.length / (1024 * 1024)).toFixed(2)} MB`
-      : `${Math.max(1, Math.round(buffer.length / 1024))} KB`
-    const mimeLabel = mime.split(';')[0].trim() || 'application/octet-stream'
-    const attempted = results.length + failed.length + skipped.length
-    const recommendedIndex = results.findIndex((item) => String(item.expires || '').toLowerCase() === 'permanen')
-    const lines = [
-      '✅ *TOURL SELESAI*',
-      `📦 ${mimeLabel} • ${sizeLabel}`,
-      `📊 ${results.length} berhasil • ${failed.length} gagal • ${skipped.length} dilewati`,
-      ''
-    ]
-
-    results.slice(0, 5).forEach((item, index) => {
-      const expiry = String(item.expires || 'Tidak diketahui').trim() || 'Tidak diketahui'
-      const permanent = expiry.toLowerCase() === 'permanen'
-      const status = permanent ? 'PERMANEN' : `TERBATAS • ${expiry.toUpperCase()}`
-      const recommendation = index === recommendedIndex ? ' • REKOMENDASI' : ''
-      lines.push(`${index + 1}. *${item.host}* — ${status}${recommendation}`)
+    const hasil = simpanBerkas({
+      buffer: berkas.buffer,
+      nama: berkas.nama,
+      mime: berkas.mime,
+      jid: m.sender,
+      tipe: berkas.tipe,
     })
 
-    if (results.length > 5) lines.push(`+ ${results.length - 5} link lainnya tersedia`)
-    lines.push('', `Server: ${attempted} diperiksa`)
+    /* Bersihkan berkas kedaluwarsa sekali-sekali (murah, non-blokir). */
+    setTimeout(() => { try { bersihkanLama() } catch (error) { /* abaikan */ } }, 3000)
 
-    const body = lines.join('\n')
-    const buttons = results.slice(0, 5).map((item, index) => ({
-      type: 'copy',
-      label: `SALIN ${index + 1} • ${item.host}${index === recommendedIndex ? ' • REKOMENDASI' : ''}`,
-      id: `tourl_${index}`,
-      copyCode: item.url,
-    }))
+    try { await react(conn, m, '✅') } catch (error) { /* abaikan */ }
 
-    try {
-      await sendInteractive(rawConn, m.chat, {
-        title: 'TOURL',
-        body,
-        footer: settings.botName || 'Usanagi Umi AI',
-        buttons,
-      }, { quoted: m.raw })
-    } catch {
-      await rawConn.sendMessage(m.chat, { text: body }, { quoted: m.raw })
-    }
-
-    await react(rawConn, m, '✅')
-    return { status: true }
+    const baris = [
+      '✅ *BERHASIL DIUPLOAD*',
+      '',
+      `🔗 ${hasil.url}`,
+      '',
+      `📦 ${hasil.nama}`,
+      `📊 ${ukuranTeks(hasil.ukuran)} · ${String(hasil.mime).split(';')[0]}`,
+      `🆔 Folder: ${hasil.id}`,
+      '',
+      'Tautan bisa dibuka siapa saja yang punya alamat ini.',
+      `⬇️ Unduh langsung: ${hasil.urlUnduh}`,
+      `📂 Semua berkasmu: ${hasil.daftarUrl}`,
+    ]
+    return m.reply(baris.join('\n'))
   } catch (error) {
-    await react(rawConn, m, '❌')
-    throw new Error(`Tourl gagal: ${error?.message || 'proses tidak tersedia'}`)
+    try { await react(conn, m, '❌') } catch (e) { /* abaikan */ }
+    return m.reply(`❌ Upload gagal: ${error.message}`)
   }
 }
 
-handler.command = /^(tourl|upload|catbox|url)$/i
-handler.help = ['tourl', 'upload', 'catbox', 'url']
-handler.tags = ['tools']
+handler.help = ['tourl', 'upload', 'tourl list']
+handler.tags = ['tools', 'upload']
 handler.category = 'tools'
-handler.description = 'Upload media ke berbagai host dan mendapatkan URL.'
-handler.usage = '.tourl (reply/kirim media)'
+handler.command = /^(tourl|tourl2|upload|catbox|url|to?url)$/i
+handler.description = 'Ubah foto/video/dokumen (zip, 7z, apk, …) menjadi tautan unduhan di upload.gwenna.my.id'
+handler.usage = '.tourl (kirim/reply berkas)'
 handler.example = '.tourl'
 handler.limit = false
 handler.premiumOnly = false
 
+export { layaniUpload, TUTORIAL }
 export default handler

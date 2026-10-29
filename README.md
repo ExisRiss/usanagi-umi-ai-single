@@ -453,3 +453,15 @@ Daftar atribusi source dan kontributor terdahulu dikonsolidasikan dalam [`CREDIT
 Bot utama memakai konfigurasi global di `config.js`. Setiap akun Jadibot mempunyai profil terpisah di `sessions/jadibot/<nomor>/bot-config.json`; file dibuat otomatis saat sesi dibuat atau dipulihkan. Identitas, prefix default, mode public/private, limit awal, auto-typing, tautan, aset, pengaturan TikTok Rich, dan daftar fitur nonaktif tidak dibagikan antar akun. Kredensial API, session WhatsApp, branding resmi, dan akses owner utama tetap dilindungi serta tidak dapat dioverride profil Jadibot.
 
 Atur akun melalui Jadibot terkait dengan `.jadibotconfig` atau `.jbconfig`. Prefix per chat juga dipisahkan berdasarkan akun bot, sehingga perubahan prefix di bot utama tidak mengubah prefix Jadibot dan sebaliknya.
+
+## Upload publik (`.tourl`)
+
+Foto, video, audio, dokumen, zip/7z/rar/apk yang dikirim ke bot disimpan **di server bot sendiri** dan dibagikan sebagai tautan unduhan di `https://upload.gwenna.my.id/<id akun>/<nama berkas>`.
+
+- `.tourl` — kirim media dengan caption ini, atau balas berkas lama dengan `.tourl`. Alias: `.upload`, `.catbox`, `.url`.
+- `.tourl list` — daftar berkas milikmu beserta tautan foldernya (`.tourl` tanpa lampiran membalas tutorial, bukan error).
+- `.tolink` / `.poneurl` — nama lain dari plugin lama; tidak lagi memakai `tourl`/`upload` supaya tidak bentrok.
+- `<id akun>` adalah hash pendek nomor WhatsApp (nomor tidak muncul di URL); nama berkas mempertahankan ekstensi aslinya. Foto/video/audio tampil inline, arsip & APK langsung terunduh; `?dl=1` memaksa unduh.
+- Batas bawaan 100 MB, masa simpan 90 hari, dibersihkan otomatis. Berkas disajikan oleh API bot (port 2176) lewat `upload.gwenna.my.id`, tanpa host pihak ketiga.
+
+Panduan lengkap: `docs/UPLOAD-PUBLIK.md`.
