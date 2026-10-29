@@ -555,6 +555,10 @@ let handler = async (m, extra = {}) => {
         baris.push('3. Ganti nameserver domain menjadi:')
         for (const n of ns) baris.push(`     • ${n}`)
         baris.push('4. Simpan. Propagasi 1–24 jam (biasanya < 2 jam).')
+        baris.push('')
+        baris.push('⚠️ Ganti NS = seluruh DNS domainmu pindah ke Cloudflare bot.')
+        baris.push('Kalau domain itu sudah dipakai email/website lain, jangan')
+        baris.push('diganti — cukup pakai alamat bot di atas.')
         baris.push(`5. Cek berkala: .cekdns ${hasil.domainKustom}`)
         baris.push('   Bot otomatis membuat DNS + sertifikat SSL begitu NS aktif.')
       } else {
