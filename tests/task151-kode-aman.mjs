@@ -2,6 +2,8 @@
  * Jalankan: node tests/task151-kode-aman.mjs
  */
 import {
+  bangunPluginCase,
+  fungsiBelumDipanggil,
   bersihkanPagarKode,
   periksaKeamananKode,
   namaFiturAman,
@@ -123,6 +125,30 @@ cek('halaman awal HTML', /^<!doctype html>/i.test(html))
 cek('halaman memuat nama', html.includes('toko'))
 cek('halaman menutup nomor', !html.includes('6281234567890'))
 cek('halaman memuat perintah deploy', html.includes('.deploysubdomain toko ganti'))
+
+
+console.log('== fungsi yang hanya dideklarasikan ==')
+const fungsiSaja = 'async function Bug2(sock, jid) {\n  await sock.relayMessage(jid, {}, {})\n}'
+cek('fungsi tanpa pemanggilan terdeteksi', fungsiBelumDipanggil(fungsiSaja) === 'Bug2')
+cek('fungsi yang sudah dipanggil tidak diulang', fungsiBelumDipanggil(fungsiSaja + '\nawait Bug2(conn, m.chat)') === '')
+cek('kode biasa tidak dianggap fungsi', fungsiBelumDipanggil("m.reply('hai')") === '')
+cek('dua fungsi, salah satu dipanggil', fungsiBelumDipanggil('function A(){}\nfunction B(){}\nA()') === '')
+
+console.log('== berkas case yang dihasilkan ==')
+const berkasCase = bangunPluginCase({
+  labels: ['sapa', 'hai'],
+  isi: "m.reply('Hai')",
+  namaBerkas: 'sapa',
+  pengirim: '+62811',
+  waktu: 'uji',
+  fungsiOtomatis: 'Bug2',
+})
+cek('ada alias sock', berkasCase.includes('const sock = conn'))
+cek('ada alias jid', berkasCase.includes('const jid = m.chat'))
+cek('auto-call ditulis', berkasCase.includes('await Bug2(sock, jid)'))
+cek('command dari label', /handler\.command = \/\^\(sapa\|hai\)\$\/i/.test(berkasCase))
+cek('export default ada', /export default handler/.test(berkasCase))
+cek('tanpa fungsiOtomatis tidak ada auto-call', !bangunPluginCase({ labels: ['x'], isi: 'm.reply(1)', namaBerkas: 'x' }).includes('await undefined'))
 
 console.log(`\n===== ${lulus} lulus, ${gagal} gagal =====`)
 process.exit(gagal ? 1 : 0)

@@ -28,7 +28,8 @@ import {
   namaFiturAman,
   pecahBlokCase,
   perintahSudahDipakai,
-  indentasi,
+  fungsiBelumDipanggil,
+  bangunPluginCase,
 } from '../../lib/kode-aman.js'
 import { adaLampiran, unduhLampiran, captionLampiran } from '../../lib/lampiran.js'
 import { pasangKode, ambilKode, hapusKode, tampakKode, BATAS_TUNGGU } from '../../lib/pending-kode.js'
@@ -118,25 +119,6 @@ async function caseTersimpan() {
   }
 }
 
-function bangunPlugin({ labels, isi, namaBerkas, pengirim, waktu }) {
-  return [
-    `/* Dibuat lewat .addcase — ${waktu} oleh ${pengirim} */`,
-    '',
-    'const handler = async (m, { conn, text, args, usedPrefix, prefix, command }) => {',
-    indentasi(isi),
-    '}',
-    '',
-    `handler.command = /^(${labels.map((l) => l.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')).join('|')})$/i`,
-    `handler.help = [${labels.map((l) => `'${l.replace(/'/g, "\\'")}'`).join(', ')}]`,
-    "handler.tags = ['custom']",
-    `handler.description = 'Case buatan pengguna lewat .addcase (${namaBerkas.replace(/'/g, "\\'")})'`,
-    'handler.limit = false',
-    '',
-    'export default handler',
-    '',
-  ].join('\n')
-}
-
 /** Inti: validasi + simpan case + hot reload. Semua jalur berakhir di sini. */
 async function simpanCase(m, { namaDiminta = '', ganti = false, kode = '' } = {}) {
   if (!kode) return m.reply(TUTORIAL)
@@ -178,10 +160,15 @@ async function simpanCase(m, { namaDiminta = '', ganti = false, kode = '' } = {}
     return m.reply(`❌ ${error.message}`)
   }
 
-  const berkas = bangunPlugin({
+  /* Kode yang hanya berisi deklarasi fungsi (tanpa pemanggilan) tidak akan
+   * melakukan apa pun. Deteksi lalu panggil otomatis. */
+  const fungsiOtomatis = fungsiBelumDipanggil(isiGabung)
+
+  const berkas = bangunPluginCase({
     labels,
     isi: isiGabung,
     namaBerkas,
+    fungsiOtomatis,
     pengirim: `+${String(m.sender || '').split('@')[0]}`,
     waktu: new Date().toLocaleString('id-ID', { timeZone: 'Asia/Makassar' }) + ' WITA',
   })
@@ -234,6 +221,7 @@ async function simpanCase(m, { namaDiminta = '', ganti = false, kode = '' } = {}
       `⌨️ Perintah: ${labels.map((l) => `.${l}`).join(' · ')}`,
       `♻️ Mode: ${adaSebelumnya ? 'timpa' : 'baru'}`,
       '⚡ Status: aktif sekarang juga (tanpa restart)',
+      ...(fungsiOtomatis ? [`▶️ Fungsi ${fungsiOtomatis}() dipanggil otomatis (sock, jid)`] : []),
       '',
       `Coba: .${labels[0]}`,
       '',

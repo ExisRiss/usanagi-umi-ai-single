@@ -401,7 +401,7 @@ Bot menampilkan status **sedang mengetik** tanpa menunggu respons presence dari 
 2. Kirim kodenya di **pesan berikutnya** (tanpa prefix — di grup juga masuk), atau balas pesan bot dengan kode / berkas `.js` / `.txt`.
 3. Bot menyimpan berkas ke `plugins/custom-case/<nama>.js`, memuatnya lewat hot reload, lalu membalas perintah yang bisa dipakai (`.sapa`).
 
-Beberapa `case` sekaligus boleh dalam satu kiriman, label bertumpuk (`case 'bye': case 'dadah':`) digabung, dan `default:` diabaikan. Nama yang sudah dipakai plugin bawaan ditolak supaya perintah lama tidak terbajak. Timpa case lama dengan `.addcase <nama> --ganti`. Tersedia untuk owner bot (bukan pengguna umum) karena kode dijalankan di server.
+Beberapa `case` sekaligus boleh dalam satu kiriman, label bertumpuk (`case 'bye': case 'dadah':`) digabung, dan `default:` diabaikan. Kode yang hanya mendeklarasikan fungsi (mis. `async function X(sock, jid) { … }`) dideteksi dan fungsi itu dipanggil otomatis dengan `(sock, jid)` — begitu juga alias `sock`, `jid`, `sender`, `reply`, dan `pushName` di dalam case. Nama yang sudah dipakai plugin bawaan ditolak supaya perintah lama tidak terbajak. Timpa case lama dengan `.addcase <nama> --ganti`. Tersedia untuk owner bot (bukan pengguna umum) karena kode dijalankan di server.
 
 ## Subdomain milik user
 

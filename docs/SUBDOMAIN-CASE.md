@@ -123,6 +123,31 @@ export default handler
 | `usedPrefix`, `prefix` | prefix yang dipakai user |
 | `command` | nama perintah yang dijalankan |
 
+### Kode yang hanya mendeklarasikan fungsi
+
+Banyak contoh case di komunitas berbentuk fungsi utuh:
+
+```js
+async function Sapa(sock, jid) {
+  await sock.sendMessage(jid, { text: 'Hai!' })
+}
+```
+
+Fungsi seperti ini **tidak melakukan apa pun kalau tidak dipanggil**. Sejak
+Task153 bot mendeteksinya dan memanggilnya otomatis dengan `(sock, jid)`, jadi
+`.sapa` langsung berjalan. Di dalam case juga tersedia alias:
+
+| Alias | Isi |
+|---|---|
+| `sock` | sama dengan `conn` |
+| `jid` | sama dengan `m.chat` |
+| `sender` | sama dengan `m.sender` |
+| `reply(teks)` | sama dengan `m.reply(teks)` |
+| `pushName` | nama pengirim |
+
+Balasan bot menandai bila auto-call dipakai: `▶️ Fungsi Sapa() dipanggil
+otomatis (sock, jid)`.
+
 ### Catatan penting
 
 - `break` boleh ditulis, bot membuangnya otomatis.
@@ -238,6 +263,19 @@ cara mengisi situs. Subdomain berstatus `nonaktif` menjawab 503.
 
 Karena tidak lagi bergantung panel Kaira, gangguan panel tidak memengaruhi
 situs pengguna.
+
+### 3.6 Kalau situs belum terbuka
+
+| Gejala | Arti | Tindakan |
+|---|---|---|
+| `530` + `error code: 1033` | DNS alamat baru belum tersebar | tunggu 10 detik–2 menit, muat ulang |
+| `404 — Halaman belum ada` | subdomain aktif, berkas belum diunggah | `.deploysubdomain <nama> ganti` lalu kirim berkas |
+| `404` + "belum terdaftar" | nama belum pernah diklaim | `.addsubdomainmy <nama>` |
+| `503 — Situs sedang nonaktif` | dinonaktifkan pemilik | `.aktifsubdomain <nama>` |
+| "Arsip tidak punya index.html di akar" | zip tanpa index.html | tambahkan `index.html` di akar zip |
+
+Pesan sukses deploy sekarang menampilkan status DNS (`🛰️ DNS: siap` atau
+peringatan bila ada record yang gagal dibuat).
 
 ---
 

@@ -357,7 +357,7 @@ let handler = async (m, extra = {}) => {
       `⚙️ Kontrol: *.kontrolsubdomain ${hasil.nama}*`,
       '🗑️ Hapus: hanya developer (`.dellsubdomainmy`)',
       '',
-      'DNS butuh ±10–30 detik sebelum alamat terbuka.',
+      'DNS alamat baru butuh ±10 detik–2 menit sebelum terbuka.',
     ]
     if (hasil.panelGalat) {
       baris.push('', `⚠️ Panel situs sedang gangguan (${hasil.panelGalat}).`, 'Subdomain sudah tercatat + DNS dibuat, halaman awal menyusul saat panel normal.')
@@ -486,6 +486,14 @@ let handler = async (m, extra = {}) => {
  *      pribadi tanpa prefix, yang dulu membuat bot diam total)
  *   2. hook `handler.all` (cadangan untuk grup)
  */
+/** Ringkasan status DNS untuk pesan hasil deploy (tanpa detail teknis). */
+function dnsBermasalah(daftar) {
+  if (!Array.isArray(daftar) || !daftar.length) return ''
+  const gagal = daftar.filter((x) => x && x.galat)
+  if (!gagal.length) return '🛰️ DNS: siap'
+  return `⚠️ DNS bermasalah: ${gagal.map((x) => `${x.host} (${x.galat})`).join('; ')} — coba deploy ulang atau hubungi owner.`
+}
+
 async function prosesTunggu(conn, m, tunggu) {
   const teks = captionLampiran(m) || String(m.text || '')
   const berkasAda = adaLampiran(m)
@@ -514,12 +522,15 @@ async function prosesTunggu(conn, m, tunggu) {
       '✅ *DEPLOY BERHASIL*',
       '',
       `🌐 ${hasil.url}`,
+      `🔗 ${hasil.urlTitik}`,
       `📦 ${hasil.berkas} berkas · ${rupiahBita(hasil.ukuran)}`,
       `🔁 Deploy ke-${hasil.info.deployKe}`,
+      dnsBermasalah(hasil.dns),
       '',
-      'Catatan: DNS butuh ±10–30 detik. Kalau belum terbuka, tunggu lalu muat ulang.',
-      `Kontrol: .kontrol-subdomain ${hasil.nama}`,
-    ].join('\n'))
+      'DNS butuh ±10 detik–2 menit untuk alamat baru. Kalau belum terbuka, tunggu lalu muat ulang.',
+      `⚙️ Kontrol: .kontrolsubdomain ${hasil.nama}`,
+      `🔁 Ganti isi: .deploysubdomain ${hasil.nama} ganti`,
+    ].filter(Boolean).join('\n'))
     return true
   } catch (error) {
     TUNGGU.set(kunci(m), tunggu)
