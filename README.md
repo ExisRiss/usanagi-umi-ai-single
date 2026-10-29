@@ -200,6 +200,23 @@ tidak mendukung, bot membalas pesan biasa (bukan error).
 - `.ytvideo <judul/link>` — kirim berkas videonya langsung (paling aman untuk
   semua perangkat, tidak butuh webview).
 
+## Reaction channel (.rch)
+
+`.rch <link_post> <emoji>` mengirim reaction ke post WhatsApp Channel memakai
+kunci API RCH VIP. Kunci dibaca dari `.env.apikeys` → `UMI_RCH_KEY` (satu kunci
+atau daftar JSON `[{"name":"VIP-1","apiKey":"…","domain":"https://…"}]`).
+
+- **Filter kunci**: duplikat isi kunci, placeholder (`PENDING`/`TEST-KEY`),
+  kunci terlalu pendek, domain kosong, dan kunci yang kuotanya sudah habis
+  (dari `usage_today`/`limit` balasan API) tidak dipakai.
+- **Rotasi sampai dapat**: kunci pertama kena limit → kunci berikutnya dicoba
+  dalam permintaan yang sama sampai ada yang berhasil.
+- **RCH LIMIT**: kalau SEMUA kunci limit, bot otomatis membalas `🚫 RCH LIMIT`
+  berisi jumlah kunci, waktu reset, dan saran menambah kunci — bukan diam.
+- `.rch status` — siap / istirahat / dibuang beserta alasannya (isi kunci tidak
+  pernah ditampilkan). `.rch reset` — bersihkan jeda (owner).
+- `.rch reload` — baca ulang `.env.apikeys` tanpa restart (owner).
+
 ## Kontak premium & laporan bug
 
 Pesan "FITUR PREMIUM … Hubungi owner bot" dan kartu "laporan bug" memakai satu
