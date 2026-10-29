@@ -200,6 +200,26 @@ tidak mendukung, bot membalas pesan biasa (bukan error).
 - `.ytvideo <judul/link>` — kirim berkas videonya langsung (paling aman untuk
   semua perangkat, tidak butuh webview).
 
+## Mode privat (bot diam)
+
+Kalau sesi disetel **private/self** (website → Mode bot: Self, atau
+`public: false`), bot **tidak membalas apa pun** kepada pengguna biasa — tidak
+ada pesan "bot sedang privat", tidak ada petunjuk prefix, tidak ada notifikasi
+AFK. Yang tetap dilayani hanya:
+
+- **developer** (nomor terkunci di `config.js`),
+- **owner utama** (`data/owner-utama.json`),
+- **owner bot** itu sendiri (`.addowner` / kolom owner di website),
+- pesan dari akun bot sendiri (`fromMe`).
+
+Gerbang ini berjalan paling awal di handler (sebelum AFK, aksi tertunda, dan
+petunjuk prefix), jadi tidak ada jalur balasan yang lolos. Daftar akses sesi
+(`.addakses`) **tidak** membuka mode privat — untuk memberi akses, jadikan
+owner dengan `.addowner` supaya kewenangannya utuh.
+
+Catatan: pengabaian dicatat ke console maksimal 1×/10 menit per chat
+(`[mode-privat] abaikan pesan dari …`) supaya mudah didiagnosis.
+
 ## Reaction channel (.rch)
 
 `.rch <link_post> <emoji>` mengirim reaction ke post WhatsApp Channel memakai

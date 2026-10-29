@@ -13,7 +13,6 @@ import { generateWAMessageFromContent, proto } from '@rexxhayanasi/elaina-bailey
 import { format } from 'util';
 import { recordError } from './lib/error-hub.js'
 /* Task132: daftar akses per sesi (fitur OURIN `.addakses`). */
-import { punyaAkses } from './lib/akses-user.js'
 import syncUserDatabase from './lib/database.js';
 import { errorReplyText } from './lib/umi-error.js';
 import { fileURLToPath } from 'url';
@@ -33,7 +32,9 @@ import { normalizePrefixMode, resolveIncomingPrefix } from './lib/prefix-policy.
 import { botKind, sanitizeActivePrefix, normalizeIncoming, splitDoublePrefix } from './lib/prefix-bot.js'
 import { nomorOwnerUtama as daftarNomorOwnerUtama } from './lib/owner-utama.js';
 /* Task147: jangan pernah diam saat pesan berbentuk perintah dibuang gerbang. */
-import { cariPesanPrefix, bolehHint, petunjukOnlyGroup, petunjukPrivat } from './lib/prefix-hint.js';
+import { cariPesanPrefix, bolehHint, petunjukOnlyGroup } from './lib/prefix-hint.js';
+/* Task150: mode privat = bot diam total kecuali developer/owner utama/owner bot. */
+import { apakahPrivat, putusanModePrivat, roleDari, catatanDiam } from './lib/mode-privat.js';
 import { limitsEnabled } from './lib/limit-mode.js'
 import { canUseOwnerPlugin, platformOnlyReason } from './lib/owner-policy.js'
 import { isPremiumFeatureLocked, premiumOwnerContact } from './lib/premium-mode.js'
@@ -168,6 +169,21 @@ export async function handler(chatUpdate) {
     // ini membuat penyimpanan periodeik tidak menulis saat bot benar-benar sepi.
     global.__umiDbKotor = true;
     return runWithBotConnection(this, () => withMessageResponses(this, () => handleMessage.call(this, chatUpdate)));
+}
+
+/* Task150 — log "pesan diabaikan karena mode privat" dibatasi 1×/10 menit per
+ * chat, supaya console tidak dibanjiri saat banyak orang mencoba memakai bot
+ * yang sedang private. */
+const logDiamTerakhir = new Map()
+function bolehLogDiam(chat, sekarang = Date.now()) {
+    const kunci = String(chat || '')
+    const terakhir = logDiamTerakhir.get(kunci) || 0
+    if (sekarang - terakhir < 10 * 60 * 1000) return false
+    if (logDiamTerakhir.size > 500) {
+        for (const [k, waktu] of logDiamTerakhir) if (sekarang - waktu > 10 * 60 * 1000) logDiamTerakhir.delete(k)
+    }
+    logDiamTerakhir.set(kunci, sekarang)
+    return true
 }
 
 /* Cache 1 detik: cukup untuk menyegarkan prefix tanpa membaca berkas di
@@ -322,6 +338,33 @@ const blacklistCmd = /^(blacklist|delblacklist)$/i.test(
 
 if (isBlacklistedUser && !isOwner && !blacklistCmd) {
     return
+}
+
+// ==================
+// 🔒 MODE PRIVAT — BOT DIAM (Task150)
+// ==================
+/*
+ * Diletakkan SEDINI MUNGKIN: sebelum database user disentuh, sebelum AFK,
+ * sebelum aksi tertunda (.deploysubdomain), dan sebelum petunjuk prefix.
+ * Ketiganya dulu bisa mengirim balasan ke pengguna yang tidak berhak saat
+ * bot disetel private — itulah yang membuat "bot masih bales".
+ */
+try {
+    const setelanUtama = global.db?.data?.settings?.[this.user?.jid]
+    const privatSesi = apakahPrivat(botConfig, setelanUtama)
+    if (privatSesi) {
+        const putusan = putusanModePrivat({
+            privat: true,
+            fromMe: Boolean(m.fromMe || m.key?.fromMe),
+            ...roleDari({ isROwner, isOwnerUtama, isOwner }),
+        })
+        if (!putusan.dilayani) {
+            if (bolehLogDiam(m.chat)) console.log(catatanDiam(putusan, { sender: m.sender, chat: m.chat }))
+            return
+        }
+    }
+} catch (modeError) {
+    console.log(`[mode-privat] gagal memeriksa setelan: ${modeError?.message || modeError}`)
 }
 
 // ==================
@@ -572,16 +615,16 @@ m.limit = false;
 	const instancePublic = botConfig.type === 'jadibot' || botConfig.managedSettings === true
 		? botConfig.public !== false
 		: global.db.data.settings[this.user.jid].public
-	// Task132: mode self tetap melayani daftar akses sesi (.addakses).
-	if (!instancePublic && !m.fromMe && !isOwner && !punyaAkses(this, m.sender)) {
-	/* Task147: mode self/privat dulu tidak menjawab apa pun. */
-	try {
-		if (bolehHint(m.chat, 'privat') && String(m.text || '').trim()) {
-			await this.reply(m.chat, petunjukPrivat(), m)
-		}
-	} catch (hintError) { /* diamkan */ }
-	return;
-}
+	/*
+	 * Task150 — sabuk kedua. Gerbang utama sudah jalan di atas (sebelum AFK dan
+	 * aksi tertunda). Di sini TIDAK ADA balasan apa pun: mode privat berarti
+	 * diam, bukan pesan "bot sedang privat".
+	 *
+	 * Beda dengan Task132: daftar akses sesi (`.addakses`) TIDAK lagi membuka
+	 * mode privat. Nomor yang memang perlu memakai bot saat private dijadikan
+	 * owner lewat `.addowner`, supaya kewenangannya utuh (bukan setengah).
+	 */
+	if (!instancePublic && !m.fromMe && !isOwner) return;
 if (m.isBaileys) return;
 m.exp += Math.ceil(Math.random() * 10);
 
