@@ -166,15 +166,45 @@ otomatis (sock, jid)`.
 
 | Perintah | User biasa | Developer / owner bot |
 |---|---|---|
-| `.addsubdomainmy` | ✅ | ✅ |
+| `.addsubdomain` | ✅ | ✅ |
 | `.kontrolsubdomain` (milik sendiri) | ✅ | ✅ |
 | `.kontrolsubdomain` (semua) | ❌ | ✅ |
 | `.dellsubdomainmy` | ❌ (ditolak + diarahkan ke owner) | ✅ |
 
+### 3.0 Dua cara mendaftar
+
+```
+.addsubdomain toko-budi          → https://toko-budi-alzriss.gwenna.my.id
+.addsubdomain kaeira.my.id       → pakai domain milikmu sendiri
+```
+
+Bentuk yang diterima: `toko`, `toko-budi`, `toko.alzriss.gwenna.my.id`,
+`toko-alzriss.gwenna.my.id`, `https://toko…/`, dan domain sendiri
+`kaeira.my.id` / `toko.kaeira.my.id`.
+
+Kalau tulisannya salah (kosong, terlalu pendek, angka saja, ada spasi, atau
+domain bot tanpa nama), bot **membalas tutorial lengkap** — bukan error.
+
+### 3.0a Memakai domain sendiri (mis. kaeira.my.id)
+
+1. `.addsubdomain kaeira.my.id`
+2. Di DNS domainmu (Cloudflare/registrar), buat:
+
+| Type | Name | Value | Proxy |
+|---|---|---|---|
+| CNAME | `@` (atau subdomain) | `situs.gwenna.my.id` | ON / ikon oranye |
+
+3. Tunggu propagasi (1–5 menit), lalu isi situsnya:
+   `.deploysubdomain kaeira.my.id ganti`
+
+Bot mengecek CNAME lewat DNS publik dan menulis hasilnya di pesan
+(`🛰️ DNS: siap` / `BELUM mengarah ke bot`). Berkas tetap disimpan bot; DNS
+milikmu tetap milikmu.
+
 ### 3.1 Menambah subdomain sendiri
 
 ```
-.addsubdomainmy toko-budi
+.addsubdomain toko-budi
 ```
 
 Hasil:

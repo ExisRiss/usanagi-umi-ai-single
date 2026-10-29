@@ -38,6 +38,11 @@ import {
   klaimSubdomain,
   subdomainMilik,
   batasPerUser,
+  bacaArgumenSitus,
+  klaimDomainKustom,
+  cekCnameKustom,
+  hostCnameKustom,
+  situsDariHostKustom,
 } from '../../lib/subdomain-kaira.js'
 import { sendInteractive } from '../../lib/awang-tombol.js'
 import { daftarkanAksi } from '../../lib/pending-aksi.js'
@@ -109,6 +114,11 @@ function ambil(m) {
     return null
   }
   return data
+}
+
+/** Domain dasar bot (mis. alzriss.gwenna.my.id) untuk teks bantuan. */
+function domainBot() {
+  return String(hostUtama('contoh')).replace(/^contoh-/, '')
 }
 
 function belumSiap() {
@@ -186,18 +196,26 @@ let handler = async (m, extra = {}) => {
       `Subdomain aktif: *${jumlah}*`,
       '',
       '*Perintah*',
-      '.addsubdomainmy <nama> — daftarkan subdomain milikmu sendiri',
+      '.addsubdomain <nama> — daftarkan subdomain milikmu',
+      '.addsubdomain <domain> — pakai domain sendiri, mis. kaeira.my.id',
+      '.deploysubdomain <nama> — isi situs (HTML / zip / tar.gz)',
       '.kontrolsubdomain [nama] — kontrol subdomain milikmu',
-      '.deploysubdomain <nama> — deploy situs ke <nama>-alzriss.gwenna.my.id',
-      '.ceksubdomain — status + daftar subdomain & pemilik',
-      '.ceksubdomain <nama> — detail satu subdomain',
+      '.ceksubdomain [nama] — daftar & detail subdomain',
       '.aktifsubdomain <nama> · .nonaktifsubdomain <nama>',
       '.dellsubdomainmy <nama> — hapus subdomain (khusus developer)',
+      '.bataldeploy — batalkan deploy yang menunggu berkas',
+      '.subdomainmenu — menu ini',
+      '',
+      '*Dua cara daftar*',
+      '1. Nama di domain bot → `.addsubdomain toko-budi`',
+      `   hasil: https://toko-budi-${domainBot()}`,
+      '2. Domain sendiri → `.addsubdomain kaeira.my.id`',
+      `   DNS: CNAME ${hostCnameKustom()}`,
       '',
       '*Aturan*',
       '• Semua user boleh menambah subdomain sendiri.',
       '• Menghapus subdomain hanya developer/owner bot.',
-      `• Batas ${batasPerUser()} subdomain per nomor.`,
+      `• Batas ${batasPerUser()} situs per nomor.`,
       '',
       '*Cara deploy*',
       '1. Ketik `.deploysubdomain nama`',
@@ -211,11 +229,18 @@ let handler = async (m, extra = {}) => {
   }
 
   if (command === 'deploysubdomain' || command === 'deploysite') {
-    const nama = namaSubAman(args[0] || '')
+    const argDeploy = bacaArgumenSitus(args[0] || '')
+    const nama = argDeploy.jenis === 'kustom'
+      ? (situsDariHostKustom(argDeploy.domain) || '')
+      : (argDeploy.jenis === 'nama' ? argDeploy.nama : '')
     const mode = /ganti|redeploy|ulang/i.test(String(args[1] || '')) ? 'ganti' : 'baru'
     if (!nama) {
       return m.reply([
         'Pakai: *.deploysubdomain <nama>*',
+        'Domain sendiri juga bisa: `.deploysubdomain kaeira.my.id ganti`',
+        argDeploy.jenis === 'kustom'
+          ? `⚠️ Domain ${argDeploy.domain} belum terdaftar. Daftarkan dulu: .addsubdomain ${argDeploy.domain}`
+          : '',
         '',
         'Aturan nama: 3–30 huruf kecil/angka/tanda hubung, tidak boleh angka saja.',
         `Hasil: https://<nama>-alzriss.gwenna.my.id`,
@@ -300,38 +325,104 @@ let handler = async (m, extra = {}) => {
   }
 
   if (command === 'addsubdomainmy' || command === 'tambahsubdomain' || command === 'addsubdomain') {
-    const nama = namaSubAman(args[0] || '')
-    if (!nama) {
+    const arg = bacaArgumenSitus(args[0] || '')
+
+    /* Tanpa argumen atau argumen salah → tutorial lengkap. */
+    if (arg.jenis === 'salah') {
       const registry = await bacaRegistry().catch(() => ({}))
       const milik = subdomainMilik(registry, m.sender)
-      return m.reply([
-        '🌐 *TAMBAH SUBDOMAIN SENDIRI*',
+      const baris = [
+        '🌐 *TAMBAH SUBDOMAIN*',
+        arg.alasan ? `❌ ${arg.alasan}` : '',
         '',
-        'Pakai: *.addsubdomainmy <nama>*',
-        'Contoh: *.addsubdomainmy toko-budi*',
+        '*Dua cara daftar*',
         '',
-        'Aturan nama:',
+        '1️⃣ *Nama di domain bot* (paling gampang)',
+        '   `.addsubdomain toko-budi`',
+        '   → https://toko-budi-alzriss.gwenna.my.id',
+        '',
+        '2️⃣ *Domain milikmu sendiri*',
+        '   `.addsubdomain kaeira.my.id`',
+        `   → CNAME kan \`kaeira.my.id\` ke \`${hostCnameKustom()}\``,
+        '     (Cloudflare: Proxy ON / ikon oranye dulu)',
+        '',
+        '*Aturan nama*',
         '• 3–30 huruf kecil/angka/tanda hubung',
         '• tidak boleh angka saja',
-        '• nama populer (www, api, admin, …) tidak bisa dipakai',
+        '• bukan nama populer: www, api, admin, mail, ftp, jadibot',
         '',
-        `Hasil: https://<nama>-alzriss.gwenna.my.id`,
-        `Batas: ${batasPerUser()} subdomain per nomor`,
-        milik.length ? `Milikmu sekarang (${milik.length}): ${milik.join(', ')}` : 'Kamu belum punya subdomain.',
+        `📊 Kuota: ${milik.length}/${batasPerUser()} per nomor`,
+        milik.length ? `Milikmu: ${milik.join(', ')}` : 'Kamu belum punya subdomain.',
         '',
-        'Setelah didaftarkan, isi situsnya dengan *.deploysubdomain <nama> ganti*.',
-      ].join('\n'))
+        'Setelah terdaftar, isi situsnya:',
+        '`.deploysubdomain <nama> ganti` lalu kirim HTML/zip.',
+        '',
+        'Bantuan lengkap: `.subdomainmenu`',
+      ].filter(Boolean)
+      return m.reply(baris.join('\n'))
     }
 
+    /* ── domain kustom milik user ─────────────────────────────────────── */
+    if (arg.jenis === 'kustom') {
+      let hasil
+      try {
+        hasil = await klaimDomainKustom({
+          domain: arg.domain,
+          pemilik: String(m.sender || ''),
+          judul: String(m.pushName || '').slice(0, 40),
+        })
+      } catch (error) {
+        return m.reply([
+          `❌ ${error.message}`,
+          '',
+          '*Cara pakai domain sendiri*',
+          '`.addsubdomain kaeira.my.id`',
+          '',
+          `Lalu di DNS domainmu buat record:`,
+          `• Type : CNAME`,
+          `• Name : @ (atau subdomain yang diinginkan)`,
+          `• Value: ${hostCnameKustom()}`,
+          '• Proxy: ON (ikon oranye)',
+          '',
+          'Kalau bingung, pakai nama domain bot saja:',
+          '`.addsubdomain toko-budi`',
+        ].join('\n'))
+      }
+
+      const cek = await cekCnameKustom(hasil.domainKustom).catch(() => ({ cocok: hasil.dnsSiap, target: hasil.target, daftar: hasil.dnsDaftar || [] }))
+      const baris = [
+        '✅ *DOMAIN BERHASIL DIDAFTARKAN*',
+        '',
+        `🌐 https://${hasil.domainKustom}/`,
+        `👤 Pemilik: +${String(m.sender || '').split('@')[0]}`,
+        `🛰️ DNS: ${cek.cocok ? 'siap (CNAME benar)' : 'BELUM mengarah ke bot'}`,
+        '',
+        '*Kalau DNS belum siap, atur di penyedia domainmu*',
+        '• Type : CNAME',
+        '• Name : @ (root) atau nama subdomain',
+        `• Value: ${cek.target}`,
+        '• Proxy: ON (Cloudflare) / gunakan CNAME biasa di DNS lain',
+        '',
+        'Setelah itu:',
+        '`.deploysubdomain ' + hasil.nama + ' ganti` lalu kirim HTML/zip.',
+        `⚙️ Kontrol: .kontrolsubdomain ${hasil.domainKustom}`,
+      ]
+      if (!cek.cocok && cek.daftar && cek.daftar.length) {
+        baris.push('', `Catatan: CNAME sekarang mengarah ke ${cek.daftar.join(', ')}.`)
+      }
+      return m.reply(baris.join('\n'))
+    }
+
+    /* ── nama di domain bot ───────────────────────────────────────────── */
     let hasil
     try {
       hasil = await klaimSubdomain({
-        nama,
+        nama: arg.nama,
         pemilik: String(m.sender || ''),
         judul: String(m.pushName || '').slice(0, 40),
       })
     } catch (error) {
-      return m.reply(`❌ ${error.message}`)
+      return m.reply(`❌ ${error.message}\n\nLihat cara pakai: .addsubdomain`)
     }
 
     /* Berkas ikut di pesan yang sama → langsung di-deploy. */
@@ -360,7 +451,7 @@ let handler = async (m, extra = {}) => {
       'DNS alamat baru butuh ±10 detik–2 menit sebelum terbuka.',
     ]
     if (hasil.panelGalat) {
-      baris.push('', `⚠️ Panel situs sedang gangguan (${hasil.panelGalat}).`, 'Subdomain sudah tercatat + DNS dibuat, halaman awal menyusul saat panel normal.')
+      baris.push('', `⚠️ Panel situs sedang gangguan (${hasil.panelGalat}).`, 'Subdomain sudah tercatat, halaman awal menyusul saat panel normal.')
     }
     return m.reply(baris.join('\n'))
   }
@@ -401,7 +492,10 @@ let handler = async (m, extra = {}) => {
 
   if (command === 'kontrol-subdomain' || command === 'kontrolsubdomain') {
     const admin = Boolean(extra.isOwner || extra.isROwner)
-    const nama = namaSubAman(args[0] || '')
+    const argKontrol = bacaArgumenSitus(args[0] || '')
+    const nama = argKontrol.jenis === 'kustom'
+      ? (situsDariHostKustom(argKontrol.domain) || argKontrol.nama)
+      : (argKontrol.jenis === 'nama' ? argKontrol.nama : '')
 
     if (!nama) {
       const registry = await bacaRegistry().catch(() => ({}))
@@ -561,8 +655,16 @@ handler.all = async function (m) {
   return prosesTunggu(this, m, tunggu)
 }
 
-handler.help = ['addsubdomainmy nama', 'kontrolsubdomain [nama]', 'deploysubdomain nama', 'ceksubdomain', 'dellsubdomainmy nama (developer)', 'subdomainmenu']
-handler.tags = ['owner']
+handler.help = [
+  'subdomainmenu',
+  'addsubdomain nama/domain',
+  'deploysubdomain nama',
+  'kontrolsubdomain [nama]',
+  'ceksubdomain [nama]',
+  'dellsubdomainmy nama (developer)',
+]
+handler.tags = ['owner', 'subdomain']
+handler.category = 'owner'
 handler.command = /^(deploysubdomain|deploysite|ceksubdomain|listubdomain|statussubdomain|kontrol-?subdomain|kontrolsubdomain|aktifsubdomain|nonaktifsubdomain|hapussubdomain|delsubdomain|dellsubdomainmy|delsubdomainmy|hapussubdomainmy|addsubdomainmy|addsubdomain|tambahsubdomain|bataldeploy|subdomainmenu|menu_subdomain)$/i
 handler.description = 'Kelola subdomain: tambah sendiri, kontrol, deploy situs, hapus (developer)'
 handler.owner = false

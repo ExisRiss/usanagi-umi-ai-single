@@ -407,7 +407,9 @@ Beberapa `case` sekaligus boleh dalam satu kiriman, label bertumpuk (`case 'bye'
 
 Semua pengguna bisa mendaftarkan subdomain sendiri, tetapi **penghapusan hanya untuk developer / owner bot**.
 
-- `.addsubdomainmy <nama>` — klaim subdomain, langsung dibuatkan halaman awal + CNAME Cloudflare. Batas `maksPerUser` (bawaan 3) per nomor.
+- `.addsubdomain <nama>` — klaim subdomain `<nama>-alzriss.gwenna.my.id` (halaman awal + CNAME otomatis). Bentuk salah (kosong/terlalu pendek/ada spasi) dibalas **tutorial lengkap**, bukan error.
+- `.addsubdomain <domain-mu>` — pakai domain sendiri, mis. `.addsubdomain kaeira.my.id`. Bot mencatat domain, memeriksa CNAME ke `situs.gwenna.my.id`, dan menyajikan situsnya dari server bot.
+- Batas `maksPerUser` (bawaan 3) situs per nomor.
 - `.deploysubdomain <nama> ganti` — isi situs: balas `.html`, `.zip`/`.tar.gz` (wajib ada `index.html`), atau kode HTML.
 - `.kontrolsubdomain [nama]` — panel kontrol milik sendiri (developer melihat semua): info, deploy ulang, aktif/nonaktif.
 - `.dellsubdomainmy <nama> hapus` — hapus folder + DNS; **ditolak untuk user biasa** (mereka diarahkan ke owner).
@@ -416,6 +418,12 @@ Semua pengguna bisa mendaftarkan subdomain sendiri, tetapi **penghapusan hanya u
 Alamat hasil: `https://<nama>-alzriss.gwenna.my.id/` (SSL Universal aktif) dan `https://<nama>.alzriss.gwenna.my.id/` (aktif setelah Total TLS).
 
 **Hosting sekarang di server bot sendiri** (Task152): berkas situs disimpan di `situs/<nama>/`, daftar pemilik di `data/subdomain-registry.json`, dan penyajiannya lewat API bot (port 2176) yang mengenali header Host subdomain. Panel Kaira tidak dipakai lagi, jadi deploy tidak ikut mati saat panel itu gangguan.
+
+## Prefix dan menu
+
+Jadibot menerima prefix yang disetel **plus `/`** sebagai alias — banyak pengguna mengetik `/menu`, `/addcase`, `/bug2` karena dokumentasi memakainya. Simbol lain (mis. `!`, `#`) tetap ditolak saat mode `strict` dipakai, dan bot utama tetap hanya `$`. Filter prefix yang disetel tetap berlaku penuh (Task112).
+
+`.subdomainmenu` dan `.mcmenu` sekarang tampil di `.menu` (kategori **owner**) dan di `.allmenu`.
 
 ## Identitas Pengguna dan Owner Dinamis
 

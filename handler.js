@@ -413,6 +413,9 @@ const incomingPrefix = resolveIncomingPrefix({
     plugins: global.plugins,
     activePrefix,
     mode: prefixMode,
+    /* Task154 — jadibot juga menerima `/` sebagai alias prefix. Bot utama
+     * tetap hanya `$` (Task117). */
+    aliasPrefixes: prefixBotKind === 'jadibot' ? ['/'] : [],
 })
 if (incomingPrefix.alternate) {
     activePrefix = incomingPrefix.prefix
