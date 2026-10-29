@@ -398,7 +398,7 @@ Bot menampilkan status **sedang mengetik** tanpa menunggu respons presence dari 
 `/addcase <nama>` menambah **fitur case** tanpa menulis plugin penuh.
 
 1. Ketik `.addcase sapa`
-2. Balas pesan bot dengan kode case (`case 'sapa': … break`), kode isi saja, atau berkas `.js` / `.txt`.
+2. Kirim kodenya di **pesan berikutnya** (tanpa prefix — di grup juga masuk), atau balas pesan bot dengan kode / berkas `.js` / `.txt`.
 3. Bot menyimpan berkas ke `plugins/custom-case/<nama>.js`, memuatnya lewat hot reload, lalu membalas perintah yang bisa dipakai (`.sapa`).
 
 Beberapa `case` sekaligus boleh dalam satu kiriman, label bertumpuk (`case 'bye': case 'dadah':`) digabung, dan `default:` diabaikan. Nama yang sudah dipakai plugin bawaan ditolak supaya perintah lama tidak terbajak. Timpa case lama dengan `.addcase <nama> --ganti`. Tersedia untuk owner bot (bukan pengguna umum) karena kode dijalankan di server.
@@ -413,7 +413,9 @@ Semua pengguna bisa mendaftarkan subdomain sendiri, tetapi **penghapusan hanya u
 - `.dellsubdomainmy <nama> hapus` — hapus folder + DNS; **ditolak untuk user biasa** (mereka diarahkan ke owner).
 - `.hapussubdomain` kini mengikuti aturan yang sama: hanya developer/owner bot.
 
-Alamat hasil: `https://<nama>-alzriss.gwenna.my.id/` (SSL Universal aktif) dan `https://<nama>.alzriss.gwenna.my.id/` (aktif setelah Total TLS). Registry kepemilikan disimpan di panel situs **dan** salinan lokal `data/subdomain-registry.json`, jadi data tidak hilang saat panel sedang gangguan.
+Alamat hasil: `https://<nama>-alzriss.gwenna.my.id/` (SSL Universal aktif) dan `https://<nama>.alzriss.gwenna.my.id/` (aktif setelah Total TLS).
+
+**Hosting sekarang di server bot sendiri** (Task152): berkas situs disimpan di `situs/<nama>/`, daftar pemilik di `data/subdomain-registry.json`, dan penyajiannya lewat API bot (port 2176) yang mengenali header Host subdomain. Panel Kaira tidak dipakai lagi, jadi deploy tidak ikut mati saat panel itu gangguan.
 
 ## Identitas Pengguna dan Owner Dinamis
 

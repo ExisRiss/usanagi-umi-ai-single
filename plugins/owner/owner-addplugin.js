@@ -3,7 +3,9 @@
 import fs from 'node:fs/promises'
 import path from 'node:path'
 import syntaxError from 'syntax-error'
-import { adaLampiran, unduhLampiran } from '../../lib/lampiran.js'
+import { adaLampiran, unduhLampiran, captionLampiran } from '../../lib/lampiran.js'
+import { pasangKode, ambilKode, hapusKode, BATAS_TUNGGU } from '../../lib/pending-kode.js'
+import { daftarkanAksi } from '../../lib/pending-aksi.js'
 
 const BRAND = global.brandCredit || 'By AlzRiss - Usanagi Umi AI'
 
@@ -129,8 +131,36 @@ async function restoreOrRemove(target, backup) {
   if (backup) await fs.copyFile(backup, target).catch(() => {})
 }
 
-const handler = async (m, extra = {}) => {
-  const { text = '', conn } = extra
+/** Deteksi cepat kode plugin (bukan obrolan biasa). */
+function tampakKodePlugin(teks) {
+  const isi = String(teks || '').trim()
+  if (!isi || /^[.\/#!]/.test(isi)) return false
+  return /export\s+default|handler\s*\.\s*command|const\s+handler\s*=|function\s+handler|import\s+.+from\s+['"]/.test(isi)
+}
+
+/** Ambil kode dari pesan sekarang: berkas, teks, atau kutipan. */
+async function kodeDariPesan(conn, m) {
+  if (adaLampiran(m)) {
+    const buffer = await unduhLampiran(conn, m).catch(() => null)
+    if (buffer && buffer.length) return cleanCodeFence(buffer.toString('utf8'))
+  }
+  const teks = String(m.text || captionLampiran(m) || '').trim()
+  if (tampakKodePlugin(teks)) return cleanCodeFence(teks)
+
+  const kutipan = m.quoted
+  if (kutipan) {
+    const teksKutipan = kutipan.text || kutipan.caption
+    if (typeof teksKutipan === 'string' && teksKutipan.trim()) return cleanCodeFence(teksKutipan)
+    if (typeof kutipan.download === 'function') {
+      const buffer = await kutipan.download().catch(() => null)
+      if (buffer && buffer.length) return cleanCodeFence(buffer.toString('utf8'))
+    }
+  }
+  return ''
+}
+
+/** Inti: validasi + tulis plugin + hot reload. */
+async function pasangPlugin(m, { kode = '', text = '' } = {}) {
   const config = installerConfig()
   if (!config.enabled) throw new Error('Installer plugin sedang dinonaktifkan di config.js.')
 
@@ -139,12 +169,10 @@ const handler = async (m, extra = {}) => {
   const requestedName = args.find(value => !value.startsWith('--'))
   const filename = safeFilename(requestedName)
 
-  /* Tanpa balasan/berkas → kirim tutorial, bukan pesan error. */
-  const code = await codeFromReply(m, conn)
-  if (!code) return m.reply(TUTORIAL)
-  const size = Buffer.byteLength(code)
+  if (!kode) return m.reply(TUTORIAL)
+  const size = Buffer.byteLength(kode)
   if (size > config.maxBytes) throw new Error(`Plugin terlalu besar: ${size} byte. Maksimal ${config.maxBytes} byte.`)
-  validateShape(code, filename)
+  validateShape(kode, filename)
 
   await fs.mkdir(config.directory, { recursive: true })
   const target = path.join(config.directory, filename)
@@ -165,7 +193,7 @@ const handler = async (m, extra = {}) => {
 
   const temporary = path.join(config.directory, `.${filename}.${process.pid}.tmp`)
   try {
-    await fs.writeFile(temporary, `${code.trim()}\n`, { encoding: 'utf8', mode: 0o600 })
+    await fs.writeFile(temporary, `${kode.trim()}\n`, { encoding: 'utf8', mode: 0o600 })
     await fs.rename(temporary, target)
     if (typeof global.reload !== 'function') throw new Error('Hot reload plugin belum tersedia.')
     await global.reload(null, relative)
@@ -177,7 +205,7 @@ const handler = async (m, extra = {}) => {
       throw new Error('Plugin gagal dimuat saat validasi runtime. Instalasi dibatalkan.')
     }
 
-    await m.reply([
+    return m.reply([
       '✅ *PLUGIN BERHASIL DITAMBAHKAN*',
       '',
       `📄 File: plugins/${relative}`,
@@ -193,9 +221,59 @@ const handler = async (m, extra = {}) => {
   }
 }
 
-handler.help = ['addplugin [nama] [--replace] (reply kode/file .js)']
+const menit = Math.round(BATAS_TUNGGU / 60000)
+
+const handler = async (m, extra = {}) => {
+  const { text = '', conn, command = '' } = extra
+
+  if (/^batalplugin$/i.test(String(command))) {
+    hapusKode(m)
+    return m.reply('✅ Antrean kode dibatalkan.')
+  }
+
+  const config = installerConfig()
+  if (!config.enabled) throw new Error('Installer plugin sedang dinonaktifkan di config.js.')
+
+  const argumen = String(text || '').trim()
+  const baris = argumen.split('\n')
+  const kodeBaris = baris.length > 1 ? cleanCodeFence(baris.slice(1).join('\n')) : ''
+  const kode = kodeBaris || await kodeDariPesan(conn, m)
+  const textArg = baris[0].trim()
+
+  if (kode) {
+    hapusKode(m)
+    return pasangPlugin(m, { kode, text: textArg })
+  }
+
+  /* Tanpa kode → simpan antrean + tutorial (bukan pesan error). */
+  pasangKode(m, { jenis: 'addplugin', text: textArg })
+  return m.reply([
+    TUTORIAL,
+    '',
+    `⏳ *Menunggu kode* (${menit} menit).`,
+    'Kirim kodenya sekarang — di grup pun tanpa prefix.',
+    'Batal: `.batalplugin`',
+  ].join('\n'))
+}
+
+/* Jalur utama: kode yang dikirim sesudah perintah (tanpa prefix) tetap masuk. */
+daftarkanAksi('addplugin', (m) => {
+  const tunggu = ambilKode(m)
+  if (!tunggu || tunggu.jenis !== 'addplugin') return null
+  return {
+    jalankan: async function (pesan) {
+      const kode = await kodeDariPesan(this, pesan)
+      if (!kode) return false
+      hapusKode(pesan)
+      await pasangPlugin(pesan, { kode, text: tunggu.text || '' })
+      return true
+    },
+  }
+})
+
+handler.help = ['addplugin [nama] [--replace] (kirim kode/file .js)', 'batalplugin']
 handler.tags = ['owner']
-handler.command = /^(addplugin|installplugin)$/i
+handler.command = /^(addplugin|installplugin|batalplugin)$/i
 handler.rowner = true
 handler.limit = false
 

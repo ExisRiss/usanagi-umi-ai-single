@@ -73,7 +73,7 @@ export default handler
    .addcase sapa
    ```
 
-2. Balas pesan bot dengan salah satu bentuk berikut.
+2. Kirim kodenya di **pesan berikutnya** — tanpa prefix, dan tetap jalan di grup (bot menunggu sampai 20 menit; batal dengan `.batalcase`). Bisa juga langsung membalas pesan bot. Bentuk kodenya salah satu dari:
 
    **a. Potongan `case`**
 
@@ -221,15 +221,23 @@ Membuka panel:
 
 Tanpa kata `hapus`, bot hanya meminta konfirmasi.
 
-### 3.5 Kalau panel situs sedang gangguan
+### 3.5 Hosting: server bot sendiri (Task152)
 
-Kalau panel situs (Kaira) tidak bisa dihubungi:
+Berkas situs sekarang disimpan **di server bot**, bukan di panel Kaira:
 
-- pendaftaran **tetap** tercatat (registry lokal + DNS Cloudflare dibuat),
-- bot membalas peringatan `⚠️ Panel situs sedang gangguan`,
-- halaman awal menyusul saat panel normal kembali.
+| Bagian | Lokasi |
+|---|---|
+| berkas situs | `situs/<nama>/` |
+| daftar pemilik | `data/subdomain-registry.json` |
+| penyaji | API bot port 2176, dikenali dari header Host |
+| DNS | CNAME `<nama>-alzriss.gwenna.my.id` → tunnel bot |
 
-Cek isi registry lokal: `data/subdomain-registry.json`.
+Alur permintaan: Cloudflare → tunnel bot → API 2176 → `lib/situs-lokal.js`
+membaca `situs/<nama>/<jalur>`. Halaman 404 bawaan menyebut nama subdomain dan
+cara mengisi situs. Subdomain berstatus `nonaktif` menjawab 503.
+
+Karena tidak lagi bergantung panel Kaira, gangguan panel tidak memengaruhi
+situs pengguna.
 
 ---
 

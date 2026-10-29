@@ -1,22 +1,22 @@
 /* By AlzRiss - Usanagi Umi AI
  *
- * Task151 — `.addcase`
+ * Task151/152 — `.addcase`
  *
- *   .addcase <nama>            lalu balas pesan bot dengan kode case / berkas
- *   .addcase <nama> --ganti    menimpa case lama dengan nama yang sama
+ *   .addcase <nama>              kirim kode case (boleh di pesan berikutnya)
+ *   .addcase <nama> --ganti      timpa case dengan nama yang sama
+ *   .batalcase                   batalkan antrean kode
  *
  * Kode yang diterima:
  *   1. potongan switch (boleh beberapa case sekaligus)
  *        case 'halo':
  *          m.reply('Hai!')
  *          break
- *   2. isi saja tanpa `case` (nama perintah diambil dari argumen)
- *        m.reply('Hai!')
- *   3. berkas .js / .txt berisi salah satu bentuk di atas
+ *   2. isi saja tanpa `case` — nama perintah dari argumen perintah
+ *   3. berkas .js / .txt
  *
- * Hasilnya: berkas plugin baru di `plugins/custom-case/<nama>.js` yang langsung
- * dimuat lewat hot reload — tanpa restart. Sama seperti `.addplugin`, kode
- * diperiksa dulu (sintaks + pola berbahaya) sebelum disimpan.
+ * Task152: kode yang dikirim SETELAH perintah (tanpa prefix, termasuk di grup)
+ * ditangkap lewat `lib/pending-kode.js` + registry aksi tertunda, karena
+ * handler.js berhenti di gerbang prefix sebelum plugin dipanggil.
  */
 
 import fs from 'node:fs/promises'
@@ -30,7 +30,9 @@ import {
   perintahSudahDipakai,
   indentasi,
 } from '../../lib/kode-aman.js'
-import { adaLampiran, unduhLampiran } from '../../lib/lampiran.js'
+import { adaLampiran, unduhLampiran, captionLampiran } from '../../lib/lampiran.js'
+import { pasangKode, ambilKode, hapusKode, tampakKode, BATAS_TUNGGU } from '../../lib/pending-kode.js'
+import { daftarkanAksi } from '../../lib/pending-aksi.js'
 
 const BRAND = global.brandCredit || 'By AlzRiss - Usanagi Umi AI'
 const AKAR_PLUGIN = path.resolve('./plugins')
@@ -42,9 +44,8 @@ const TUTORIAL = [
   '*Langkah*',
   '1. Ketik `.addcase <nama>`',
   '   contoh: `.addcase sapa`',
-  '2. Balas pesan bot itu dengan salah satu:',
-  '   • kode case langsung di chat',
-  '   • atau kirim berkas `.js` / `.txt`',
+  '2. Kirim kodenya di pesan berikutnya — di grup pun boleh tanpa prefix.',
+  '   Bisa juga langsung membalas pesan bot ini dengan kodenya.',
   '',
   '*Contoh kode*',
   '```js',
@@ -81,23 +82,30 @@ const TUTORIAL = [
   BRAND,
 ].join('\n')
 
-/** Ambil kode dari balasan/berkas yang dikirim user. */
-async function kodeMasuk(conn, m) {
-  const kutipan = m.quoted
-  if (kutipan) {
-    const teks = kutipan.text || kutipan.caption
-    if (typeof teks === 'string' && teks.trim()) return bersihkanPagarKode(teks)
-    if (typeof kutipan.download === 'function') {
-      const buffer = await kutipan.download().catch(() => null)
-      if (buffer && buffer.length) return bersihkanPagarKode(buffer.toString('utf8'))
-    }
-    return ''
-  }
+const menit = Math.round(BATAS_TUNGGU / 60000)
+
+/** Ambil kode dari pesan sekarang: berkas, teks, atau kutipan. */
+async function kodeDariPesan(conn, m) {
   if (adaLampiran(m)) {
     const buffer = await unduhLampiran(conn, m).catch(() => null)
-    if (buffer && buffer.length) return bersihkanPagarKode(buffer.toString('utf8'))
+    if (buffer && buffer.length) return { kode: bersihkanPagarKode(buffer.toString('utf8')), sumber: 'berkas' }
   }
-  return ''
+
+  const teks = String(m.text || captionLampiran(m) || '').trim()
+  if (teks && tampakKode(teks)) return { kode: bersihkanPagarKode(teks), sumber: 'teks' }
+
+  const kutipan = m.quoted
+  if (kutipan) {
+    const teksKutipan = kutipan.text || kutipan.caption
+    if (typeof teksKutipan === 'string' && tampakKode(teksKutipan)) {
+      return { kode: bersihkanPagarKode(teksKutipan), sumber: 'kutipan' }
+    }
+    if (typeof kutipan.download === 'function') {
+      const buffer = await kutipan.download().catch(() => null)
+      if (buffer && buffer.length) return { kode: bersihkanPagarKode(buffer.toString('utf8')), sumber: 'kutipan-berkas' }
+    }
+  }
+  return { kode: '', sumber: '' }
 }
 
 /** Nama-nama case yang sudah ada di plugins/custom-case/. */
@@ -111,7 +119,7 @@ async function caseTersimpan() {
 }
 
 function bangunPlugin({ labels, isi, namaBerkas, pengirim, waktu }) {
-  const baris = [
+  return [
     `/* Dibuat lewat .addcase — ${waktu} oleh ${pengirim} */`,
     '',
     'const handler = async (m, { conn, text, args, usedPrefix, prefix, command }) => {',
@@ -120,63 +128,40 @@ function bangunPlugin({ labels, isi, namaBerkas, pengirim, waktu }) {
     '',
     `handler.command = /^(${labels.map((l) => l.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')).join('|')})$/i`,
     `handler.help = [${labels.map((l) => `'${l.replace(/'/g, "\\'")}'`).join(', ')}]`,
-    'handler.tags = [\'custom\']',
+    "handler.tags = ['custom']",
     `handler.description = 'Case buatan pengguna lewat .addcase (${namaBerkas.replace(/'/g, "\\'")})'`,
     'handler.limit = false',
     '',
     'export default handler',
     '',
-  ]
-  return baris.join('\n')
+  ].join('\n')
 }
 
-const handler = async (m, extra = {}) => {
-  const { conn, text = '' } = extra
-  const argumen = String(text || '').trim()
-  const kata = argumen.split(/\s+/).filter(Boolean)
-  const ganti = kata.includes('--ganti') || kata.includes('--replace')
-  const namaDiminta = kata.find((k) => !k.startsWith('--')) || ''
-
-  /* Kode bisa langsung menyusul di baris berikutnya (tanpa reply). */
-  const potongBaris = argumen.split('\n')
-  const kodeBarisLanjut = potongBaris.length > 1 ? bersihkanPagarKode(potongBaris.slice(1).join('\n')) : ''
-  const kode = kodeBarisLanjut || await kodeMasuk(conn, m)
-
+/** Inti: validasi + simpan case + hot reload. Semua jalur berakhir di sini. */
+async function simpanCase(m, { namaDiminta = '', ganti = false, kode = '' } = {}) {
   if (!kode) return m.reply(TUTORIAL)
-  if (!namaDiminta) {
-    return m.reply([
-      '❌ Nama fitur belum ditulis.',
-      '',
-      'Pakai: `.addcase <nama>` lalu balas kodenya.',
-      'Atau pakai `case` di dalam kode supaya namanya terbaca otomatis.',
-      '',
-      'Contoh: `.addcase sapa`',
-    ].join('\n'))
-  }
 
   const blokCase = pecahBlokCase(kode).filter((item) => item.isi)
   if (!blokCase.length) return m.reply(`❌ Kode case kosong.\n\n${TUTORIAL}`)
 
-  caseTersimpanSet = await caseTersimpan()
+  const tersimpan = await caseTersimpan()
 
-  /* Nama dari argumen selalu menang. Kalau argumen kosong (tidak mungkin di
-   * sini), label `case` yang dipakai. */
+  /* Nama dari argumen selalu menang. */
   const semuaLabel = new Set()
   const labelDiminta = namaFiturAman(namaDiminta)
   if (labelDiminta) {
     semuaLabel.add(labelDiminta)
   } else {
-    for (const blok of blokCase) {
-      for (const label of blok.labels) semuaLabel.add(label)
-    }
+    for (const blok of blokCase) for (const label of blok.labels) semuaLabel.add(label)
   }
   if (!semuaLabel.size) {
     return m.reply('❌ Nama case tidak valid. Pakai huruf/angka/tanda hubung, minimal 2 huruf.\nContoh: `.addcase sapa-hari`')
   }
 
   const labels = [...semuaLabel]
+
   /* Jangan sampai case baru membajak perintah bawaan bot. */
-  const bentrok = labels.filter((label) => perintahSudahDipakai(label, global.plugins) && !caseTersimpanSet.has(label))
+  const bentrok = labels.filter((label) => perintahSudahDipakai(label, global.plugins) && !tersimpan.has(label))
   if (bentrok.length) {
     return m.reply([
       `❌ Nama ini sudah dipakai plugin bawaan: *${bentrok.join(', ')}*`,
@@ -205,15 +190,13 @@ const handler = async (m, extra = {}) => {
     sourceType: 'module',
     allowAwaitOutsideFunction: true,
   })
-  if (galatSintaks) {
-    return m.reply(`❌ Kode case ada salah tulis:\n${galatSintaks.message}`)
-  }
+  if (galatSintaks) return m.reply(`❌ Kode case ada salah tulis:\n${galatSintaks.message}`)
 
   await fs.mkdir(DIR_CASE, { recursive: true })
   const tujuan = path.join(DIR_CASE, `${namaBerkas}.js`)
   const relatif = path.relative(AKAR_PLUGIN, tujuan).replace(/\\/g, '/')
 
-  const adaSebelumnya = caseTersimpanSet.has(namaBerkas) || await fs.access(tujuan).then(() => true, () => false)
+  const adaSebelumnya = tersimpan.has(namaBerkas) || await fs.access(tujuan).then(() => true, () => false)
   if (adaSebelumnya && !ganti) {
     return m.reply([
       `⚠️ Case *${namaBerkas}* sudah ada.`,
@@ -262,14 +245,58 @@ const handler = async (m, extra = {}) => {
   }
 }
 
-/* Dipakai untuk cek bentrok sekaligus status tersimpan. */
-let caseTersimpanSet = new Set()
-const muatAwal = async () => { caseTersimpanSet = await caseTersimpan() }
-muatAwal()
+const handler = async (m, extra = {}) => {
+  const { conn, text = '', command = '' } = extra
 
-handler.help = ['addcase <nama> (balas kode case / berkas)', 'addcase <nama> --ganti']
+  if (/^batalcase$/i.test(String(command))) {
+    hapusKode(m)
+    return m.reply('✅ Antrean kode dibatalkan.')
+  }
+
+  const argumen = String(text || '').trim()
+  const baris = argumen.split('\n')
+  const kata = baris[0].trim().split(/\s+/).filter(Boolean)
+  const ganti = kata.includes('--ganti') || kata.includes('--replace')
+  const namaDiminta = kata.find((k) => !k.startsWith('--')) || ''
+
+  /* Kode boleh langsung menyusul di baris berikutnya. */
+  const kodeBaris = baris.length > 1 ? bersihkanPagarKode(baris.slice(1).join('\n')) : ''
+  const dariPesan = kodeBaris ? { kode: kodeBaris, sumber: 'pesan' } : await kodeDariPesan(conn, m)
+
+  if (dariPesan.kode) {
+    hapusKode(m)
+    return simpanCase(m, { namaDiminta, ganti, kode: dariPesan.kode })
+  }
+
+  /* Belum ada kode → simpan antrean lalu kirim tutorial. */
+  pasangKode(m, { jenis: 'addcase', nama: namaDiminta, ganti })
+  return m.reply([
+    TUTORIAL,
+    '',
+    `⏳ *Menunggu kode* untuk case *${namaDiminta || 'tanpa nama'}* (${menit} menit).`,
+    'Kirim kodenya sekarang — di grup pun tanpa prefix.',
+    'Batal: `.batalcase`',
+  ].join('\n'))
+}
+
+/* Jalur utama: pesan kode berikutnya ditangkap sebelum gerbang prefix. */
+daftarkanAksi('addcase', (m) => {
+  const tunggu = ambilKode(m)
+  if (!tunggu || tunggu.jenis !== 'addcase') return null
+  return {
+    jalankan: async function (pesan) {
+      const hasil = await kodeDariPesan(this, pesan)
+      if (!hasil.kode) return false
+      hapusKode(pesan)
+      await simpanCase(pesan, { namaDiminta: tunggu.nama || '', ganti: Boolean(tunggu.ganti), kode: hasil.kode })
+      return true
+    },
+  }
+})
+
+handler.help = ['addcase <nama> (kirim kode case / berkas)', 'batalcase']
 handler.tags = ['owner']
-handler.command = /^(addcase|tambahcase)$/i
+handler.command = /^(addcase|tambahcase|batalcase)$/i
 handler.description = 'Tambah fitur baru dari potongan case atau berkas JavaScript'
 handler.owner = true
 handler.limit = false
