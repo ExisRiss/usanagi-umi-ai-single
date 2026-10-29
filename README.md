@@ -468,3 +468,17 @@ Foto, video, audio, dokumen, zip/7z/rar/apk yang dikirim ke bot disimpan **di se
 - Batas bawaan 100 MB, masa simpan 90 hari, dibersihkan otomatis. Berkas disajikan oleh API bot (port 2176) lewat `upload.gwenna.my.id`, tanpa host pihak ketiga.
 
 Panduan lengkap: `docs/UPLOAD-PUBLIK.md`.
+
+## Kalau situs/API error 1033, 530, atau 1027
+
+Bukan bug website. Lihat `docs/RESTART-DAN-1033.md`:
+
+- **1033 / 530** → server bot mati atau DNS host menunjuk tunnel yang sudah tidak jalan.
+  Server sekarang punya watchdog panel (tiap 2 menit) yang menyalakannya sendiri,
+  dan `lib/auto-update.js` tidak lagi mematikan proses saat restart gagal.
+- **1027** ("owner has reached their plan limits") → kuota Worker Cloudflare habis
+  karena route catch-all `*.gwenna.my.id/*`. Route itu sudah dihapus; trafik langsung
+  ke tunnel bot. Kalau perlu diaktifkan lagi: `python3 tools/cf-route-okta.py --pulihkan`.
+
+Perintah bantu: `python3 tools/restart-aman.py --cek|--start` dan
+`python3 tools/cf-route-okta.py --status|--hapus|--pulihkan`.
