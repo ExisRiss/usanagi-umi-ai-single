@@ -3,8 +3,46 @@
 import fs from 'node:fs/promises'
 import path from 'node:path'
 import syntaxError from 'syntax-error'
+import { adaLampiran, unduhLampiran } from '../../lib/lampiran.js'
 
 const BRAND = global.brandCredit || 'By AlzRiss - Usanagi Umi AI'
+
+const TUTORIAL = [
+  '🧩 *CARA MENAMBAH PLUGIN*',
+  '',
+  '*Langkah*',
+  '1. Ketik `.addplugin <nama>`',
+  '   contoh: `.addplugin sapaan`',
+  '2. Balas pesan bot itu dengan salah satu:',
+  '   • kode plugin langsung di chat',
+  '   • atau kirim berkas `.js`',
+  '',
+  '*Kerangka plugin*',
+  '```js',
+  'const handler = async (m, { conn, text, args, usedPrefix, command }) => {',
+  "  m.reply('Hai dari plugin baru!')",
+  '}',
+  '',
+  'handler.command = /^sapaan$/i',
+  'handler.tags = [\'custom\']',
+  'handler.help = [\'sapaan\']',
+  'handler.limit = false',
+  '',
+  'export default handler',
+  '```',
+  '',
+  '*Syarat*',
+  '• wajib punya `export default handler`',
+  '• wajib punya `handler.command`',
+  '• maksimal 256 KB, tanpa akses child_process / eval / kredensial',
+  '',
+  '*Nama sama?*',
+  'Tambahkan `--replace`: `.addplugin sapaan --replace`',
+  '',
+  'Mau hanya menambah fitur sederhana? Pakai *.addcase* (tanpa kerangka plugin).',
+  '',
+  BRAND,
+].join('\n')
 
 function installerConfig() {
   const value = global.pluginInstaller || {}
@@ -28,20 +66,27 @@ function cleanCodeFence(value) {
   return code
 }
 
-async function codeFromReply(m) {
+async function codeFromReply(m, conn) {
   const quoted = m.quoted
-  if (!quoted) throw new Error('Reply pesan berisi kode plugin atau file JavaScript.')
+  if (quoted) {
+    const text = quoted.text || quoted.caption
+    if (typeof text === 'string' && text.trim()) return cleanCodeFence(text)
 
-  const text = quoted.text || quoted.caption
-  if (typeof text === 'string' && text.trim()) return cleanCodeFence(text)
+    if (typeof quoted.download === 'function') {
+      const buffer = await quoted.download().catch(() => null)
+      if (!buffer || !buffer.length) throw new Error('File plugin tidak dapat diunduh. Coba kirim ulang sebagai dokumen .js.')
+      return cleanCodeFence(buffer.toString('utf8'))
+    }
+  }
 
-  if (typeof quoted.download === 'function') {
-    const buffer = await quoted.download()
-    if (!buffer?.length) throw new Error('File plugin tidak dapat diunduh.')
+  /* Tanpa reply: boleh langsung mengirim berkas .js bersama perintahnya. */
+  if (adaLampiran(m)) {
+    const buffer = await unduhLampiran(conn, m).catch(() => null)
+    if (!buffer || !buffer.length) throw new Error('File plugin tidak dapat diunduh. Coba kirim ulang sebagai dokumen .js.')
     return cleanCodeFence(buffer.toString('utf8'))
   }
 
-  throw new Error('Kode plugin tidak terbaca. Reply teks kode atau dokumen .js.')
+  return ''
 }
 
 function safeFilename(input) {
@@ -84,7 +129,8 @@ async function restoreOrRemove(target, backup) {
   if (backup) await fs.copyFile(backup, target).catch(() => {})
 }
 
-const handler = async (m, { text }) => {
+const handler = async (m, extra = {}) => {
+  const { text = '', conn } = extra
   const config = installerConfig()
   if (!config.enabled) throw new Error('Installer plugin sedang dinonaktifkan di config.js.')
 
@@ -92,9 +138,10 @@ const handler = async (m, { text }) => {
   const replace = args.includes('--replace')
   const requestedName = args.find(value => !value.startsWith('--'))
   const filename = safeFilename(requestedName)
-  const code = await codeFromReply(m)
 
-  if (!code) throw new Error('Kode plugin kosong.')
+  /* Tanpa balasan/berkas → kirim tutorial, bukan pesan error. */
+  const code = await codeFromReply(m, conn)
+  if (!code) return m.reply(TUTORIAL)
   const size = Buffer.byteLength(code)
   if (size > config.maxBytes) throw new Error(`Plugin terlalu besar: ${size} byte. Maksimal ${config.maxBytes} byte.`)
   validateShape(code, filename)

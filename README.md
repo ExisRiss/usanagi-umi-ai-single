@@ -385,7 +385,35 @@ Bot menampilkan status **sedang mengetik** tanpa menunggu respons presence dari 
 
 ## Installer Plugin dari WhatsApp
 
-Developer utama dapat membalas pesan berisi kode plugin atau dokumen JavaScript lalu menjalankan `.addplugin nama-plugin`. Bot memeriksa ukuran, syntax ES module, bentuk handler, pola keamanan berbahaya, nama file, dan hasil hot reload. Plugin valid disimpan ke `plugins/custom/` dan langsung aktif tanpa restart. Gunakan `.addplugin nama-plugin --replace` untuk mengganti plugin yang sudah ada; versi lama dicadangkan. Fitur ini hanya tersedia untuk `rowner` dan dikonfigurasi melalui `global.pluginInstaller` di `config.js`.
+`/addplugin <nama>` menambah plugin baru dari WhatsApp. Kalau perintah dikirim **tanpa** balasan kode maupun berkas, bot kini membalas **tutorial pemakaian** lengkap dengan kerangka plugin — bukan pesan error.
+
+- Balas pesan bot dengan kode plugin, atau kirim dokumen `.js` bersama perintahnya.
+- Bot memeriksa ukuran, syntax ES module, bentuk handler (`export default` + `handler.command`), pola keamanan berbahaya, nama file, lalu hot reload.
+- Plugin valid disimpan ke `plugins/custom/` dan langsung aktif tanpa restart.
+- `.addplugin nama-plugin --replace` mengganti plugin lama (versi lama dicadangkan).
+- Hanya untuk `rowner`; konfigurasi di `global.pluginInstaller` (`config.js`).
+
+## Case baru dari WhatsApp (.addcase)
+
+`/addcase <nama>` menambah **fitur case** tanpa menulis plugin penuh.
+
+1. Ketik `.addcase sapa`
+2. Balas pesan bot dengan kode case (`case 'sapa': … break`), kode isi saja, atau berkas `.js` / `.txt`.
+3. Bot menyimpan berkas ke `plugins/custom-case/<nama>.js`, memuatnya lewat hot reload, lalu membalas perintah yang bisa dipakai (`.sapa`).
+
+Beberapa `case` sekaligus boleh dalam satu kiriman, label bertumpuk (`case 'bye': case 'dadah':`) digabung, dan `default:` diabaikan. Nama yang sudah dipakai plugin bawaan ditolak supaya perintah lama tidak terbajak. Timpa case lama dengan `.addcase <nama> --ganti`. Tersedia untuk owner bot (bukan pengguna umum) karena kode dijalankan di server.
+
+## Subdomain milik user
+
+Semua pengguna bisa mendaftarkan subdomain sendiri, tetapi **penghapusan hanya untuk developer / owner bot**.
+
+- `.addsubdomainmy <nama>` — klaim subdomain, langsung dibuatkan halaman awal + CNAME Cloudflare. Batas `maksPerUser` (bawaan 3) per nomor.
+- `.deploysubdomain <nama> ganti` — isi situs: balas `.html`, `.zip`/`.tar.gz` (wajib ada `index.html`), atau kode HTML.
+- `.kontrolsubdomain [nama]` — panel kontrol milik sendiri (developer melihat semua): info, deploy ulang, aktif/nonaktif.
+- `.dellsubdomainmy <nama> hapus` — hapus folder + DNS; **ditolak untuk user biasa** (mereka diarahkan ke owner).
+- `.hapussubdomain` kini mengikuti aturan yang sama: hanya developer/owner bot.
+
+Alamat hasil: `https://<nama>-alzriss.gwenna.my.id/` (SSL Universal aktif) dan `https://<nama>.alzriss.gwenna.my.id/` (aktif setelah Total TLS). Registry kepemilikan disimpan di panel situs **dan** salinan lokal `data/subdomain-registry.json`, jadi data tidak hilang saat panel sedang gangguan.
 
 ## Identitas Pengguna dan Owner Dinamis
 
