@@ -408,7 +408,10 @@ Beberapa `case` sekaligus boleh dalam satu kiriman, label bertumpuk (`case 'bye'
 Semua pengguna bisa mendaftarkan subdomain sendiri, tetapi **penghapusan hanya untuk developer / owner bot**.
 
 - `.addsubdomain <nama>` — klaim subdomain `<nama>-alzriss.gwenna.my.id` (halaman awal + CNAME otomatis). Bentuk salah (kosong/terlalu pendek/ada spasi) dibalas **tutorial lengkap**, bukan error.
-- `.addsubdomain <domain-mu>` — pakai domain sendiri, mis. `.addsubdomain kaeira.my.id`. Bot mencatat domain, memeriksa CNAME ke `situs.gwenna.my.id`, dan menyajikan situsnya dari server bot.
+- `.addsubdomain <domain-mu>` — pakai domain sendiri, mis. `.addsubdomain kaeira.my.id` atau `.addsubdomain blog.kaeira.my.id`. Situsnya **langsung hidup** di `https://<nama-folder>-alzriss.gwenna.my.id/` sambil domain aslinya disambungkan lewat nameserver Cloudflare (bot memeriksa NS/CNAME/HTTP dan memberi arahan per registrar).
+- `.cekdns <domain>` — periksa NS, CNAME, A, dan apakah halamannya benar-benar dilayani bot (otomatis menyambungkan begitu DNS siap).
+- `.bantudomain <domain>` — arahan lengkap: kenapa perlu nameserver, langkah per registrar (Cloudflare, Niagahoster, Hostinger, Namecheap, Domainesia, Rumahweb, GoDaddy, cloud.id/volty), dan alamat bot sebagai alternatif.
+- `.domainpending` / `.nszone <domain> <ns1> <ns2>` — khusus owner: daftar domain yang menunggu dan penyimpanan nameserver hasil penambahan zona di Cloudflare.
 - Batas `maksPerUser` (bawaan 3) situs per nomor.
 - `.deploysubdomain <nama> ganti` — isi situs: balas `.html`, `.zip`/`.tar.gz` (wajib ada `index.html`), atau kode HTML.
 - `.kontrolsubdomain [nama]` — panel kontrol milik sendiri (developer melihat semua): info, deploy ulang, aktif/nonaktif.

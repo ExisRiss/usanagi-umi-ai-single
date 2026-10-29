@@ -185,21 +185,79 @@ Bentuk yang diterima: `toko`, `toko-budi`, `toko.alzriss.gwenna.my.id`,
 Kalau tulisannya salah (kosong, terlalu pendek, angka saja, ada spasi, atau
 domain bot tanpa nama), bot **membalas tutorial lengkap** — bukan error.
 
-### 3.0a Memakai domain sendiri (mis. kaeira.my.id)
+### 3.0a Memakai domain sendiri (mis. kaeira.my.id, cloud.id, volty.com)
 
-1. `.addsubdomain kaeira.my.id`
-2. Di DNS domainmu (Cloudflare/registrar), buat:
+**Task156.** Domain milik user didaftarkan, situsnya **langsung hidup** di
+alamat bot, lalu disambungkan ke domain aslinya.
 
-| Type | Name | Value | Proxy |
-|---|---|---|---|
-| CNAME | `@` (atau subdomain) | `situs.gwenna.my.id` | ON / ikon oranye |
+```
+.addsubdomain kaeira.my.id        → domain akar
+.addsubdomain blog.kaeira.my.id   → subdomain milikmu sendiri
+.addsubdomain volty.com           → domain apa pun yang kamu punya
+```
 
-3. Tunggu propagasi (1–5 menit), lalu isi situsnya:
-   `.deploysubdomain kaeira.my.id ganti`
+Setelah perintah itu bot:
 
-Bot mengecek CNAME lewat DNS publik dan menulis hasilnya di pesan
-(`🛰️ DNS: siap` / `BELUM mengarah ke bot`). Berkas tetap disimpan bot; DNS
-milikmu tetap milikmu.
+1. mencatat domain + pemilik di `data/subdomain-registry.json`;
+2. menulis halaman awal di `situs/<nama-folder>/` (mis. `kaeira-my-id`);
+3. membuat CNAME alamat bot `<nama-folder>-alzriss.gwenna.my.id` → tunnel,
+   jadi situsmu **bisa langsung dibuka** walau domain aslinya belum siap:
+   `https://kaeira-my-id-alzriss.gwenna.my.id/`;
+4. memeriksa DNS domainmu (NS, CNAME, A, dan apakah halamannya benar-benar
+   dilayani bot) lalu mengirim statusnya;
+5. kalau token Cloudflare bot mengizinkan, **membuat zona domain sendiri**
+   dan mengirim dua nameserver yang harus dipasang di registrar;
+6. kalau tidak diizinkan, mengirim laporan ke owner bot + arahan manual.
+
+**Kenapa harus ganti nameserver, bukan CNAME saja?**
+
+Tunnel Cloudflare hanya meneruskan lalu lintas untuk DNS record yang berada
+di **akun Cloudflare yang sama** dengan tunnelnya
+([dokumentasi Cloudflare One](https://developers.cloudflare.com/cloudflare-one/networks/connectors/cloudflare-tunnel/routing-to-tunnel/dns/)).
+CNAME dari domain orang lain ke `situs.gwenna.my.id` akan berakhir error
+Cloudflare (1016/1033), bukan halaman bot. Jadi domain user perlu
+*"dititipkan"*: nameserver domain diganti ke pasangan Cloudflare milik akun
+bot, sesudah itu bot yang mengurus DNS + SSL.
+
+**Langkah lengkap untuk user**
+
+| # | Yang dilakukan | Perintah / tempat |
+|---|---|---|
+| 1 | Daftarkan domain | `.addsubdomain kaeira.my.id` |
+| 2 | Isi situs (boleh langsung, tanpa menunggu DNS) | `.deploysubdomain kaeira-my-id ganti` + kirim HTML/zip |
+| 3 | Ganti nameserver di registrar | panel domain → Nameserver → Custom DNS |
+| 4 | Cek status | `.cekdns kaeira.my.id` |
+| 5 | (opsional) baca arahan ulang | `.bantudomain kaeira.my.id` |
+
+**Langkah untuk owner bot**
+
+| # | Yang dilakukan | Perintah / tempat |
+|---|---|---|
+| 1 | Lihat permintaan yang menunggu | `.domainpending` |
+| 2 | Tambahkan domain akar ke Cloudflare | dashboard → Add a site |
+| 3 | Simpan dua nameserver dari Cloudflare | `.nszone kaeira.my.id NS1 NS2` |
+| 4 | Minta user mengganti NS, lalu pantau | `.cekdns kaeira.my.id` |
+
+Kalau token Cloudflare bot nanti diberi izin **Zone:Create**, langkah owner
+no. 2–3 tidak perlu lagi: bot membuat zona sendiri dan langsung mengirim
+nameserver ke user.
+
+**Panduan per penyedia DNS** (isi `.bantudomain`)
+
+- **Cloudflare** — DNS → Nameservers → Change
+- **Niagahoster** — Domain → Kelola → Nameserver → Ubah Nameserver
+- **Hostinger** — Domains → DNS / Nameservers → Change nameservers
+- **Namecheap** — Domain List → Manage → Nameservers → Custom DNS
+- **Domainesia** — Domain → Nameserver → Ganti Nameserver
+- **Rumahweb** — Domain → Kelola DNS → Nameserver
+- **GoDaddy** — My Domains → DNS → Nameservers → Change
+- **Cloud.id / Volty / lainnya** — cari menu Nameserver / Custom DNS
+
+**Kalau domain asing menembak server bot tapi belum terdaftar**
+
+Halaman yang muncul bukan JSON error, melainkan halaman arahan berisi
+`.addsubdomain`, `.bantudomain`, dan `.cekdns` untuk host tersebut
+(header `X-Umi-Host: belum-terdaftar`).
 
 ### 3.1 Menambah subdomain sendiri
 
