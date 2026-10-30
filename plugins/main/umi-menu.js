@@ -31,7 +31,7 @@ import {
 import { buildCatalogue } from '../../lib/umi-menu/registry.js'
 import { isOwner } from '../../lib/awang-cekakses.js'
 import { sendModernMenu, teksMenuBaru } from '../../lib/awang-menu.js'
-import { kirimMenuLive } from '../../lib/umi-menu/live-menu.js'
+import { kirimMenuLive, konfirmasiKartuTampil } from '../../lib/umi-menu/live-menu.js'
 
 /* Task122: `menu_refresh` ditambahkan — baris "Refresh Status" di tombol
  * mengirim id itu, dan tanpa ini plugin tidak pernah menerimanya. */
@@ -137,7 +137,12 @@ let handler = async function (m, extra = {}) {
     // Varian bertombol tetap tersedia untuk owner (mis. saat kartu rich ditolak).
     if (wanted.toLowerCase() === 'tombol') return sendModernMenu(conn, m, prefix)
     const parsed = wanted ? parseActionId(wanted) : null
-    if (parsed) return dispatchMenuCommand(m, { conn, prefix, action: parsed.action, page: parsed.page })
+    if (parsed) {
+      /* Task177 — tombol kartu ditekan = kartunya benar-benar tampil di HP itu.
+       * Tandai chat ini mampu supaya kiriman berikutnya tidak digandakan teks. */
+      try { konfirmasiKartuTampil(m.chat) } catch { /* jangan ganggu menu */ }
+      return dispatchMenuCommand(m, { conn, prefix, action: parsed.action, page: parsed.page })
+    }
     return rich
       ? kirimMenuLive(conn, m, { prefix, teksCadangan: teksCadangan(m, prefix) })
       : sendMenuTeksBaru(conn, m, { prefix })
