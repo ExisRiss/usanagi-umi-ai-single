@@ -403,24 +403,36 @@ Bot menampilkan status **sedang mengetik** tanpa menunggu respons presence dari 
 
 Beberapa `case` sekaligus boleh dalam satu kiriman, label bertumpuk (`case 'bye': case 'dadah':`) digabung, dan `default:` diabaikan. Kode yang hanya mendeklarasikan fungsi (mis. `async function X(sock, jid) { … }`) dideteksi dan fungsi itu dipanggil otomatis dengan `(sock, jid)` — begitu juga alias `sock`, `jid`, `sender`, `reply`, dan `pushName` di dalam case. Nama yang sudah dipakai plugin bawaan ditolak supaya perintah lama tidak terbajak. Timpa case lama dengan `.addcase <nama> --ganti`. Tersedia untuk owner bot (bukan pengguna umum) karena kode dijalankan di server.
 
-## Subdomain milik user
+## Subdomain & domain (Task176)
 
-Semua pengguna bisa mendaftarkan subdomain sendiri, tetapi **penghapusan hanya untuk developer / owner bot**.
+Sistem subdomain/domain ditulis ulang total. Perintah lama (`addsubdomain`, `cekdns`,
+`bantudomain`, `domainpending`, `nszone`, `dellsubdomainmy`, `hapussubdomain`,
+`deploysite`, `ceksubdomain`, …) **sudah dihapus** dari repo dan server.
 
-- `.addsubdomain <nama>` — klaim subdomain `<nama>-alzriss.gwenna.my.id` (halaman awal + CNAME otomatis). Bentuk salah (kosong/terlalu pendek/ada spasi) dibalas **tutorial lengkap**, bukan error.
-- `.addsubdomain <domain-mu>` — pakai domain sendiri, mis. `.addsubdomain kaeira.my.id` atau `.addsubdomain blog.kaeira.my.id`. Situsnya **langsung hidup** di `https://<nama-folder>-alzriss.gwenna.my.id/` sambil domain aslinya disambungkan lewat nameserver Cloudflare (bot memeriksa NS/CNAME/HTTP dan memberi arahan per registrar).
-- `.cekdns <domain>` — periksa NS, CNAME, A, dan apakah halamannya benar-benar dilayani bot (otomatis menyambungkan begitu DNS siap).
-- `.bantudomain <domain>` — arahan lengkap: kenapa perlu nameserver, langkah per registrar (Cloudflare, Niagahoster, Hostinger, Namecheap, Domainesia, Rumahweb, GoDaddy, cloud.id/volty), dan alamat bot sebagai alternatif.
-- `.domainpending` / `.nszone <domain> <ns1> <ns2>` — khusus owner: daftar domain yang menunggu dan penyimpanan nameserver hasil penambahan zona di Cloudflare.
-- Batas `maksPerUser` (bawaan 3) situs per nomor.
-- `.deploysubdomain <nama> ganti` — isi situs: balas `.html`, `.zip`/`.tar.gz` (wajib ada `index.html`), atau kode HTML.
-- `.kontrolsubdomain [nama]` — panel kontrol milik sendiri (developer melihat semua): info, deploy ulang, aktif/nonaktif.
-- `.dellsubdomainmy <nama> hapus` — hapus folder + DNS; **ditolak untuk user biasa** (mereka diarahkan ke owner).
-- `.hapussubdomain` kini mengikuti aturan yang sama: hanya developer/owner bot.
+Sembilan perintah yang tersisa, semuanya di `plugins/owner/subdomain-domain.js`:
 
-Alamat hasil: `https://<nama>-alzriss.gwenna.my.id/` (SSL Universal aktif) dan `https://<nama>.alzriss.gwenna.my.id/` (aktif setelah Total TLS).
+| Perintah | Gunanya |
+|---|---|
+| `/subdomainmenu` | peta menu + tombol ke semua perintah |
+| `/subdomain` | jumlah domain, subdomain, domain situs, situs aktif |
+| `/domain` | status tiap domain (HTTP + akses public/private) |
+| `/deploysubdomain` | deploy ke `<nama>-alzriss.<akar>` (tombol pilih domain) |
+| `/deploydomain` | khusus pemilik domain → `<nama>.<akar>` |
+| `/kontrolsubdomain` | info · deploy ulang · maintenance · aktif · nonaktif · hapus |
+| `/kontroldomain` | daftar subdomain satu domain, akses, awalan |
+| `/addsupabase` | pasang URL + anon key Supabase ke situs |
+| `/addfile` | `tambah` / `ganti` / `edit` berkas situs, langsung berlaku |
 
-**Hosting sekarang di server bot sendiri** (Task152): berkas situs disimpan di `situs/<nama>/`, daftar pemilik di `data/subdomain-registry.json`, dan penyajiannya lewat API bot (port 2176) yang mengenali header Host subdomain. Panel Kaira tidak dipakai lagi, jadi deploy tidak ikut mati saat panel itu gangguan.
+Akar domain bawaan: `kieran.my.id` (public), `kieran.web.id` (private, awalan `alzriss`),
+`gwenna.my.id`. Semua akar sudah punya wildcard DNS, jadi host baru langsung dilayani
+tanpa membuat record. Domain milik user dicatat di `data/domain-kontrol.json` dan ikut
+muncul di daftar pilihan.
+
+Berkas situs ada di `situs/<nama>-<akar-strip>/`, daftar pemilik di
+`data/subdomain-registry.json` (berisi `domainKustom`, `akarDomain`, `label`, `status`,
+`mode`) dan disajikan lewat `lib/situs-lokal.js` berdasarkan header Host.
+
+Tutorial lengkap: `docs/TUTORIAL-SUBDOMAIN-DAN-DOMAIN.md`.
 
 ## Prefix dan menu
 
