@@ -42,6 +42,8 @@ import {
   aturAwalanDomain,
   bacaAwalanDomain,
   siapkanBerkas,
+  hostUtama,
+  akarDomainHost,
 } from '../../lib/subdomain-kaira.js'
 import { cekDns } from '../../lib/domain-sendiri.js'
 import { sendInteractive } from '../../lib/awang-tombol.js'
@@ -58,6 +60,47 @@ const BATAS_TUNGGU = 15 * 60 * 1000
 const MAKS_GANTI = 300
 
 /* ───────────────────────── util ───────────────────────── */
+
+/**
+ * Entri registry yang dibuat versi lama `deploySubdomain()` tidak punya
+ * `domainKustom`, `akarDomain`, `label`, dan `mode`. Akibatnya kartu situs
+ * menampilkan `https://undefined-...` dan `/domain` menghitung 0 situs.
+ * `rapikanRegistryLama()` melengkapinya sekali dengan aturan alamat warisan:
+ *   <nama>-alzriss.<domain dasar bot>   (mis. kiw-kiw-ganteng-alzriss.gwenna.my.id)
+ */
+function rapikanRegistryLama(registry) {
+  const reg = registry && typeof registry === 'object' ? registry : {}
+  const diubah = []
+  for (const [nama, info] of Object.entries(reg)) {
+    if (!info || typeof info !== 'object') continue
+    const hostLama = String(info.domainKustom || '').toLowerCase().trim()
+    const akarLama = String(info.akarDomain || '').toLowerCase().trim()
+    if (hostLama && akarLama) continue
+    const host = hostLama || hostUtama(nama)
+    reg[nama] = {
+      ...info,
+      label: String(info.label || nama),
+      akarDomain: akarLama || akarDomainHost(host),
+      domainKustom: host,
+      mode: info.mode || 'subdomain',
+      diperbarui: Number(info.diperbarui || Date.now()),
+    }
+    diubah.push(nama)
+  }
+  return { registry: reg, diubah }
+}
+
+/** Registry yang sudah dirapikan; kalau ada entri lama, disimpan balik. */
+async function bacaRegistryRapi() {
+  const mentah = await bacaRegistry().catch(() => ({}))
+  const hasil = rapikanRegistryLama(mentah)
+  if (hasil.diubah.length) {
+    await simpanRegistry(hasil.registry).catch(() => {})
+    catat('rapikan-registry', { entri: hasil.diubah })
+  }
+  return hasil.registry
+}
+
 
 const TUNGGU = new Map()
 let sudahMuat = false
@@ -406,7 +449,7 @@ async function perintahMenu(m, conn) {
 }
 
 async function perintahSubdomain(m, conn) {
-  const registry = await bacaRegistry().catch(() => ({}))
+  const registry = await bacaRegistryRapi().catch(() => ({}))
   const kontrol = bacaKontrolDomain()
   const situs = daftarSitus(registry)
   const akar = daftarAkar(registry, kontrol)
@@ -454,7 +497,7 @@ async function perintahSubdomain(m, conn) {
 }
 
 async function perintahDomain(m, conn) {
-  const registry = await bacaRegistry().catch(() => ({}))
+  const registry = await bacaRegistryRapi().catch(() => ({}))
   const kontrol = bacaKontrolDomain()
   const akar = daftarAkar(registry, kontrol)
   const cek = await Promise.all(akar.map(async (a) => ({ akar: a, hasil: await statusHost(a) })))
@@ -482,7 +525,7 @@ async function perintahDomain(m, conn) {
 /* ───────────── deploy subdomain (pilih domain → nama → berkas) ───────────── */
 
 async function perintahDeploySubdomain(m, conn, args) {
-  const registry = await bacaRegistry().catch(() => ({}))
+  const registry = await bacaRegistryRapi().catch(() => ({}))
   const kontrol = bacaKontrolDomain()
   const akarSemua = daftarAkar(registry, kontrol)
   const sisa = args.filter(Boolean)
@@ -561,7 +604,7 @@ async function perintahDeploySubdomain(m, conn, args) {
 /* ───────────── deploy domain (pemilik domain bebas) ───────────── */
 
 async function perintahDeployDomain(m, conn, args, extra) {
-  const registry = await bacaRegistry().catch(() => ({}))
+  const registry = await bacaRegistryRapi().catch(() => ({}))
   const kontrol = bacaKontrolDomain()
   const saya = nomorDari(m.sender)
   const milik = domainMilikUser(kontrol, registry, m.sender)
@@ -647,7 +690,7 @@ function kartuSitus(situs) {
 }
 
 async function cariSitusUntuk(m, nama) {
-  const registry = await bacaRegistry().catch(() => ({}))
+  const registry = await bacaRegistryRapi().catch(() => ({}))
   const semua = daftarSitus(registry)
   if (!nama) return { registry, semua, situs: null }
   const target = String(nama || '').toLowerCase().trim().replace(/^https?:\/\//, '').replace(/\/.*$/, '')
@@ -729,7 +772,7 @@ async function aksiKontrolSubdomain(m, conn, args, extra) {
   }
 
   if (aksi === 'maintenance' || aksi === 'aktif' || aksi === 'nonaktif') {
-    const registry = await bacaRegistry().catch(() => ({}))
+    const registry = await bacaRegistryRapi().catch(() => ({}))
     if (!registry[situs.slug]) return m.reply('Situs tidak ada di registry.')
     registry[situs.slug].status = aksi === 'maintenance' ? 'maintenance' : aksi === 'aktif' ? 'aktif' : 'nonaktif'
     registry[situs.slug].diperbarui = Date.now()
@@ -755,7 +798,7 @@ async function aksiKontrolSubdomain(m, conn, args, extra) {
 
   if (aksi === 'hapus') {
     if (!admin) return m.reply('🔒 Hapus situs hanya bisa dilakukan owner bot.')
-    const registry = await bacaRegistry().catch(() => ({}))
+    const registry = await bacaRegistryRapi().catch(() => ({}))
     delete registry[situs.slug]
     await simpanRegistry(registry)
     hapusFolder(situs.slug)
@@ -767,7 +810,7 @@ async function aksiKontrolSubdomain(m, conn, args, extra) {
 }
 
 async function perintahKontrolDomain(m, conn, args, extra) {
-  const registry = await bacaRegistry().catch(() => ({}))
+  const registry = await bacaRegistryRapi().catch(() => ({}))
   const kontrol = bacaKontrolDomain()
   const semua = daftarAkar(registry, kontrol)
   const arg = akarAman(args[0] || '')
@@ -961,7 +1004,7 @@ async function pasangSupabase(m, situs, url, kunci) {
   ]
 
   const total = tulisBerkas(situs.slug, berkas)
-  const registry = await bacaRegistry().catch(() => ({}))
+  const registry = await bacaRegistryRapi().catch(() => ({}))
   if (registry[situs.slug]) {
     const ringkas = ringkasBerkas(situs.slug)
     registry[situs.slug].supabase = { url: bersihUrl, dipasang: Date.now() }
@@ -1086,7 +1129,7 @@ async function prosesLampiran(conn, m, tunggu) {
     }
     const total = tulisBerkas(situs.slug, daftar)
     const ringkas = ringkasBerkas(situs.slug)
-    const registry = await bacaRegistry().catch(() => ({}))
+    const registry = await bacaRegistryRapi().catch(() => ({}))
     if (registry[situs.slug]) {
       registry[situs.slug].berkas = ringkas.jumlah
       registry[situs.slug].ukuran = ringkas.ukuran
@@ -1120,7 +1163,7 @@ async function prosesLampiran(conn, m, tunggu) {
 
   const host = tunggu.aksi === 'deploy-domain' ? hostDomain(tunggu.label, tunggu.akar) : hostSubdomain(tunggu.label, tunggu.akar)
   const slug = slugSitus(tunggu.label, tunggu.akar)
-  const registry = await bacaRegistry().catch(() => ({}))
+  const registry = await bacaRegistryRapi().catch(() => ({}))
 
   const bentrok = Object.entries(registry).find(([lainSlug, info]) =>
     lainSlug !== slug && String((info && info.domainKustom) || '').toLowerCase() === host.toLowerCase())
