@@ -27,6 +27,7 @@ Rimuru MD adalah SC hasil rename dari SC Ourin MD.
 */
 
 import crypto from "node:crypto";
+import { aiPenyediaTeks } from "../lib/penyedia-bot.js";
 
 const API = "https://app.unlimitedai.chat/api/chat";
 
@@ -86,6 +87,10 @@ const CHARACTERS = {
 };
 
 async function UnlimitedAI(prompt, character = "rimuru-ai") {
+  // Task177: penyedia bot lebih dulu.
+  const __alt = await aiPenyediaTeks(prompt);
+  if (__alt) return { status: true, code: 200, character: "umi", model: "xrina/unlimitedai", answer: __alt };
+
   const chatId = crypto.randomUUID();
   const deviceId = crypto.randomUUID();
   const char = CHARACTERS[character] || CHARACTERS["rimuru-ai"];

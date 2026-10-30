@@ -28,6 +28,7 @@ Rimuru MD adalah SC hasil rename dari SC Ourin MD.
 
 import axios from "axios";
 import crypto from "node:crypto";
+import { aiPenyediaTeks } from "../lib/penyedia-bot.js";
 
 const BASE = "https://notegpt.io";
 
@@ -104,6 +105,10 @@ function parseSSE(rawBody) {
 }
 
 async function DeepSeekThinking(prompt, history = []) {
+  // Task177: pakai penyedia bot (xrina) lebih dulu.
+  const __alt = await aiPenyediaTeks(prompt);
+  if (__alt) return { answer: __alt, reasoning: "" };
+
   const conversationId = uuid();
   const cookieHeader = makeCookieHeader();
 

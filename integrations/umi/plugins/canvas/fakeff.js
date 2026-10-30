@@ -49,6 +49,23 @@ const pluginConfig = {
 let isFontLoaded = false;
 async function loadFont() {
     if (isFontLoaded) return;
+    /* Task177: pakai font yang SUDAH ada di server (integrations/umi/assets)
+     * supaya tidak bergantung pada files.catbox.moe. Unduhan daring hanya
+     * dipakai kalau berkas lokal tidak ada. */
+    const kandidatLokal = [
+        "integrations/umi/assets/rimuru-font.ttf",
+        "../../assets/rimuru-font.ttf",
+    ];
+    for (const jalur of kandidatLokal) {
+        try {
+            const fs = await import("node:fs");
+            if (fs.existsSync(jalur)) {
+                GlobalFonts.register(fs.readFileSync(jalur), "TeutonNormal");
+                isFontLoaded = true;
+                return;
+            }
+        } catch {}
+    }
     const fontBuffer = await axios.get("https://files.catbox.moe/knb2k0.otf", { responseType: "arraybuffer" }).then(r => r.data);
     GlobalFonts.register(Buffer.from(fontBuffer), "TeutonNormal");
     isFontLoaded = true;

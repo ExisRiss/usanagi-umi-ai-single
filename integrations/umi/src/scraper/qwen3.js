@@ -27,6 +27,7 @@ Rimuru MD adalah SC hasil rename dari SC Ourin MD.
 */
 
 import crypto from "node:crypto";
+import { aiPenyediaTeks } from "../lib/penyedia-bot.js";
 
 const API = "https://api.overchat.ai/v1/chat/completions";
 
@@ -34,6 +35,10 @@ const ua =
   "Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Mobile Safari/537.36";
 
 async function Qwen3(prompt, options = {}) {
+  // Task177: penyedia bot lebih dulu.
+  const __alt = await aiPenyediaTeks(prompt);
+  if (__alt) return { status: true, code: 200, model: "xrina/qwen", question: prompt, answer: __alt };
+
   const chatId = options.chatId || crypto.randomUUID();
   const deviceId = options.deviceId || crypto.randomUUID();
   const model = "alibaba/qwen3-next-80b-a3b-instruct";

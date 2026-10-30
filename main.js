@@ -1,5 +1,11 @@
 import { initializeUnifiedRpg } from './lib/rpg/unified-runtime.js';
 import fs from 'fs';
+/* Task173f — urutan DNS IPv4 dulu (lihat scripts/boot.js). Dipasang juga di
+ * sini karena main.js bisa dijalankan langsung tanpa boot.js. */
+import dns from 'dns';
+try {
+    dns.setDefaultResultOrder('ipv4first');
+} catch (error) { /* Node lama */ }
 import { spawn } from 'child_process';
 import { tmpdir } from 'os';
 import { format } from 'util';
@@ -20,6 +26,10 @@ import { installAutoTyping } from './lib/auto-typing.js';
 import { installBotConfigAccessors, getMainBotConfig } from './lib/bot-config.js';
 import { installRpgGlobals } from './lib/rpg/awang-rpg-globals.js';
 import { installApiGlobals } from './lib/api-globals.js';
+// Task173 — fetch aman (IPv4 dipaksa bila perlu, timeout 30 s, 3 percobaan)
+// dipasang SEBELUM Baileys mengunduh media apa pun.
+import { pasangFetchAman } from './lib/jaringan-aman.js';
+pasangFetchAman();
 import { syncMainPrefix } from './core/awang-prefix.js';
 import { getExplicitlyEnabledWelcomeGroups } from './core/awang-welcome.js';
 import { startJadibotPlatformApi } from './lib/jadibot-platform-api.js';
@@ -382,7 +392,7 @@ for (const signal of ['SIGTERM', 'SIGINT']) {
         // Task119: simpan perubahan terakhir sebelum keluar (maks. 5 detik).
         try {
             if (global.db?.data && global.__umiDbKotor === true) {
-                await Promise.race([global.db.write(), new Promise(r => setTimeout(r, 5000))]);
+                await Promise.race([global.db.write(true), new Promise(r => setTimeout(r, 5000))]);
             }
         } catch {}
         stopPlatform().catch(() => {}).finally(() => process.exit(0));
@@ -1339,7 +1349,7 @@ setInterval(async () => {
         total++;
     }
 
-    await global.db.write().catch(console.error);
+    await global.db.write(true).catch(console.error);
     console.log(`[AUTO RESET LIMIT]\nReset : ${total}\nLimit : ${jumlah}`);
 }, 60000);
 

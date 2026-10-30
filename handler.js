@@ -15,6 +15,7 @@ import { recordError } from './lib/error-hub.js'
 /* Task132: daftar akses per sesi (fitur OURIN `.addakses`). */
 import syncUserDatabase from './lib/database.js';
 import { errorReplyText } from './lib/umi-error.js';
+import { pantauPerintah } from './lib/pengawas-lambat.js';
 import { fileURLToPath } from 'url';
 import path from 'path';
 import fs, { unwatchFile, watchFile } from 'fs';
@@ -1173,7 +1174,9 @@ if (m.isGroup && chat.adminOnly && !isAdmin && !isOwner && isCmd) {
                             if(isUsanagiPlugin)Object.defineProperty(pluginMessage,'quotedMessage',{value:null,writable:true,configurable:true});
                         }
                     }
-                    const executePlugin = () => plugin.call(this, pluginMessage, extra);
+                    /* Task177 — ukur durasi perintah; kirim kabar kalau > 20 detik
+                     * (penyebab "kadang engga respon" = menunggu API tanpa timeout). */
+                    const executePlugin = () => pantauPerintah(`${name}:${command}`, pluginMessage, this, () => plugin.call(this, pluginMessage, extra));
                     const isRpgMutation = name.startsWith('rpg/') || (Array.isArray(plugin.tags) && plugin.tags.includes('rpg'));
                     const messageId = m.key?.id || m.id;
                     const pluginResult = await (unifiedRpg()
