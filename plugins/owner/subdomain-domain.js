@@ -24,6 +24,11 @@
  *      "undefined": jawabannya bergantung pada Cloudflare API yang gagal.
  *   2. Semua perintah memakai SATU state menunggu berkas
  *      (data/subdomain-baru-tunggu.json), bukan tiga peta berbeda.
+ *      Task179 — /deploysubdomain bertanya targetnya: subdomain gratis
+ *      (hanya 3 domain bawaan, selalu berakhiran -alzriss) atau domain
+ *      milik sendiri. Situs yang sudah ada menampilkan pilihan aksi
+ *      (deploy ulang, ganti code, edit, upload, hapus) — deploy tidak
+ *      dialihkan diam-diam ke domain lain.
  *   3. Semua teks dibangun dari data registry/kontrol yang sudah ada, tanpa
  *      variabel yang bisa kosong lalu tampil sebagai "undefined".
  */
@@ -227,6 +232,22 @@ function hostSubdomain(label, akar) {
 /** Host domain (pemilik domain bebas): <label>.<akar> */
 function hostDomain(label, akar) {
   return `${label}.${akarAman(akar)}`
+}
+
+/**
+ * Task179 — tier GRATIS /deploysubdomain: HANYA 3 domain bawaan bot,
+ * selalu berakhiran -alzriss, tanpa limit. Domain lain (milik user)
+ * tetap lewat /deploydomain. Domain private bawaan hanya untuk pemiliknya
+ * (kalau sudah dicatat) atau owner bot.
+ */
+function akarGratisSub(registry, kontrol, sender, admin) {
+  const saya = nomorDari(sender)
+  return AKAR_BAWAAN.filter((a) => {
+    const st = statusDomain(a, registry)
+    if (st.akses === 'public') return true
+    const pemilik = String(st.pemilik || pemilikAkar(kontrol, a) || '').split('@')[0]
+    return Boolean(admin) || !pemilik || pemilik === saya
+  })
 }
 
 function daftarAkar(registry, kontrol = null) {
@@ -524,80 +545,135 @@ async function perintahDomain(m, conn) {
 
 /* ───────────── deploy subdomain (pilih domain → nama → berkas) ───────────── */
 
-async function perintahDeploySubdomain(m, conn, args) {
+/**
+ * Task179 — situs (nama,akar) sudah ada → PILIHAN AKSI, bukan langsung
+ * menimpa atau mengalihkan ke domain lain:
+ *   deploy ulang · ganti code · edit · upload · hapus
+ */
+function panelAksiSudahAda(m, conn, situs, ctx = {}) {
+  const bedaAkars = Boolean(ctx.diminta && ctx.diminta !== situs.akar)
+  const isi = [
+    '🌐 *SITUS SUDAH ADA*',
+    '',
+    `Alamat : https://${situs.host}/`,
+    `Domain : ${situs.akar || '-'}`,
+    `Status : ${situs.aktif ? '🟢 aktif' : '🔴 nonaktif'}`,
+    `Pemilik: ${situs.pemilik ? '+' + String(situs.pemilik).split('@')[0] : '-'}`,
+    `Berkas : ${angka(situs.berkas)} · ${bita(situs.ukuran)}`,
+    `Deploy : ke-${situs.deployKe || 1} · ${waktu(situs.diperbarui)}`,
+    bedaAkars
+      ? `Catatan: kamu mengetik domain *${ctx.diminta}*. Situs ini ada di *${situs.akar}* — alamat di domain lain = situs BARU.`
+      : '',
+    '',
+    'Mau bagaimana? Pilih salah satu.',
+  ].filter(Boolean).join('\n')
+
+  const baris = [
+    { title: '🔄 Deploy ulang', description: 'Kirim berkas baru, isi lama ditimpa', command: `/kontrolsubdomain ${situs.label} deployulang` },
+    { title: '🧑‍💻 Ganti code', description: 'Kirim kode HTML baru untuk index.html', command: `/addfile ${situs.label} edit index.html` },
+    { title: '✏️ Edit berkas', description: 'Ganti isi satu berkas tertentu', command: `/addfile ${situs.label} edit` },
+    { title: '📤 Upload berkas', description: 'Tambah berkas ke situs', command: `/addfile ${situs.label} tambah` },
+    { title: '🗑️ Hapus situs', description: 'Buang situs + foldernya', command: `/kontrolsubdomain ${situs.label} hapus` },
+    bedaAkars
+      ? { title: `🚀 Situs BARU di ${ctx.diminta}`, description: `https://${hostSubdomain(ctx.nama || situs.label, ctx.diminta)}/`, command: `/deploysubdomain ${ctx.nama || situs.label} ${ctx.diminta} ganti` }
+      : null,
+    { title: '🛠️ Panel situs lengkap', description: 'Info, maintenance, supabase', command: `/kontrolsubdomain ${situs.label}` },
+  ].filter(Boolean)
+
+  return kirimDaftar(m, conn, {
+    judul: '🌐 Situs Sudah Ada',
+    subjudul: situs.host,
+    isi,
+    footer: 'Pilih aksi di bawah.',
+    baris,
+    judulDaftar: 'AKSI SITUS',
+  })
+}
+
+async function perintahDeploySubdomain(m, conn, args, extra = {}) {
   const registry = await bacaRegistryRapi().catch(() => ({}))
   const kontrol = bacaKontrolDomain()
-  const akarSemua = daftarAkar(registry, kontrol)
+  const admin = sayaOwnerBot(m, extra)
+  const gratis = akarGratisSub(registry, kontrol, m.sender, admin)
+  const milikSaya = domainMilikUser(kontrol, registry, m.sender).filter((a) => !gratis.includes(a))
   const sisa = args.filter(Boolean)
   const nama = sisa[0] ? labelAman(sisa[0]) : ''
   const mode = /^ganti$/i.test(sisa[1] || '') ? 'ganti' : 'baru'
 
-  /* Sudah ada situs dengan nama itu → tampilkan panel kontrolnya. */
+  const kandidatAkar = sisa.map((x) => akarAman(x))
+  const diminta = kandidatAkar.find((x) => gratis.includes(x) || milikSaya.includes(x)) || ''
+
+  /* Task179 — (nama,akar) sudah ada → pilihan aksi (bukan timpa diam-diam,
+   * bukan juga dialihkan ke akar lain seperti keluhan owner). */
   if (nama) {
-    const situs = daftarSitus(registry).filter((s) => s.label === nama || s.slug.startsWith(`${nama}-`))
-    if (situs.length === 1 && mode === 'baru' && !adaLampiran(m)) {
-      pasangTunggu(m, { aksi: 'deploy-sub', label: nama, akar: situs[0].akar, mode: 'ganti' })
-      return m.reply([
-        `ℹ️ Situs *${nama}* sudah ada di ${situs[0].akar}.`,
-        `Alamat: https://${situs[0].host}/`,
-        '',
-        'Kirim berkas baru (zip / index.html / kode HTML) untuk MENGGANTI isinya,',
-        'atau ketik /kontrolsubdomain ' + nama + ' untuk aksi lain.',
-        `Menunggu berkas maksimal 15 menit. Ketik /batal untuk membatalkan.`,
-      ].join('\n'))
+    const sejenis = daftarSitus(registry).filter((s) => s.label === nama)
+    const cocok = diminta ? sejenis.find((s) => s.akar === diminta) : (sejenis.length === 1 ? sejenis[0] : null)
+    if (cocok && mode === 'baru' && !adaLampiran(m)) {
+      return panelAksiSudahAda(m, conn, cocok, { nama, diminta })
     }
   }
 
-  if (!akarSemua.length) {
-    return m.reply('Belum ada domain. Minta owner mendaftarkan domain dulu (data/domain-kontrol.json).')
+  /* Nama domain sendiri (tanpa -alzriss) → serahkan ke /deploydomain. */
+  if (nama && diminta && milikSaya.includes(diminta)) {
+    return perintahDeployDomain(m, conn, [nama, diminta, mode], extra)
   }
 
-  const akarTerpilih = sisa.find((x) => akarSemua.includes(akarAman(x))) ? akarAman(sisa.find((x) => akarSemua.includes(akarAman(x)))) : ''
-
-  if (nama && akarTerpilih) {
-    pasangTunggu(m, { aksi: 'deploy-sub', label: nama, akar: akarTerpilih, mode })
+  if (nama && diminta) {
+    pasangTunggu(m, { aksi: 'deploy-sub', label: nama, akar: diminta, mode })
+    const sejenis = daftarSitus(registry).filter((s) => s.label === nama)
     return m.reply([
       '📥 *SIAP DEPLOY*',
       '',
       `Nama  : ${nama}`,
-      `Domain: ${akarTerpilih}`,
-      `Alamat: https://${hostSubdomain(nama, akarTerpilih)}/`,
+      `Domain: ${diminta}`,
+      `Alamat: https://${hostSubdomain(nama, diminta)}/`,
+      sejenis.length ? '' : '',
+      sejenis.length ? `⚠️ Nama sama juga dipakai di: ${sejenis.map((s) => `https://${s.host}/`).join(', ')} — alamat di atas adalah situs BARU.` : '',
       '',
       'Sekarang kirim:',
       '• berkas .zip / .tar.gz berisi situs, atau',
       '• satu index.html, atau',
       '• kode HTML langsung di chat.',
       '',
-      mode === 'ganti' ? 'Mode: GANTI — isi lama akan dihapus.' : 'Mode: BARU — isi lama (kalau ada) diganti juga.',
+      mode === 'ganti' ? 'Mode: GANTI — isi lama (kalau ada) akan dihapus.' : 'Mode: BARU.',
       'Batalkan dengan /batal. Berlaku 15 menit.',
-    ].join('\n'))
+    ].filter(Boolean).join('\n'))
   }
 
-  const baris = akarSemua.slice(0, 8).map((a) => ({
-    title: `🚀 ${a}`,
-    description: nama ? `https://${hostSubdomain(nama, a)}/` : 'Deploy di domain ini',
-    command: nama ? `/deploysubdomain ${nama} ${a} ${mode}` : `/deploysubdomain ${nama || 'namasitus'} ${a}`,
-  }))
+  /* Task179 — pilihannya = target nyata: subdomain gratis (3 domain bawaan,
+   * wajib -alzriss) + domain milik sendiri (tanpa akhiran). */
+  const baris = [
+    ...gratis.slice(0, 3).map((a) => ({
+      title: `🚀 ${a}`,
+      description: nama ? `https://${hostSubdomain(nama, a)}/` : 'Subdomain gratis · wajib -alzriss',
+      command: `/deploysubdomain ${nama || 'namasitus'} ${a} ${mode}`.trim(),
+    })),
+    ...milikSaya.slice(0, 4).map((a) => ({
+      title: `🌐 ${a}`,
+      description: nama ? `https://${hostDomain(nama, a)}/ (tanpa -alzriss)` : 'Domain milikmu · tanpa akhiran',
+      command: `/deploydomain ${nama || 'namasitus'} ${a} ${mode}`.trim(),
+    })),
+  ]
 
   return kirimDaftar(m, conn, {
-    judul: '🌐 Pilih Domain',
-    subjudul: nama ? `nama: ${nama}` : 'nama: belum diisi',
+    judul: '🌐 Mau Deploy ke Mana?',
+    subjudul: nama ? `nama: ${nama}` : 'pilih target deploy',
     isi: [
-      '🌐 *DEPLOY SUBDOMAIN*',
+      '🌐 *DEPLOY — PILIH TARGET*',
       '',
-      nama ? `Nama situs : *${nama}*` : 'Nama situs : belum ada',
+      nama ? `Nama situs : *${nama}*` : 'Nama situs : belum diisi (contoh: `/deploysubdomain toko`)',
       '',
-      nama
-        ? 'Ketuk domain untuk memilih tempat deploy.'
-        : 'Tulis dulu nama situsnya, contoh:\n`/deploysubdomain toko`\nlalu pilih domain.',
+      '*Subdomain gratis (tanpa limit)*',
+      'Wajib berakhiran `-' + AWALAN_SUB + '`, hanya di domain bawaan bot:',
+      ...gratis.map((a) => `• https://${hostSubdomain(nama || 'namasitus', a)}/`),
       '',
-      '*Alamat yang akan dipakai*',
-      ...akarSemua.slice(0, 8).map((a) => `• https://${hostSubdomain(nama || 'namasitus', a)}/`),
+      milikSaya.length ? '*Domain milikmu (tanpa akhiran)*' : '',
+      ...milikSaya.map((a) => `• https://${hostDomain(nama || 'namasitus', a)}/`),
       '',
-      'Ganti seluruh isi situs: `/deploysubdomain <nama> ganti`',
-    ].join('\n'),
-    baris: nama ? baris : [{ title: '🛠️ Kontrol subdomain', description: 'Lihat situs yang sudah ada', command: '/kontrolsubdomain' }],
-    judulDaftar: nama ? 'PILIH DOMAIN' : 'AKSI',
+      'Ketuk target untuk lanjut kirim berkas.',
+    ].filter(Boolean).join('\n'),
+    baris,
+    judulDaftar: 'PILIH TARGET',
   })
 }
 
@@ -631,6 +707,11 @@ async function perintahDeployDomain(m, conn, args, extra) {
   }
 
   if (nama && akarTerpilih) {
+    const sudah = daftarSitus(registry).find((s) => s.label === nama && s.akar === akarTerpilih && s.mode !== 'subdomain')
+    if (sudah && mode === 'baru' && !adaLampiran(m)) {
+      /* Task179 — sudah ada → pilihan aksi, bukan diam-diam menimpa. */
+      return panelAksiSudahAda(m, conn, sudah, { nama, diminta: akarTerpilih })
+    }
     pasangTunggu(m, { aksi: 'deploy-domain', label: nama, akar: akarTerpilih, mode })
     return m.reply([
       '📥 *SIAP DEPLOY DOMAIN*',
@@ -1229,7 +1310,7 @@ let handler = async function (m, extra = {}) {
   if (perintah === 'subdomainmenu') return perintahMenu(m, conn)
   if (perintah === 'subdomain') return perintahSubdomain(m, conn)
   if (perintah === 'domain') return perintahDomain(m, conn)
-  if (perintah === 'deploysubdomain') return perintahDeploySubdomain(m, conn, args)
+  if (perintah === 'deploysubdomain') return perintahDeploySubdomain(m, conn, args, extra)
   if (perintah === 'deploydomain') return perintahDeployDomain(m, conn, args, extra)
   if (perintah === 'addsupabase') return perintahAddSupabase(m, conn, args, extra)
   if (perintah === 'addfile') return perintahAddFile(m, conn, args, extra)

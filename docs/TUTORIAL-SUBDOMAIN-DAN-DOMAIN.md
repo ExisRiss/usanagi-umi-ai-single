@@ -255,3 +255,49 @@ Data yang dipakai bot:
 6. `/addfile toko edit index.html` → kirim HTML baru → muat ulang halaman
 7. `/kontrolsubdomain toko maintenance` → situs berubah
 8. `/kontrolsubdomain toko aktif` → situs normal lagi
+
+---
+
+## 11. Task179 — tanya target, situs sudah ada → pilihan aksi
+
+Tiga perubahan pada alur deploy, dari keluhan pemilik bot:
+
+1. **Deploy menanya target dengan benar.** `/deploysubdomain` (tanpa argumen)
+   menampilkan daftar target nyata:
+   - *Subdomain gratis (tanpa limit)* — hanya 3 domain bawaan
+     (`kieran.my.id`, `kieran.web.id`, `gwenna.my.id`), SELALU berakhiran
+     `-alzriss`; contoh `https://toko-alzriss.kieran.web.id/`.
+   - *Domain milikmu (tanpa akhiran)* — domain yang sudah kamu daftarkan;
+     dialihkan otomatis ke `/deploydomain`.
+   Deploy TIDAK lagi mengalihkan diam-diam ke domain lain. Kalau namanya
+   sudah dipakai di domain berbeda, deploy tetap berjalan di domain yang
+   kamu pilih dengan peringatan "alamat di atas adalah situs BARU".
+
+2. **Situs sudah ada → pilihan aksi (tombol/daftar).** Ketika
+   `/deploysubdomain <nama> <domain>` atau `/deploydomain <nama> <domain>`
+   menemukan situs yang sudah terpasang di alamat itu, bot menampilkan:
+   - 🔄 Deploy ulang — kirim berkas baru, isi lama ditimpa
+   - 🧑‍💻 Ganti code — kirim kode HTML baru untuk `index.html`
+   - ✏️ Edit berkas — ganti isi satu berkas
+   - 📤 Upload berkas — tambah berkas ke situs
+   - 🗑️ Hapus situs — buang situs + foldernya (owner bot)
+   - 🛠️ Panel situs lengkap — `/kontrolsubdomain <nama>`
+
+3. **Tier gratis dibatasi jelas.** Subdomain gratis hanya di 3 domain
+   bawaan dan selalu memakai akhiran `-alzriss` (perintah `labelAman`
+   memangkas kelebihan akhiran, `hostSubdomain` selalu menambahkannya
+   kembali). Domain milik sendiri memakai `/deploydomain` (tanpa akhiran).
+
+### Berkas terkait
+- `plugins/owner/subdomain-domain.js` — alur picker, panel aksi, pemandu
+  akses domain private (Task179).
+- `lib/subdomain-kaira.js` — disinkronkan dari server (47.990 B): versi repo
+  sebelumnya ketinggalan zaman (27.585 B, ekspor `bacaKontrolDomain` /
+  `akarDomainHost` hilang) — inilah sebab repo pernah tidak konsisten dengan
+  server.
+
+### Catatan: bot jadibot versi lama
+Balasan ".buatsubdomain", "Biarkan file lama", atau "undefined-alzriss"
+yang terlihat di log berasal dari sesi jadibot dengan KODE LAMA (sistem
+subdomain sebelum Task176) — bukan dari bot utama. Perbarui/hentikan sesi
+itu dari panel jadibotnya; kode di repo ini sudah memakai sistem baru.
