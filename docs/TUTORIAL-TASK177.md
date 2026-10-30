@@ -163,3 +163,27 @@ impor paket `integrations/umi` (fakeff, deepseek, gpt5, …), ketersediaan ffmpe
 | `UMI_DB_JEDA_MS` | `4000` | jeda gabung penulisan DB |
 | `UMI_KABAR_LAMBAT_MS` | `20000` | ambang kabar perintah lambat ke owner |
 | `UMI_RICH_TEKS` | `0` | `1` = kirim teks menu setelah kartu |
+
+---
+
+## 7. Lanjutan — scroll kartu diperbaiki & `..menu` kartu-saja untuk owner
+
+Keluhan owner setelah uji `/ujirich` (30-10-2026, semua kartu **tampil**):
+`..menu` harus menghasilkan kartu seperti varian uji 3, dan isi kartu yang
+**berat / tidak bisa digeser**.
+
+| Masalah akar | Perbaikan (`lib/umi-menu/menu-laut.js`) |
+|---|---|
+| `<body class="umi-scroll-sendiri">` membuat `sisipGulir()` dilewati → body tanpa aturan overflow → WhatsApp memotong kartu, hanya `.isi` 300 px yang bisa digulir (dari luar terasa "mati") | Marker dihapus → body memakai CSS gulir yang sama dengan kartu lain (jalur terbukti di HP owner) |
+| `.isi` gulir bersarang (300 px) vs body — dua kandidat gulir berebut gesture | `.isi` jadi biasa; **satu** wadah gulir = body |
+| Blur menumpuk: `.glass` blur(18px)+saturate(175%), `.hero` blur(11px) lagi (berurutan), `.nav` blur(14px) → tiap frame scroll re-filter = "berat" | blur 18→8 px, `.hero` tanpa blur sendiri, `.nav` tanpa backdrop-filter |
+| Tab `.nav` ada di alur bawah → ikut terpotong di layar kecil | `.nav` `position:sticky;bottom:0` — selalu terlihat saat kartu digulir |
+
+`lib/umi-menu/live-menu.js`: kalau **pemilik** yang menjalankan `..menu`,
+kirim **kartu saja** (varian uji 3, tanpa teks menemani). Pengguna lain tetap
+dapat teks cadangan sampai chat ditandai mampu. Lingkup: owner-only supaya HP
+WhatsApp biasa tidak kembali ke keluhan "menu kosong".
+
+Cara uji di server: jalankan `..menu` dari nomor owner → harus sampai 1 pesan
+kartu saja. Geser kartu ke atas — tab bawah tetap menempel (sticky), isi
+bergerak satu guliran utuh. Pengguna lain: kartu + teks (sampai tekan tombol).
