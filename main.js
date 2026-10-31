@@ -888,6 +888,8 @@ async function connectionUpdate(update) {
     }
 
     if (isOnline === true) console.log(chalk.green('Status Aktif'));
+    // Task187 — koneksi sehat: reset penoleran 401 bot utama.
+    if (isOnline === true) global.mainLoggedOutHits = 0;
     // Kode pairing hanya hidup sampai perangkat benar-benar tertaut.
     if (isOnline === true && global.lastPairingCode) global.lastPairingCode = null;
     else if (isOnline === false) console.log(chalk.red('Status Mati'));
@@ -910,6 +912,18 @@ async function connectionUpdate(update) {
         if (reason === DisconnectReason.loggedOut) {
             // Jangan menghapus sessions otomatis. Penghapusan otomatis membuat bot
             // terlihat menghilang dan memaksa pairing ulang tanpa persetujuan owner.
+            //
+            // Task187 — 401 ditoleransi 3 kali sebelum menyerah: file sesi TIDAK
+            // pernah dihapus (tetap), tapi dicoba sambung ulang dulu karena 401
+            // sering transient (gangguan server WhatsApp / app state). Setelah 3x
+            // berturut-turut gagal, bot diam menunggu perintah pairing owner —
+            // perilaku lama dipertahankan.
+            global.mainLoggedOutHits = (global.mainLoggedOutHits || 0) + 1;
+            if (global.mainLoggedOutHits <= 3) {
+                console.log(chalk.yellow(`Sesi terima 401 (percobaan ${global.mainLoggedOutHits}/3) — file sesi dipertahankan, coba sambung ulang...`));
+                scheduleReconnect(reason);
+                return;
+            }
             console.log(chalk.red('Sesi telah logout. File sesi dipertahankan untuk diagnosis; pairing ulang diperlukan.'));
             return;
         }
