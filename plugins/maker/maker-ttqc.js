@@ -38,7 +38,14 @@ const FONT_ASSETS = [
   },
   {
     file: 'NotoColorEmoji.ttf',
-    url: 'https://github.com/googlefonts/noto-emoji/raw/main/fonts/NotoColorEmoji.ttf',
+    // Task181: raw main/googlefonts/noto-emoji/fonts kena 404 (struktur repo
+    // berubah). Pakai beberapa cadangan; berkas yang sudah ada di
+    // assets/fonts tetap diprioritaskan tanpa unduh.
+    urls: [
+      'https://raw.githubusercontent.com/googlefonts/noto-emoji/v20200916/fonts/NotoColorEmoji.ttf',
+      'https://cdn.jsdelivr.net/gh/googlefonts/noto-emoji@v20200916/fonts/NotoColorEmoji.ttf',
+      'https://raw.githubusercontent.com/googlefonts/noto-emoji/main/fonts/NotoColorEmoji.ttf'
+    ],
     family: 'Noto Color Emoji'
   }
 ]
@@ -124,7 +131,16 @@ async function ensureAssets() {
     const dest = join(FONTS_DIR, font.file)
 
     if (!existsSync(dest)) {
-      await writeFile(dest, await fetchBuffer(font.url))
+      const daftarUrl = font.urls || [font.url]
+      let galat = null
+      for (const u of daftarUrl) {
+        try {
+          await writeFile(dest, await fetchBuffer(u))
+          galat = null
+          break
+        } catch (e) { galat = e }
+      }
+      if (galat) throw galat
     }
 
     GlobalFonts.registerFromPath(dest, font.family)

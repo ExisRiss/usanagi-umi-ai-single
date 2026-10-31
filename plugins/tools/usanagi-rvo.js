@@ -81,7 +81,20 @@ const handler = async (m, { conn, usedPrefix, command }) => {
   await react(conn, m, '⏳')
 
   try {
-    const buffer = await downloadMedia(quotedMessage)
+    /* Task181 — "Cannot derive from empty media key": Baileys versi terpasang
+     * tidak selalu membuka bungkus viewOnceMessage(V2/Extension), sehingga
+     * downloadMediaMessage menerima wrapper tanpa mediaKey. Sekarang node
+     * media hasil unwrap lib/rvo.js (sudah pasti berisi mediaKey) yang
+     * dikirim ulang dalam bentuk pesan polos. */
+    if (!media.message?.mediaKey) {
+      await react(conn, m, '❌')
+      return m.reply('❌ Media sekali lihat sudah tidak tersedia (sudah dibuka atau kedaluwarsa). Minta dikirim ulang, lalu reply dengan .rvo.')
+    }
+    const untukDiunduh = {
+      key: raw.quoted?.key || quoted?.key || {},
+      message: { [`${media.type}Message`]: media.message },
+    }
+    const buffer = await downloadMedia(untukDiunduh)
     if (!Buffer.isBuffer(buffer) || !buffer.length) throw new Error('Media kosong atau sudah tidak tersedia.')
 
     const content = {
