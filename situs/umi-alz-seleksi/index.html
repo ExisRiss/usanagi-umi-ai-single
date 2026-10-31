@@ -9,221 +9,245 @@
 <title>Umi Alz Seleksi</title>
 <style>
 :root{
-  --bg:#FFFFFF; --bg2:#F5F5F7; --kartu:rgba(255,255,255,.72); --kartu-solid:#FFFFFF;
-  --garis:rgba(10,10,10,.10); --garis-kuat:rgba(10,10,10,.16);
-  --teks:#0A0A0A; --redup:#5A5A63; --redup2:#8E8E97;
-  --aksen:#0A0A0A; --aksen-invers:#FFFFFF;
-  --hijau:#0F7B57; --hijau-bg:rgba(15,123,87,.10);
-  --merah:#B3261E; --merah-bg:rgba(179,38,30,.09);
-  --kuning:#8A6100; --kuning-bg:rgba(138,97,0,.10);
-  --r-besar:28px; --r-sedang:22px; --r-kecil:14px; --r-pill:999px;
-  --bayang-1:0 1px 2px rgba(10,10,10,.05), 0 6px 24px rgba(10,10,10,.06);
-  --bayang-2:0 2px 4px rgba(10,10,10,.05), 0 18px 48px rgba(10,10,10,.10);
-  --kilau:inset 0 1px 0 rgba(255,255,255,.9), inset 0 -12px 24px rgba(255,255,255,.35);
-  --durasi:.5s; --ease:cubic-bezier(.2,.8,.2,1);
-  --font:'Manrope','Space Grotesk',system-ui,-apple-system,'Segoe UI',sans-serif;
+  --bg:#FAFAFA; --kartu:#FFFFFF;
+  --garis:#E5E5E8; --garis-input:#D4D4D8;
+  --teks:#0A0A0A; --redup:#6B6B73; --redup2:#9A9AA3;
+  --aksen:#0A0A0A; --invers:#FFFFFF;
+  --hijau:#16A34A; --merah:#DC2626; --amber:#D97706;
+  --r-kartu:16px; --r-input:12px; --r-badge:8px;
+  --sh-kartu:0 1px 2px rgba(0,0,0,.04);
+  --sh-hover:0 4px 12px rgba(0,0,0,.07);
+  --s1:4px; --s2:8px; --s3:12px; --s4:16px; --s5:24px; --s6:32px;
+  --dur:.25s; --ease:cubic-bezier(.2,.8,.2,1);
+  --font:'Manrope','Inter Tight',system-ui,-apple-system,'Segoe UI',sans-serif;
   --mono:ui-monospace,'SF Mono',Menlo,monospace;
 }
 *{box-sizing:border-box;margin:0;-webkit-tap-highlight-color:transparent}
-html{scroll-behavior:smooth}
 body{
   min-height:100vh;font-family:var(--font);color:var(--teks);
-  background:
-    radial-gradient(1100px 700px at 85% -10%, #EFEFF2 0%, transparent 60%),
-    radial-gradient(900px 800px at -10% 100%, #F0F0F3 0%, transparent 55%),
-    linear-gradient(180deg,#FFFFFF 0%,#F5F5F7 100%);
-  background-attachment:fixed;
-  padding-bottom:96px; overflow-x:hidden;
-  -webkit-font-smoothing:antialiased;
+  background:var(--bg);padding-bottom:88px;-webkit-font-smoothing:antialiased;
 }
-/* grain tipis */
-body::before{
-  content:'';position:fixed;inset:0;z-index:60;pointer-events:none;opacity:.05;
-  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='160' height='160' filter='url(%23n)'/%3E%3C/svg%3E");
-}
-/* blob blur abu bergerak pelan */
-.blob{position:fixed;border-radius:50%;filter:blur(90px);opacity:.55;z-index:-1;pointer-events:none;will-change:transform}
-.blob.b1{width:520px;height:520px;top:-160px;right:-120px;background:radial-gradient(circle at 30% 30%,#D9D9DE,#EDEDF0 70%);animation:drift1 26s var(--ease) infinite alternate}
-.blob.b2{width:430px;height:430px;bottom:6vh;left:-140px;background:radial-gradient(circle at 60% 40%,#DFDFE4,#F1F1F4 70%);animation:drift2 32s var(--ease) infinite alternate}
-@keyframes drift1{to{transform:translate3d(-40px,50px,0) scale(1.06)}}
-@keyframes drift2{to{transform:translate3d(60px,-40px,0) scale(.94)}}
-
-a{color:var(--teks);text-decoration:none;border-bottom:1px solid var(--garis-kuat)}
+a{color:var(--teks);text-decoration:none;border-bottom:1px solid #C9C9CF}
 a:hover{border-bottom-color:var(--teks)}
-:focus-visible{outline:2px solid var(--aksen);outline-offset:3px;border-radius:6px}
-.wrap{max-width:860px;margin:0 auto;padding:22px 18px}
-header.top{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:26px}
-header.top .logo{display:flex;align-items:center;gap:10px;font-size:17px;font-weight:800;letter-spacing:-.03em}
+:focus-visible{outline:2px solid var(--aksen);outline-offset:2px;border-radius:6px}
+.wrap{max-width:880px;margin:0 auto;padding:16px var(--s4)}
+
+/* ── header ── */
+header.top{display:flex;align-items:center;gap:var(--s3);margin-bottom:var(--s5)}
+header.top .logo{display:flex;align-items:center;gap:10px;font-size:16px;font-weight:700;letter-spacing:-.02em}
 header.top .logo .mono{
-  width:34px;height:34px;border-radius:11px;background:var(--aksen);color:#fff;
-  display:grid;place-items:center;font-size:13px;font-weight:800;letter-spacing:-.04em;
-  box-shadow:var(--kilau),var(--bayang-1);transform:rotate(-2deg);
+  width:32px;height:32px;border-radius:var(--r-badge);background:var(--aksen);color:#fff;
+  display:grid;place-items:center;font-size:12px;font-weight:800;letter-spacing:-.02em;flex:none;
 }
 header.top .spacer{flex:1}
-header.top #akun-pil{font-size:12px;text-transform:uppercase;letter-spacing:.08em;color:var(--redup2)}
-main#app{min-height:50vh}
+header.top #akun-pil{
+  font-size:11px;font-weight:600;color:var(--redup);background:#F1F1F3;
+  border:1px solid var(--garis);border-radius:var(--r-badge);padding:5px 10px;
+  max-width:46vw;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;text-transform:none;letter-spacing:0;
+}
+main#app{min-height:40vh}
 
+/* ── kartu ── */
 .kartu{
-  background:var(--kartu);border:1px solid rgba(255,255,255,.7);outline:1px solid var(--garis);
-  border-radius:var(--r-besar);padding:24px;margin-bottom:16px;position:relative;overflow:hidden;
-  backdrop-filter:blur(18px) saturate(160%);-webkit-backdrop-filter:blur(18px) saturate(160%);
-  box-shadow:var(--kilau),var(--bayang-1);
+  background:var(--kartu);border:1px solid var(--garis);border-radius:var(--r-kartu);
+  padding:var(--s4);margin-bottom:var(--s3);box-shadow:var(--sh-kartu);
+  transition:box-shadow var(--dur) var(--ease),transform var(--dur) var(--ease);
 }
-.kartu h2{font-size:clamp(20px,3.4vw,26px);font-weight:800;letter-spacing:-.035em;margin-bottom:10px;line-height:1.15}
-.kartu h3{font-size:15px;font-weight:800;letter-spacing:-.02em;margin-bottom:8px;text-transform:uppercase;font-size:11.5px;letter-spacing:.14em;color:var(--redup)}
-.sub{color:var(--redup);font-size:13.5px;line-height:1.6}
-.label-kecil{font-size:10.5px;text-transform:uppercase;letter-spacing:.16em;color:var(--redup2);font-weight:700}
+.kartu:hover{box-shadow:var(--sh-hover);transform:translateY(-1px)}
+.kartu h2{font-size:16px;font-weight:600;letter-spacing:-.01em;margin-bottom:var(--s2);display:flex;align-items:center;gap:8px}
+.kartu h3{
+  font-size:12px;font-weight:600;letter-spacing:.04em;color:var(--redup);
+  text-transform:none;margin-bottom:var(--s2);
+}
+.kartu h3 .ic{color:var(--redup)}
+.sub{color:var(--redup);font-size:14px;line-height:1.55}
+.section{margin-bottom:var(--s5)}
 
-/* bento grid statistik — tile beda ukuran, sedikit tak simetris */
-.grid{display:grid;gap:14px;grid-template-columns:repeat(6,1fr)}
+/* ── statistik: grid teratur, tanpa rotasi ── */
+.grid{display:grid;gap:var(--s3);grid-template-columns:repeat(6,1fr)}
 .grid>.stat{grid-column:span 2}
-.grid>.stat:nth-child(1){grid-column:span 3;transform:rotate(-.6deg)}
-.grid>.stat:nth-child(2){grid-column:span 3;transform:rotate(.5deg)}
-.grid>.stat:nth-child(5){grid-column:span 3}
+/* Owner: 2 utama (3 kolom) + 3 status (2 kolom) sejajar satu baris */
+.owner-grid>.stat:nth-child(1),.owner-grid>.stat:nth-child(2){grid-column:span 3}
+.owner-grid>.stat:nth-child(n+3){grid-column:span 2}
 .stat{
-  background:rgba(255,255,255,.55);border:1px solid rgba(255,255,255,.8);outline:1px solid var(--garis);
-  border-radius:var(--r-besar);padding:20px 18px;backdrop-filter:blur(18px) saturate(160%);
-  -webkit-backdrop-filter:blur(18px) saturate(160%);box-shadow:var(--kilau),var(--bayang-1);
-  position:relative;overflow:hidden;transition:transform .45s var(--ease),box-shadow .45s var(--ease);
+  background:var(--kartu);border:1px solid var(--garis);border-radius:var(--r-kartu);
+  padding:var(--s3) var(--s4) 14px;box-shadow:var(--sh-kartu);
+  display:flex;flex-direction:column;gap:6px;min-height:96px;
+  transition:box-shadow var(--dur) var(--ease),transform var(--dur) var(--ease);
 }
-.stat::before{content:'';position:absolute;top:0;left:0;width:60%;height:46%;background:linear-gradient(135deg,rgba(255,255,255,.75),transparent 70%);pointer-events:none}
-.stat:hover{transform:translateY(-4px);box-shadow:var(--kilau),var(--bayang-2)}
-.stat .n{font-size:clamp(26px,5vw,38px);font-weight:800;letter-spacing:-.05em;line-height:1.05;font-variant-numeric:tabular-nums}
-.stat .l{color:var(--redup);font-size:11.5px;margin-top:6px;text-transform:uppercase;letter-spacing:.1em;font-weight:600}
+.stat:hover{box-shadow:var(--sh-hover);transform:translateY(-1px)}
+.stat-ik{
+  width:32px;height:32px;border-radius:10px;display:grid;place-items:center;color:var(--teks);
+  background:rgba(255,255,255,.6);border:1px solid rgba(255,255,255,.8);
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.9),0 1px 2px rgba(0,0,0,.05);
+  backdrop-filter:blur(12px) saturate(140%);-webkit-backdrop-filter:blur(12px) saturate(140%);
+  position:relative;overflow:hidden;flex:none;
+}
+.stat-ik::before{content:'';position:absolute;top:0;left:0;width:70%;height:50%;background:linear-gradient(135deg,rgba(255,255,255,.85),transparent 70%);pointer-events:none}
+.stat-ik svg{width:17px;height:17px}
+.stat .l{
+  font-size:12px;font-weight:500;color:var(--redup);letter-spacing:0;text-transform:none;
+  display:flex;align-items:center;gap:6px;
+}
+.stat .l .dot{width:6px;height:6px;border-radius:50%;flex:none;background:var(--redup2)}
+.stat .l[data-status="diterima"] .dot{background:var(--hijau)}
+.stat .l[data-status="ditolak"] .dot{background:var(--merah)}
+.stat .l[data-status="menunggu"] .dot{background:var(--amber)}
+.stat .n{font-size:28px;font-weight:700;letter-spacing:-.02em;line-height:1.1;color:var(--teks);font-variant-numeric:tabular-nums}
 
-label{display:block;font-size:10.5px;color:var(--redup);margin:14px 0 6px;text-transform:uppercase;letter-spacing:.12em;font-weight:700}
+/* ── form ── */
+label{
+  display:block;font-size:12px;font-weight:500;color:var(--redup);
+  margin:var(--s3) 0 6px;letter-spacing:0;text-transform:none;
+}
 input,textarea,select{
-  width:100%;background:rgba(245,245,247,.9);border:1px solid var(--garis-kuat);border-radius:var(--r-kecil);
-  color:var(--teks);padding:13px 15px;font-size:15px;font-family:var(--font);letter-spacing:-.01em;
-  min-height:46px;transition:border-color .25s,background .25s;
+  width:100%;background:#fff;border:1px solid var(--garis-input);border-radius:var(--r-input);
+  color:var(--teks);padding:0 12px;font-size:14px;font-family:var(--font);
+  min-height:44px;transition:border-color var(--dur),box-shadow var(--dur);
 }
-input:focus,textarea:focus{outline:none;border-color:var(--aksen);background:#fff}
-textarea{resize:vertical}
-input[readonly]{font-family:var(--mono);font-size:12.5px}
+input::placeholder,textarea::placeholder{color:#B4B4BC}
+input:focus,textarea:focus{outline:none;border-color:var(--aksen);box-shadow:0 0 0 2px rgba(10,10,10,.18)}
+textarea{min-height:96px;padding:11px 12px;resize:vertical;line-height:1.5}
+input[readonly]{font-family:var(--mono);font-size:12.5px;background:#FAFAFA}
+.helper{font-size:12px;color:var(--redup2);margin-top:5px}
 
+/* ── tombol ── */
 .tombol{
   display:inline-flex;align-items:center;justify-content:center;gap:8px;
-  background:var(--aksen);color:var(--aksen-invers);border:none;border-radius:var(--r-pill);
-  padding:13px 22px;font-size:14.5px;font-weight:700;font-family:var(--font);letter-spacing:-.01em;
-  cursor:pointer;margin-top:16px;min-height:46px;position:relative;overflow:hidden;
-  transition:transform .35s var(--ease),box-shadow .35s var(--ease),background .25s;
-  box-shadow:var(--bayang-1);will-change:transform;
+  background:var(--aksen);color:var(--invers);border:none;border-radius:var(--r-input);
+  font-size:14px;font-weight:600;font-family:var(--font);cursor:pointer;
+  width:100%;height:48px;margin-top:var(--s4);
+  transition:transform var(--dur) var(--ease),box-shadow var(--dur) var(--ease),opacity var(--dur);
 }
-.tombol:hover{box-shadow:var(--bayang-2)}
-.tombol:active{transform:scale(.97)!important}
+.tombol:hover{box-shadow:var(--sh-hover)}
+.tombol:active{transform:scale(.98)}
 .tombol svg{width:17px;height:17px;flex:none}
-.ic{width:1.08em;height:1.08em;flex:none;vertical-align:-.2em;display:inline-block}
-h2 .ic{width:.92em;height:.92em;vertical-align:-.1em}
-a .ic{width:15px;height:15px;vertical-align:-3px}
-.tombol.kecil{padding:10px 16px;font-size:13px;margin-top:0;min-height:44px;border-radius:16px}
-.tombol.hijau{background:var(--hijau);color:#fff}
-.tombol.merah{background:var(--merah);color:#fff}
-.tombol.netral{background:#fff;color:var(--teks);outline:1px solid var(--garis-kuat);box-shadow:none}
-.baris{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
-.pil-tab{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px}
+.tombol.kecil{width:auto;height:44px;padding:0 16px;font-size:13px;margin-top:0;border-radius:10px;flex:none}
+.tombol.hijau{background:#fff;color:var(--teks);border:1px solid var(--garis-input);box-shadow:none}
+.tombol.hijau:hover{border-color:var(--hijau);color:var(--hijau);box-shadow:none}
+.tombol.merah{background:#fff;color:var(--teks);border:1px solid var(--garis-input);box-shadow:none}
+.tombol.merah:hover{border-color:var(--merah);color:var(--merah);box-shadow:none}
+.tombol.netral{background:#fff;color:var(--teks);border:1px solid var(--garis-input);box-shadow:none}
+.tombol.netral:hover{border-color:#A1A1AA}
+.baris{display:flex;gap:var(--s2);flex-wrap:wrap;align-items:center}
+.baris .tombol:not(.kecil){width:auto}
+
+/* ── pil / badge ── */
+.pil-tab{display:flex;gap:var(--s2);flex-wrap:wrap;margin-bottom:var(--s3)}
 .pil{
-  border:1px solid var(--garis-kuat);background:rgba(255,255,255,.7);color:var(--redup);
-  border-radius:var(--r-pill);padding:9px 16px;font-size:12.5px;font-weight:700;font-family:var(--font);
-  cursor:pointer;min-height:44px;letter-spacing:-.01em;transition:all .3s var(--ease);text-transform:capitalize;
+  border:1px solid var(--garis-input);background:#fff;color:var(--redup);
+  border-radius:var(--r-badge);padding:0 14px;height:40px;font-size:13px;font-weight:600;
+  font-family:var(--font);cursor:pointer;transition:all var(--dur) var(--ease);text-transform:capitalize;
 }
-.pil:hover{border-color:var(--teks);color:var(--teks)}
+.pil:hover{border-color:#A1A1AA;color:var(--teks)}
 .pil.aktif{border-color:var(--aksen);color:#fff;background:var(--aksen)}
-
-.info-kode{
-  display:flex;gap:12px;align-items:center;background:rgba(245,245,247,.8);
-  border:1px dashed var(--garis-kuat);border-radius:var(--r-sedang);padding:14px 16px;margin:12px 0;font-size:14px;
-}
-.info-kode .kode-tanda{color:var(--redup2);font-size:11px;text-transform:uppercase;letter-spacing:.14em;font-weight:700}
-.kode{font-weight:800;font-size:18px;letter-spacing:.18em;color:var(--teks);font-family:var(--mono)}
-
-.pendaftar{
-  border:1px solid rgba(255,255,255,.8);outline:1px solid var(--garis);border-radius:var(--r-besar);
-  padding:18px;margin-bottom:14px;background:rgba(255,255,255,.62);display:flex;gap:16px;flex-wrap:wrap;
-  backdrop-filter:blur(18px) saturate(160%);-webkit-backdrop-filter:blur(18px) saturate(160%);
-  box-shadow:var(--kilau),var(--bayang-1);transition:transform .4s var(--ease),box-shadow .4s var(--ease);
-}
-.pendaftar:hover{transform:translateY(-3px);box-shadow:var(--kilau),var(--bayang-2)}
-.pendaftar:nth-child(odd){transform:rotate(-.35deg)}
-.pendaftar img.foto{width:96px;height:96px;object-fit:cover;border-radius:var(--r-kecil);border:1px solid rgba(255,255,255,.9);outline:1px solid var(--garis);box-shadow:var(--bayang-1)}
-.pendaftar .data{flex:1;min-width:210px}
-.pendaftar .nama{font-weight:800;font-size:15.5px;letter-spacing:-.02em;display:flex;align-items:center;gap:8px;flex-wrap:wrap}
-.pendaftar .kv{font-size:13px;color:var(--redup);margin-top:3px}
 .badge{
-  display:inline-flex;align-items:center;gap:5px;font-size:10.5px;padding:5px 11px;border-radius:var(--r-pill);
-  border:1px solid var(--garis-kuat);color:var(--redup);background:#fff;font-weight:700;
-  text-transform:uppercase;letter-spacing:.1em;
+  display:inline-flex;align-items:center;gap:5px;font-size:11px;font-weight:600;padding:4px 9px;
+  border-radius:var(--r-badge);border:1px solid var(--garis);color:var(--redup);background:#FAFAFA;
+  text-transform:none;letter-spacing:0;
 }
 .badge svg{width:12px;height:12px}
-.badge.menunggu{color:var(--kuning);border-color:rgba(138,97,0,.35);background:var(--kuning-bg)}
-.badge.diterima{color:var(--hijau);border-color:rgba(15,123,87,.35);background:var(--hijau-bg)}
-.badge.ditolak{color:var(--merah);border-color:rgba(179,38,30,.32);background:var(--merah-bg)}
+.badge.menunggu{color:var(--amber);border-color:#F3E2C7;background:#FDF6EC}
+.badge.diterima{color:var(--hijau);border-color:#CDEBD9;background:#EFFAF3}
+.badge.ditolak{color:var(--merah);border-color:#F5D2D0;background:#FDF1F0}
+.info-kode{
+  display:flex;gap:10px;align-items:center;background:#FAFAFA;border:1px solid var(--garis);
+  border-radius:var(--r-input);padding:10px 12px;margin:10px 0;font-size:13.5px;flex-wrap:wrap;
+}
+.info-kode .kode-tanda{font-size:11px;font-weight:600;color:var(--redup);letter-spacing:.04em}
+.kode{font-weight:700;font-size:17px;letter-spacing:.14em;font-family:var(--mono)}
 
-.chat-box{height:330px;overflow-y:auto;display:flex;flex-direction:column;gap:10px;padding:6px 2px}
-.chat-pesan{max-width:78%;padding:11px 15px;border-radius:20px 20px 20px 6px;font-size:14px;background:#fff;border:1px solid var(--garis);align-self:flex-start;box-shadow:var(--bayang-1);line-height:1.5}
-.chat-pesan.saya{align-self:flex-end;background:var(--aksen);color:#fff;border-color:var(--aksen);border-radius:20px 20px 6px 20px}
-.chat-pesan .dari{font-size:10.5px;text-transform:uppercase;letter-spacing:.1em;opacity:.6;margin-bottom:3px;font-weight:700}
-.pesan-error{color:var(--merah);font-size:13.5px;margin-top:10px}
-.pesan-ok{color:var(--hijau);font-size:13.5px;margin-top:10px}
+/* ── pendaftar ── */
+.pendaftar{
+  border:1px solid var(--garis);border-radius:var(--r-kartu);padding:var(--s3);
+  margin-bottom:var(--s3);background:#fff;display:flex;gap:var(--s3);flex-wrap:wrap;
+  box-shadow:var(--sh-kartu);transition:box-shadow var(--dur) var(--ease),transform var(--dur) var(--ease);
+}
+.pendaftar:hover{box-shadow:var(--sh-hover);transform:translateY(-1px)}
+.pendaftar img.foto{width:88px;height:88px;object-fit:cover;border-radius:10px;border:1px solid var(--garis)}
+.pendaftar .data{flex:1;min-width:200px}
+.pendaftar .nama{font-weight:700;font-size:14.5px;letter-spacing:-.01em;display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.pendaftar .kv{font-size:13px;color:var(--redup);margin-top:3px}
+.pendaftar .aksi{display:flex;gap:var(--s2);align-self:flex-start}
+.pendaftar .aksi .tombol{flex:1;min-width:118px}
+.icon-kosong{
+  width:88px;height:88px;border-radius:10px;background:#F4F4F5;border:1px solid var(--garis);
+  display:flex;align-items:center;justify-content:center;color:var(--redup2);
+}
+.icon-kosong svg{width:26px;height:26px}
 
+/* ── chat ── */
+.chat-box{height:320px;overflow-y:auto;display:flex;flex-direction:column;gap:var(--s2);padding:4px 0}
+.chat-pesan{
+  max-width:78%;padding:9px 13px;border-radius:14px 14px 14px 4px;font-size:14px;
+  background:#fff;border:1px solid var(--garis);align-self:flex-start;line-height:1.5;
+}
+.chat-pesan.saya{align-self:flex-end;background:var(--aksen);color:#fff;border-color:var(--aksen);border-radius:14px 14px 4px 14px}
+.chat-pesan .dari{font-size:11px;font-weight:600;opacity:.55;margin-bottom:2px;letter-spacing:.02em}
+.pesan-error{color:var(--merah);font-size:13px;margin-top:var(--s2)}
+.pesan-ok{color:var(--hijau);font-size:13px;margin-top:var(--s2)}
+
+/* ── bottom nav: 5 kolom sama lebar, aktif = tile abu tipis ── */
 .nav-bawah{
-  position:fixed;left:0;right:0;bottom:0;background:rgba(255,255,255,.72);
-  backdrop-filter:blur(18px) saturate(160%);-webkit-backdrop-filter:blur(18px) saturate(160%);
-  border-top:1px solid rgba(255,255,255,.8);box-shadow:0 -8px 32px rgba(10,10,10,.06);
-  display:flex;justify-content:space-around;padding:8px 6px calc(8px + env(safe-area-inset-bottom));z-index:50;
+  position:fixed;left:0;right:0;bottom:0;height:calc(64px + env(safe-area-inset-bottom));
+  padding-bottom:env(safe-area-inset-bottom);
+  background:rgba(255,255,255,.92);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);
+  border-top:1px solid var(--garis);
+  display:grid;grid-auto-flow:column;grid-auto-columns:1fr;z-index:50;
 }
 .nav-bawah button{
-  background:none;border:none;color:var(--redup);font-size:10.5px;font-family:var(--font);font-weight:700;
-  display:flex;flex-direction:column;align-items:center;gap:4px;cursor:pointer;padding:8px 14px;
-  border-radius:18px;min-width:56px;min-height:50px;letter-spacing:.02em;transition:all .3s var(--ease);
+  background:none;border:none;color:var(--redup);font-size:11px;font-weight:600;font-family:var(--font);
+  display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;
+  cursor:pointer;min-height:56px;letter-spacing:0;padding:6px 2px;transition:color var(--dur);
 }
 .nav-bawah button .i{width:22px;height:22px;display:grid;place-items:center}
 .nav-bawah button .i svg{width:21px;height:21px}
+.nav-bawah button.aktif{color:var(--teks);background:#F1F1F3}
 .nav-bawah button:hover{color:var(--teks)}
-.nav-bawah button.aktif{color:#fff;background:var(--aksen);box-shadow:var(--bayang-1);transform:rotate(-1deg)}
 
+/* ── log, misc ── */
 .tabel-log{font-size:12.5px;color:var(--redup);max-height:230px;overflow-y:auto}
-.tabel-log div{padding:7px 0;border-bottom:1px dashed rgba(10,10,10,.09);font-family:var(--mono);font-size:11.5px}
-img.preview{max-width:170px;border-radius:var(--r-kecil);margin-top:10px;border:1px solid rgba(255,255,255,.9);outline:1px solid var(--garis);box-shadow:var(--bayang-1)}
+.tabel-log div{padding:7px 0;border-bottom:1px dashed var(--garis);font-family:var(--mono);font-size:11.5px}
+img.preview{max-width:160px;border-radius:10px;margin-top:10px;border:1px solid var(--garis)}
 .hapus-kolom{cursor:pointer;color:var(--merah);margin-left:8px;font-size:12px}
-footer.kecil{text-align:center;color:var(--redup2);font-size:11px;margin-top:30px;letter-spacing:.06em;text-transform:uppercase;font-weight:600}
-/* Task192 — aksi pendaftar: desktop di kanan, HP dua tombol sejajar rapi */
-.pendaftar .aksi{display:flex;gap:8px;align-self:flex-start}
-.pendaftar .aksi .tombol{flex:1;min-width:118px}
-.icon-kosong{
-  width:96px;height:96px;border-radius:var(--r-kecil);background:rgba(245,245,247,.9);border:1px solid var(--garis);
-  display:flex;align-items:center;justify-content:center;color:var(--redup2);
+footer.kecil{text-align:center;color:var(--redup2);font-size:11px;margin-top:var(--s5);letter-spacing:.03em}
+.ic{width:1.05em;height:1.05em;flex:none;vertical-align:-.18em;display:inline-block}
+h2 .ic{width:17px;height:17px;color:var(--teks)}
+a .ic{width:14px;height:14px;vertical-align:-2px}
+
+/* daftar pengaturan (Task193) */
+.daftar-set{display:flex;flex-direction:column;gap:6px;margin-top:var(--s2)}
+.baris-set{
+  display:flex;align-items:center;gap:var(--s2);border:1px solid var(--garis);
+  border-radius:10px;padding:8px 10px;background:#FAFAFA;
 }
-.icon-kosong svg{width:30px;height:30px}
+.baris-set .tumbuh{flex:1;min-width:0}
+.baris-set .t-nama{font-size:13.5px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.baris-set .t-sub{font-size:11.5px;color:var(--redup);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.baris-set input[type="checkbox"]{width:18px;height:18px;min-height:0;accent-color:#0A0A0A;flex:none}
 
-/* reveal saat scroll (ditambahkan JS) */
-.reveal{opacity:0;transform:translateY(24px);filter:blur(8px);transition:opacity .7s var(--ease),transform .7s var(--ease),filter .7s var(--ease)}
-.reveal.tampil{opacity:1;transform:none;filter:none}
+/* ── reveal halus ── */
+.reveal{opacity:0;transform:translateY(8px);transition:opacity .25s var(--ease),transform .25s var(--ease)}
+.reveal.tampil{opacity:1;transform:none}
 
+@media(min-width:720px){
+  .wrap{padding:var(--s5) var(--s5)}
+  header.top .logo{font-size:17px}
+  .kartu{padding:var(--s5)}
+  .owner-grid>.stat:nth-child(1),.owner-grid>.stat:nth-child(2){grid-column:span 3}
+}
 @media(max-width:719px){
-  .pendaftar{gap:12px}
   .pendaftar .aksi{width:100%;align-self:auto;flex-wrap:wrap}
   .pendaftar .aksi .tombol{flex:1 1 calc(50% - 4px);min-width:0}
   .info-kode{flex-wrap:wrap}
 }
-@media(min-width:720px){
-  .wrap{padding:34px 30px}
-  header.top .logo{font-size:19px}
-  .grid>.stat:nth-child(1){grid-column:span 2}
-  .grid>.stat:nth-child(2){grid-column:span 2}
-  .grid>.stat:nth-child(3){grid-column:span 2;transform:rotate(.4deg)}
-  .grid>.stat:nth-child(4){grid-column:span 2;transform:rotate(-.5deg)}
-  .grid>.stat:nth-child(5){grid-column:span 2}
-  .kartu{padding:30px 32px}
-}
 @media(prefers-reduced-motion:reduce){
-  *,*::before,*::after{animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important}
-  .reveal{opacity:1;transform:none;filter:none}
+  *,*::before,*::after{animation-duration:.01ms!important;transition-duration:.01ms!important}
+  .reveal{opacity:1;transform:none}
 }
 </style>
 </head>
 <body>
-<div class="blob b1" aria-hidden="true"></div>
-<div class="blob b2" aria-hidden="true"></div>
 <div class="wrap">
   <header class="top">
     <div class="logo"><span class="mono" aria-hidden="true">UA</span><span>Umi Alz Seleksi</span></div>
@@ -256,6 +280,9 @@ const IK = {
   wave:'<path d="M18 11.2V6.2a2 2 0 0 0-4 0v4.6"/><path d="M14 10.4V4.6a2 2 0 0 0-4 0v5.8"/><path d="M10 10.8V6.4a2 2 0 0 0-4 0v8"/><path d="M18 8.4a2 2 0 1 1 4 0v5.6a7.6 7.6 0 0 1-7.6 7.6H13a7.6 7.6 0 0 1-7.6-7.6V10.4a2 2 0 1 1 4 0"/>',
   arrow:'<path d="M4.5 12h14"/><path d="M13 6.5 18.5 12 13 17.5"/>',
   ext:'<path d="M7 17 17 7"/><path d="M8.5 7H17v8.5"/>',
+  clock:'<circle cx="12" cy="12" r="8.6"/><path d="M12 7.4V12l3.1 1.8"/>',
+  server:'<rect x="3.6" y="4.2" width="16.8" height="6.4" rx="1.6"/><rect x="3.6" y="13.4" width="16.8" height="6.4" rx="1.6"/><path d="M7.4 7.4h.01M7.4 16.6h.01"/>',
+  inbox:'<path d="M3.6 12.6h4.2l1.6 2.6h5.2l1.6-2.6h4.2"/><path d="M5.4 5.6h13.2l1.8 7v4.4a2 2 0 0 1-2 2H5.6a2 2 0 0 1-2-2v-4.4z"/>',
 };
 const ik = (nama) => '<svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' + (IK[nama] || '') + '</svg>';
 
@@ -310,9 +337,9 @@ async function halUtama() {
       <p class="sub">${esc(s.pesanSambutan)}</p>
     </div>
     <div class="grid">
-      <div class="stat"><div class="n">${s.jumlahGrup}</div><div class="l">Grup seleksi aktif</div></div>
-      <div class="stat"><div class="n">${s.pendaftarMenunggu}</div><div class="l">Menunggu tinjauan</div></div>
-      <div class="stat"><div class="n">${Math.floor(s.server.uptime/60)} mnt</div><div class="l">Status server · ${s.server.ramMb} MB</div></div>
+      <div class="stat"><div class="stat-ik">${ik('folder')}</div><div class="l">Grup seleksi aktif</div><div class="n">${s.jumlahGrup}</div></div>
+      <div class="stat"><div class="stat-ik">${ik('inbox')}</div><div class="l" data-status="menunggu"><span class="dot"></span>Menunggu tinjauan</div><div class="n">${s.pendaftarMenunggu}</div></div>
+      <div class="stat"><div class="stat-ik">${ik('server')}</div><div class="l">Status server · ${s.server.ramMb} MB</div><div class="n">${Math.floor(s.server.uptime/60)} mnt</div></div>
     </div>
     ${AKUN ? '' : `<div class="kartu" style="margin-top:14px"><h3>Punya undangan seleksi?</h3><p class="sub">Buka link & kode dari bot, atau masuk untuk ikut chat. Pemilik grup bisa mengelola seleksi lewat sini.</p>
       <div class="baris"><button class="tombol kecil" id="ke-masuk">Masuk</button><button class="tombol kecil netral" id="ke-daftar">Daftar akun</button></div></div>`}
@@ -408,13 +435,152 @@ async function halPanel(idAkun, slug, status = 'menunggu') {
       <p class="sub">Akses: <b>${esc(d.akses)}</b> · ${esc(g.deskripsi||'')}<br>
       Statistik: <span class="badge diterima">${g.statistik.acc} diterima</span> <span class="badge ditolak">${g.statistik.tolak} ditolak</span> <span class="badge menunggu">${Object.values(d.pendaftar).filter(x=>x.status==='menunggu').length} menunggu</span></p>
       <a href="/${esc(idAkun)}/${esc(slug)}" target="_blank">Link pendaftaran publik ${ik('ext')}</a>
+      <div class="baris" style="margin-top:12px">
+        <button class="tombol kecil netral" id="buka-setting">${ik('settings')} Pengaturan grup</button>
+      </div>
     </div>
     <div class="pil-tab">
       ${['menunggu','diterima','ditolak',''].map(s2 => `<button class="pil ${s2===status?'aktif':''}" data-s="${s2}">${s2||'Semua'}</button>`).join('')}
     </div>
     <div id="daftar">${d.pendaftar.map(p => kartuPendaftar(p, d)).join('') || '<div class="kartu"><p class="sub">Tidak ada pendaftar.</p></div>'}</div>`
+
   app.querySelectorAll('.pil[data-s]').forEach(b => b.onclick = () => halPanel(idAkun, slug, b.dataset.s))
   pasangAksi(d)
+  const tombolSet = document.getElementById('buka-setting')
+  if (tombolSet) tombolSet.onclick = () => halSetting(idAkun, slug)
+}
+
+/* ── Task193 — halaman pengaturan grup seleksi ── */
+async function halSetting(idAkun, slug) {
+  gambarNav('')
+  let d
+  try { d = await api(`/api/grup/setting?idAkun=${encodeURIComponent(idAkun)}&slug=${encodeURIComponent(slug)}`) }
+  catch (e) {
+    app.innerHTML = `<div class="kartu"><h2>${ik('settings')} Pengaturan</h2><p class="sub">${esc(e.message)}</p>
+      <button class="tombol" id="kembali">Kembali</button></div>`
+    $('#kembali').onclick = () => halPanel(idAkun, slug)
+    return
+  }
+  PATH_GRUP = { idAkun, slug }
+  app.innerHTML = `
+    <div class="kartu">
+      <h2>${ik('settings')} Pengaturan — ${esc(d.grup.nama)}</h2>
+      <p class="sub">Atur akses penuh, link grup, dan kolom isian seleksi. Perubahan berlaku langsung ke form dan bot.</p>
+    </div>
+
+    <div class="kartu">
+      <h3>${ik('ext')} Link grup</h3>
+      <label for="st-linkgrup">URL link group seleksi</label>
+      <input id="st-linkgrup" placeholder="https://chat.whatsapp.com/…" value="${esc(d.grup.linkGrup)}">
+      <div class="helper">Ditampilkan di halaman pendaftaran. Wajib https://</div>
+      <label for="st-linkutama">URL link group utama (jika lolos seleksi)</label>
+      <input id="st-linkutama" placeholder="https://chat.whatsapp.com/…" value="${esc(d.grup.linkUtama)}">
+      <div class="helper">Bot mengirim link ini ke pendaftar saat diterima.</div>
+
+      <label for="st-desk">Deskripsi grup seleksi</label>
+      <textarea id="st-desk" rows="2" style="min-height:72px">${esc(d.grup.deskripsi)}</textarea>
+
+      <label style="display:flex;align-items:center;gap:8px;font-size:13.5px;color:var(--teks);margin-top:14px">
+        <input type="checkbox" id="st-aktif" ${d.grup.daftarAktif ? 'checked' : ''} style="width:18px;height:18px;min-height:0;accent-color:#0A0A0A">
+        Pendaftaran dibuka
+      </label>
+      <button class="tombol" id="st-simpan">${ik('check')} Simpan pengaturan</button>
+      <p class="pesan-ok" id="st-ok"></p><p class="pesan-error" id="st-err"></p>
+    </div>
+
+    <div class="kartu">
+      <h3>${ik('users')} Akses penuh (nomor yang boleh menerima / menolak)</h3>
+      <div class="daftar-set" id="st-akses">
+        ${d.akses.length ? d.akses.map(a => `
+          <div class="baris-set">
+            <div class="tumbuh"><div class="t-nama">${esc(a.nama || '••••' + String(a.nomor).slice(-4))}</div>
+            <div class="t-sub">+${esc(a.nomor)}${a.username ? ' · @' + esc(a.username) : ''}</div></div>
+            <button class="tombol kecil merah" data-hapus-akses="${esc(a.nomor)}">${ik('x')} Hapus</button>
+          </div>`).join('') : '<div class="sub">Belum ada — tambahkan nomor di bawah.</div>'}
+      </div>
+      <label for="st-nomor">Nomor baru</label>
+      <div class="baris" style="align-items:stretch">
+        <input id="st-nomor" inputmode="numeric" placeholder="628xxx" style="flex:1;min-width:170px">
+        <button class="tombol kecil netral" id="st-tambah-akses">${ik('plus')} Tambah</button>
+      </div>
+      <div class="helper">Atau jalankan bot: /addanggotaseleksi @user</div>
+    </div>
+
+    <div class="kartu">
+      <h3>${ik('edit')} Kolom isian seleksi</h3>
+      <div class="daftar-set" id="st-field">
+        ${d.fields.map(f => `
+          <div class="baris-set">
+            <input type="checkbox" data-wajib-field="${esc(f.kunci)}" ${f.wajib ? 'checked' : ''} style="width:18px;height:18px;min-height:0;accent-color:#0A0A0A">
+            <div class="tumbuh"><div class="t-nama">${esc(f.label)}</div><div class="t-sub">${esc(f.kunci)}${f.tipe === 'angka' ? ' · angka' : ''} · ${f.wajib ? 'wajib' : 'opsional'}</div></div>
+            <button class="tombol kecil merah" data-hapus-field="${esc(f.kunci)}" ${d.fields.length <= 1 ? 'disabled style="opacity:.4"' : ''}>${ik('x')} Hapus</button>
+          </div>`).join('')}
+      </div>
+      <label for="st-fieldlabel">Kolom baru</label>
+      <div class="baris" style="align-items:stretch">
+        <input id="st-fieldlabel" placeholder="mis. Tinggi badan" style="flex:1;min-width:160px">
+        <button class="tombol kecil netral" id="st-tambah-field">${ik('plus')} Tambah</button>
+      </div>
+      <div class="helper">Status wajib/opsional diatur lewat centang di daftar.</div>
+    </div>
+
+    <div class="kartu">
+      <button class="tombol netral" id="st-kembali">${ik('arrow')} Kembali ke panel seleksi</button>
+    </div>`
+
+  $('#st-kembali').onclick = () => halPanel(idAkun, slug)
+
+  $('#st-simpan').onclick = async () => {
+    $('#st-ok').textContent = ''; $('#st-err').textContent = ''
+    try {
+      const wajib = [...app.querySelectorAll('[data-wajib-field]')].filter(c => c.checked).map(c => c.dataset.wajibField)
+      await api('/api/grup/setting', { method: 'POST', body: {
+        slug,
+        linkGrup: $('#st-linkgrup').value.trim(),
+        linkUtama: $('#st-linkutama').value.trim(),
+        deskripsi: $('#st-desk').value,
+        daftarAktif: $('#st-aktif').checked,
+        fieldWajib: wajib,
+      } })
+      $('#st-ok').textContent = 'Pengaturan tersimpan.'
+    } catch (e) { $('#st-err').textContent = e.message }
+  }
+
+  $('#st-tambah-akses').onclick = async () => {
+    const nomor = $('#st-nomor').value.trim()
+    if (!nomor) return
+    try {
+      await api('/api/grup/setting', { method: 'POST', body: { slug, tambahAkses: nomor } })
+      halSetting(idAkun, slug)
+    } catch (e) { alert(e.message) }
+  }
+  app.querySelectorAll('[data-hapus-akses]').forEach(b => b.onclick = async () => {
+    try {
+      await api('/api/grup/setting', { method: 'POST', body: { slug, hapusAkses: b.dataset.hapusAkses } })
+      halSetting(idAkun, slug)
+    } catch (e) { alert(e.message) }
+  })
+
+  $('#st-tambah-field').onclick = async () => {
+    const label = $('#st-fieldlabel').value.trim()
+    if (!label) return
+    try {
+      await api('/api/grup/setting', { method: 'POST', body: { slug, fieldBaru: { label, wajib: false } } })
+      halSetting(idAkun, slug)
+    } catch (e) { alert(e.message) }
+  }
+  app.querySelectorAll('[data-hapus-field]').forEach(b => b.onclick = async () => {
+    try {
+      await api('/api/grup/setting', { method: 'POST', body: { slug, fieldHapus: b.dataset.hapusField } })
+      halSetting(idAkun, slug)
+    } catch (e) { alert(e.message) }
+  })
+  app.querySelectorAll('[data-wajib-field]').forEach(c => c.onchange = async () => {
+    try {
+      const wajib = [...app.querySelectorAll('[data-wajib-field]')].filter(x => x.checked).map(x => x.dataset.wajibField)
+      await api('/api/grup/setting', { method: 'POST', body: { slug, fieldWajib: wajib } })
+    } catch (e) { alert(e.message) }
+  })
 }
 function kartuPendaftar(p, d) {
   const kv = d.grup.fields.map(f => p.data?.[f.kunci] ? `<div class="kv"><b>${esc(f.label)}:</b> ${esc(p.data[f.kunci])}</div>` : '').join('')
@@ -540,12 +706,12 @@ async function halOwner() {
   try { d = await api('/api/owner/ringkasan') }
   catch (e) { app.innerHTML = `<div class="kartu"><h2>${ik('settings')} Owner panel</h2><p class="sub">${esc(e.message)}</p></div>`; return }
   app.innerHTML = `
-    <div class="grid">
-      <div class="stat"><div class="n">${d.jumlahGrup}</div><div class="l">Grup seleksi</div></div>
-      <div class="stat"><div class="n">${d.jumlahAkun}</div><div class="l">Akun web</div></div>
-      <div class="stat"><div class="n" style="color:var(--hijau)">${d.acc}</div><div class="l">Diterima</div></div>
-      <div class="stat"><div class="n" style="color:var(--merah)">${d.tolak}</div><div class="l">Ditolak</div></div>
-      <div class="stat"><div class="n" style="color:var(--kuning)">${d.menunggu}</div><div class="l">Menunggu</div></div>
+    <div class="grid owner-grid">
+      <div class="stat"><div class="stat-ik">${ik('folder')}</div><div class="l">Grup seleksi</div><div class="n">${d.jumlahGrup}</div></div>
+      <div class="stat"><div class="stat-ik">${ik('users')}</div><div class="l">Akun web</div><div class="n">${d.jumlahAkun}</div></div>
+      <div class="stat"><div class="stat-ik">${ik('check')}</div><div class="l" data-status="diterima"><span class="dot"></span>Diterima</div><div class="n">${d.acc}</div></div>
+      <div class="stat"><div class="stat-ik">${ik('x')}</div><div class="l" data-status="ditolak"><span class="dot"></span>Ditolak</div><div class="n">${d.tolak}</div></div>
+      <div class="stat"><div class="stat-ik">${ik('clock')}</div><div class="l" data-status="menunggu"><span class="dot"></span>Menunggu</div><div class="n">${d.menunggu}</div></div>
     </div>
     <div class="kartu" style="margin-top:14px">
       <h3>${ik('plus')} Tambah grup seleksi</h3>
@@ -665,7 +831,7 @@ render()
       el.querySelectorAll?.('.n').forEach(kartuAngka)
       if (el.classList.contains('n')) kartuAngka(el)
       /* judul per kata (hanya h2 murni teks tanpa tag) */
-      el.querySelectorAll?.('h2').forEach(splitKata)
+
     })
   }, { threshold: 0.12, rootMargin: '0px 0px -6% 0px' })
 
@@ -677,13 +843,13 @@ render()
       if (ibu) {
         const saudara = [...ibu.children].filter(c => c.classList?.contains('reveal'))
         const i = saudara.indexOf(node)
-        if (i > 0) node.dataset.revealDelay = String(Math.min(i * 70, 350))
+        if (i > 0) node.dataset.revealDelay = String(Math.min(i * 40, 200))
       }
       io.observe(node)
     }
     node.querySelectorAll?.('.kartu, .stat, .pendaftar, .pil-tab').forEach((c, i) => {
       c.classList.add('reveal')
-      if (i) c.dataset.revealDelay = String(Math.min(i * 70, 350))
+      if (i) c.dataset.revealDelay = String(Math.min(i * 40, 200))
       io.observe(c)
     })
   }
@@ -692,7 +858,7 @@ render()
   })
   mo.observe(document.getElementById('app'), { childList: true, subtree: true })
   document.getElementById('app').querySelectorAll('.kartu, .stat, .pendaftar, .pil-tab').forEach((c, i) => {
-    c.classList.add('reveal'); if (i) c.dataset.revealDelay = String(Math.min(i * 70, 350)); io.observe(c)
+    c.classList.add('reveal'); if (i) c.dataset.revealDelay = String(Math.min(i * 40, 200)); io.observe(c)
   })
 
   /* — Count-up (hanya angka murni di awal teks) — */
@@ -723,61 +889,8 @@ render()
     requestAnimationFrame(langkah)
   }
 
-  /* — Judul per kata — */
-  function splitKata(h) {
-    if (h.dataset.split || h.children.length) return
-    const kata = (h.textContent || '').trim().split(/\s+/)
-    if (kata.length < 2) return
-    h.dataset.split = '1'
-    h.textContent = ''
-    kata.forEach((k, i) => {
-      const span = document.createElement('span')
-      span.textContent = k + (i < kata.length - 1 ? ' ' : '')
-      span.style.cssText = 'display:inline-block;opacity:0;transform:translateY(14px);filter:blur(6px);transition:all .55s var(--ease);transition-delay:' + (i * 65) + 'ms'
-      h.appendChild(span)
-      requestAnimationFrame(() => requestAnimationFrame(() => {
-        span.style.opacity = '1'; span.style.transform = 'none'; span.style.filter = 'none'
-      }))
-    })
-  }
 
-  /* — Parallax blob: digabung dengan drift lewat JS — */
-  const b1 = document.querySelector('.blob.b1')
-  const b2 = document.querySelector('.blob.b2')
-  let scrollY = window.scrollY
-  let rafJalan = false
-  function parallax() {
-    rafJalan = false
-    const t = performance.now() / 1000
-    if (b1) b1.style.transform = 'translate3d(' + (Math.sin(t / 7) * 26 - scrollY * 0.05) + 'px,' + (Math.cos(t / 9) * 20 + scrollY * 0.07) + 'px,0)'
-    if (b2) b2.style.transform = 'translate3d(' + (Math.cos(t / 8) * -24 + scrollY * 0.04) + 'px,' + (Math.sin(t / 10) * -18 - scrollY * 0.05) + 'px,0)'
-  }
-  function mintaRaf() { if (!rafJalan) { rafJalan = true; requestAnimationFrame(parallax) } }
-  if (b1) b1.style.animation = 'none'
-  if (b2) b2.style.animation = 'none'
-  window.addEventListener('scroll', () => { scrollY = window.scrollY; mintaRaf() }, { passive: true })
-  setInterval(mintaRaf, 90)   /* drift pelan tanpa loop berat */
-
-  /* — Tombol magnetic (hanya pointer halus) — */
-  if (matchMedia('(pointer: fine)').matches) {
-    document.addEventListener('pointermove', (e) => {
-      const tombol = e.target.closest?.('.tombol')
-      document.querySelectorAll('.tombol[data-magnet]').forEach((t) => {
-        if (t !== tombol) { t.style.transform = ''; t.removeAttribute('data-magnet') }
-      })
-      if (!tombol || tombol.classList.contains('kecil')) return
-      const r = tombol.getBoundingClientRect()
-      const dx = (e.clientX - (r.left + r.width / 2)) / r.width
-      const dy = (e.clientY - (r.top + r.height / 2)) / r.height
-      tombol.dataset.magnet = '1'
-      tombol.style.transform = 'translate(' + (dx * 7).toFixed(1) + 'px,' + (dy * 5).toFixed(1) + 'px)'
-    }, { passive: true })
-    document.addEventListener('pointerleave', () => {
-      document.querySelectorAll('.tombol[data-magnet]').forEach((t) => { t.style.transform = ''; t.removeAttribute('data-magnet') })
-    })
-  }
 })()
-
 </script>
 </body>
 </html>
