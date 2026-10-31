@@ -238,7 +238,7 @@ async function handler(m, { sock }) {
       return m.reply(`── .✦ ──\n\n> Gagal mendownload sticker .☘︎ ݁˖`);
     }
 
-    const packname = randPick.name || config.sticker?.packname || "Rimuru-AI";
+    const packname = randPick.name || config.sticker?.packname || "Umi Usanagi";
     const author = config.bot?.developer || config.sticker?.author || "Bot";
 
     try {

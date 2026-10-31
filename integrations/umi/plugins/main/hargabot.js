@@ -104,7 +104,7 @@ async function handler(m, { sock, isOwner }) {
         `*Permanen* ➔ *Rp5.000* ✨\n` +
         `*Permanen* ➔ *Rp10.000 FREE PREMIUM BOT* ✨\n\n` +
         `📌 *Minat? Chat .owner ya!*\n` +
-        `Terima kasih telah menggunakan Rimuru Bot ❤️`;
+        `Terima kasih telah menggunakan Umi Usanagi Bot ❤️`;
     }
 
     await m.react("✅");

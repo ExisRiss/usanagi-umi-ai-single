@@ -36,7 +36,7 @@ const pluginConfig = {
     category: 'canvas',
     description: 'Bikin fake surat panggilan (buat konten/gaguan doang)',
     usage: '.fakesp <nama> | <instansi>',
-    example: '.fakesp Rimuru | OSIS',
+    example: '.fakesp Umi Usanagi | OSIS',
     isOwner: false,
     isPremium: false,
     isGroup: false,
@@ -80,7 +80,7 @@ async function generateFakeSP(nama, instansi) {
 
 async function handler(m, { sock }) {
     const text = m.args.join(' ') || m.text?.trim() || ''
-    if (!text) return m.reply(`*Cara pakai:*\n${m.prefix}fakesp <nama> | <instansi>\nContoh: .fakesp Rimuru | OSIS`)
+    if (!text) return m.reply(`*Cara pakai:*\n${m.prefix}fakesp <nama> | <instansi>\nContoh: .fakesp Umi Usanagi | OSIS`)
     
     const parts = text.split('|').map(p => p.trim())
     const nama = parts[0] || 'Darling'
@@ -91,7 +91,7 @@ async function handler(m, { sock }) {
     
     try {
         const imageBuffer = await generateFakeSP(nama, instansi)
-        await sock.sendMessage(m.chat, { image: imageBuffer, caption: `💕 *FAKE SURAT PANGGILAN* 💕\n\n✅ Nama: ${nama}\n📌 Instansi: ${instansi}\n\n💗 *Rimuru:* Kamu dipanggil nih darling~` }, { quoted: m })
+        await sock.sendMessage(m.chat, { image: imageBuffer, caption: `💕 *FAKE SURAT PANGGILAN* 💕\n\n✅ Nama: ${nama}\n📌 Instansi: ${instansi}\n\n💗 *Umi Usanagi:* Kamu dipanggil nih darling~` }, { quoted: m })
         m.react('✅')
     } catch (err) {
         m.react('💔')

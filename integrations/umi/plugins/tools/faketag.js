@@ -31,7 +31,7 @@ const pluginConfig = {
     name: 'faketag',
     alias: ['ftag', 'fake'],
     category: 'tools',
-    description: 'Fake tag ala Rimuru',
+    description: 'Fake tag ala Umi Usanagi',
     usage: '.faketag @user|pesan tag|pesan',
     example: '.faketag 628xxx|Darling...|Kamu dimana? 💕',
     cooldown: 5,
@@ -50,7 +50,7 @@ async function handler(m, { sock }) {
         if (!body.includes('|')) {
 
             return m.reply(
-`💗 *RIMURU FAKETAG*
+`💗 *UMI USANAGI FAKETAG*
 
 ❌ Format salah darling~
 
@@ -65,7 +65,7 @@ async function handler(m, { sock }) {
         if (parts.length < 3) {
 
             return m.reply(
-`💗 *RIMURU FAKETAG*
+`💗 *UMI USANAGI FAKETAG*
 
 ❌ Parameter kurang~
 
@@ -130,7 +130,7 @@ target|pesan tag|pesan`
         console.error('[FAKETAG ERROR]', err)
 
         m.reply(
-`❌ *RIMURU ERROR*
+`❌ *UMI USANAGI ERROR*
 
 > ${err.message}`
         )

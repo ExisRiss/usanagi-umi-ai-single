@@ -34,7 +34,7 @@ const pluginConfig = {
     category: 'canvas',
     description: 'Bikin fake sertifikat nikah (buat konten/gaguan doang)',
     usage: '.fakenikah <nama1> | <nama2>',
-    example: '.fakenikah Rimuru | Darling',
+    example: '.fakenikah Umi Usanagi | Darling',
     isOwner: false,
     isPremium: false,
     isGroup: false,
@@ -107,7 +107,7 @@ async function handler(m, { sock }) {
     }
     
     const parts = text.split('|').map(p => p.trim())
-    const nama1 = parts[0] || 'Rimuru'
+    const nama1 = parts[0] || 'Umi Usanagi'
     const nama2 = parts[1] || 'Darling'
     
     m.react('💕')

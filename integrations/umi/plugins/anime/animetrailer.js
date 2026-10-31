@@ -220,7 +220,7 @@ async function renderTrailerCard(anime, trailer) {
     ctx.textAlign = 'center'
     ctx.shadowColor = THEME.glow
     ctx.shadowBlur = 15
-    ctx.fillText('≫ RIMURU ANIME TRAILER ≪', w/2, 42)
+    ctx.fillText('≫ UMI USANAGI ANIME TRAILER ≪', w/2, 42)
     ctx.shadowBlur = 0
 
     // Garis dekorasi
@@ -353,7 +353,7 @@ async function renderTrailerCard(anime, trailer) {
     ctx.fillStyle = THEME.magenta
     ctx.font = 'bold 8px "Segoe UI"'
     ctx.textAlign = 'center'
-    ctx.fillText('∼ RIMURU AI | ANIME TRAILER ∼', w/2, 500)
+    ctx.fillText('∼ UMI USANAGI | ANIME TRAILER ∼', w/2, 500)
     
     ctx.fillStyle = THEME.blue
     ctx.font = '7px "Segoe UI"'
@@ -378,7 +378,7 @@ function roundRect(ctx, x, y, w, h, r) {
 }
 
 function formatCaption(anime, trailer) {
-    let caption = `🎬 *RIMURU ANIME TRAILER* 🎬\n\n`
+    let caption = `🎬 *UMI USANAGI ANIME TRAILER* 🎬\n\n`
     caption += `📺 *${anime.title}*\n`
     if (anime.titleEnglish && anime.titleEnglish !== anime.title) caption += `📖 *English:* ${anime.titleEnglish}\n`
     caption += `\n`
@@ -395,7 +395,7 @@ function formatCaption(anime, trailer) {
     caption += `\n`
     caption += `🔗 *Link:* ${trailer.url}\n`
     caption += `\n`
-    caption += `💕 *Rimuru:* ${['Ayo nonton trailernya darling~', 'Keren banget PV-nya!', 'Anime ini seru nih~', 'Darling mau nonton anime ini?', 'Rimuru sayang banget sama kamu~'][Math.floor(Math.random() * 5)]} 🦋`
+    caption += `💕 *Umi Usanagi:* ${['Ayo nonton trailernya darling~', 'Keren banget PV-nya!', 'Anime ini seru nih~', 'Darling mau nonton anime ini?', 'Umi Usanagi sayang banget sama kamu~'][Math.floor(Math.random() * 5)]} 🦋`
     return caption
 }
 
@@ -404,20 +404,20 @@ async function handler(m, { sock }) {
     
     if (!query) {
         return m.reply(
-            `🎬 *RIMURU ANIME TRAILER* 🎬\n\n` +
+            `🎬 *UMI USANAGI ANIME TRAILER* 🎬\n\n` +
             `📌 *Cara pakai:*\n• ${m.prefix}animetrailer <judul anime>\n\n` +
             `📌 *Contoh:*\n` +
             `• ${m.prefix}animetrailer jujutsu kaisen\n` +
             `• ${m.prefix}animetrailer chainsaw man\n` +
             `• ${m.prefix}animetrailer one piece\n\n` +
-            `💕 *Rimuru:* Mau nonton trailer anime apa darling~? 🎥`
+            `💕 *Umi Usanagi:* Mau nonton trailer anime apa darling~? 🎥`
         )
     }
 
     await m.react('🎬')
     
     try {
-        await m.reply(`🦋 *Rimuru:* Lagi nyari trailer *${query}*... tunggu sebentar ya darling~ 🎥`)
+        await m.reply(`🦋 *Umi Usanagi:* Lagi nyari trailer *${query}*... tunggu sebentar ya darling~ 🎥`)
         
         const animeResult = await searchAnime(query)
         if (!animeResult.success) {

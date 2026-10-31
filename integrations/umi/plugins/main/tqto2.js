@@ -25,7 +25,7 @@ async function handler(m, { sock }) {
         { name: 'Zanspiw', role: 'Youtuber', icon: '🌐' }
     ]
 
-    await m.reply(`🍟 *Berikut ini adalah orang-orang yang berkontribusi di bot ${config.bot?.name || 'Rimuru MD'}*
+    await m.reply(`🍟 *Berikut ini adalah orang-orang yang berkontribusi di bot ${config.bot?.name || 'Umi Usanagi'}*
 
 ${credits.map((c, i) => `*${i + 1}*. *${c.name}* [ ${c.icon} ${c.role} ]`).join('\n')}`)
 }

@@ -48,7 +48,7 @@ async function handler(m,{ sock }){
 
     const quoted = m.quoted
     if(!quoted) return m.reply(
-`╭━━〔 *❤️ RIMURU SET PP CHANNEL* 〕━━⬣
+`╭━━〔 *❤️ UMI USANAGI SET PP CHANNEL* 〕━━⬣
 ┃ Reply gambar dengan command ini
 ┃ lalu kirim *.setppsaluran*
 ╰━━━━━━━━━━━━━━━━⬣`
@@ -62,7 +62,7 @@ async function handler(m,{ sock }){
     }
 
     if(!imageBuffer) return m.reply(
-`╭━━〔 *❌ RIMURU SET PP CHANNEL* 〕━━⬣
+`╭━━〔 *❌ UMI USANAGI SET PP CHANNEL* 〕━━⬣
 ┃ ❌ Pesan yang direply bukan gambar
 ╰━━━━━━━━━━━━━━━━⬣`
     )
@@ -82,7 +82,7 @@ async function handler(m,{ sock }){
         // Kirim info ke channel (UI Rimuru)
         const time = new Date().toLocaleTimeString()
         const infoMsg =
-`╭─〔 💖 RIMURU CHANNEL UPDATE 💖 〕
+`╭─〔 💖 UMI USANAGI CHANNEL UPDATE 💖 〕
 │
 │ Darling, ada PP baru nih 😋
 │
@@ -100,7 +100,7 @@ async function handler(m,{ sock }){
         // Feedback ke user
         m.react("✅")
         return m.reply(
-`╭━━〔 *❤️ RIMURU SYSTEM* 〕━━⬣
+`╭━━〔 *❤️ UMI USANAGI SYSTEM* 〕━━⬣
 ┃ ✅ PP Channel berhasil diupdate!
 ┃ Darling, channel sudah dikasih info 😋
 ╰━━━━━━━━━━━━━━━━⬣`
@@ -110,7 +110,7 @@ async function handler(m,{ sock }){
         console.log(e)
         m.react("❌")
         return m.reply(
-`╭━━〔 *❌ RIMURU SYSTEM* 〕━━⬣
+`╭━━〔 *❌ UMI USANAGI SYSTEM* 〕━━⬣
 ┃ ${e.message}
 ╰━━━━━━━━━━━━━━━━⬣`
         )

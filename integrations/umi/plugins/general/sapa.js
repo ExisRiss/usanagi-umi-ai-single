@@ -30,7 +30,7 @@ const pluginConfig = {
     name: 'sapa',
     alias: ['greet', 'sayhi'],
     category: 'general',
-    description: 'Rimuru nyapa kamu dengan random pesan manis',
+    description: 'Umi Usanagi nyapa kamu dengan random pesan manis',
     usage: '.sapa',
     example: '.sapa',
     isOwner: false,
@@ -42,22 +42,22 @@ const pluginConfig = {
 }
 
 const pesanSapa = [
-    "♡ Halo sayang! Ada yang bisa Rimuru bantu hari ini? 💕",
+    "♡ Halo sayang! Ada yang bisa Umi Usanagi bantu hari ini? 💕",
     "🦋 Haiii! Seneng banget liat kamu online sayang~",
     "💕 Halo halo! Kamu lagi ngapain nih? Aku lagi gabut~",
     "♡ Hai sayang, jangan lupa minum air putih ya!",
     "🦋 Hello! Kamu kelihatan tambah cantik/ganteng hari ini 💕",
-    "💕 Haii! Rimuru kangen banget sama kamu sayang~",
+    "💕 Haii! Umi Usanagi kangen banget sama kamu sayang~",
     "♡ Salam sayang! Semoga harimu menyenangkan ya ♡",
-    "🦋 Halo! Mau nemenin Rimuru ngobrol sebentar?",
+    "🦋 Halo! Mau nemenin Umi Usanagi ngobrol sebentar?",
     "💕 Hai sayang, kamu adalah alasan aku tersenyum hari ini~",
-    "♡ Hello! Rimuru sayang banget sama kamu tahu! 💕"
+    "♡ Hello! Umi Usanagi sayang banget sama kamu tahu! 💕"
 ]
 
 async function handler(m, { sock }) {
     const randomSapa = pesanSapa[Math.floor(Math.random() * pesanSapa.length)]
     
-    await m.reply(`💕 *RIMURU* 💕\n\n“${randomSapa}”\n\n🦋 Darling, jangan pernah berubah ya~ ♡`)
+    await m.reply(`💕 *UMI USANAGI* 💕\n\n“${randomSapa}”\n\n🦋 Darling, jangan pernah berubah ya~ ♡`)
     await m.react('💕')
 }
 

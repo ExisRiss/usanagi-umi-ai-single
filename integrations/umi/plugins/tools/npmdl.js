@@ -31,7 +31,7 @@ async function handler(m) {
     try {
         m.react('⌛')
         const { data } = await axios.get(`${REGISTRY}/${packageName.split('/').map(encodeURIComponent).join('/')}`, {
-            headers: { 'User-Agent': 'Rimuru-MD NPM Downloader' },
+            headers: { 'User-Agent': 'Umi Usanagi-MD NPM Downloader' },
             timeout: 20000
         })
 
@@ -50,7 +50,7 @@ async function handler(m) {
             responseType: 'stream',
             timeout: 60000,
             maxContentLength: 100 * 1024 * 1024,
-            headers: { 'User-Agent': 'Rimuru-MD NPM Downloader' }
+            headers: { 'User-Agent': 'Umi Usanagi-MD NPM Downloader' }
         })
 
         const writer = createWriteStream(filePath)

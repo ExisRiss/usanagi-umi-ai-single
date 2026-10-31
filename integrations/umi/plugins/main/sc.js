@@ -51,7 +51,7 @@ async function handler(m, { sock }) {
         image: getAssetBuffer("rimuru"),
         caption: `🌾 Halo kak *${m.pushName}*
         
-Untuk asli dari bot ini, kamu bisa dapatkan melalui link, nanti kamu tinggal cari kata kunci *Rimuru MD*`,
+Untuk asli dari bot ini, kamu bisa dapatkan melalui link, nanti kamu tinggal cari kata kunci *Umi Usanagi*`,
         footer: "💬 Link ini nanti akan mengarahkan kamu ke Youtube *FebxyZ YT*",
         interactiveButtons: [
             {

@@ -83,7 +83,7 @@ async function handler(m, { sock, db }) {
 
     await sock.sendMessage(m.chat, {
         text: `🎨 *sᴇᴛ ᴏᴡɴᴇʀ ᴛʏᴘᴇ*\n\n> Type saat ini: *V${current}*\n> _${VARIANTS[current].name}_\n\n> Pilih variant owner:`,
-        footer: config.bot?.name || 'Rimuru-AI',
+        footer: config.bot?.name || 'Umi Usanagi',
         contextInfo: {
             mentionedJid: [m.sender],
             isForwarded: true,

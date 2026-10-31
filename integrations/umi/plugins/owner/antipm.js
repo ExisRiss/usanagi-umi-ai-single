@@ -100,7 +100,7 @@ async function handler(m, { sock }) {
         
         return m.reply(
             `🦋 *ANTI PM AKTIF* 🦋\n\n` +
-            `> Rimuru: "Siap darling~ Sekarang cuma ${allowedNumbers.length} orang yang bisa chat ke aku!\n\n` +
+            `> Umi Usanagi: "Siap darling~ Sekarang cuma ${allowedNumbers.length} orang yang bisa chat ke aku!\n\n` +
             `📋 *Daftar yang boleh chat:*\n${daftarAllowed}\n` +
             `💀 *Siapapun selain itu bakal diblokir ASLI di WhatsApp!*\n` +
             `⚠️ *Peringatan 3x chat → BLOKIR PERMANEN!*\n\n` +
@@ -114,7 +114,7 @@ async function handler(m, { sock }) {
         
         return m.reply(
             `❌ *ANTI PM NONAKTIF* ❌\n\n` +
-            `> Rimuru: "Hmph~ Yaudah, sekarang semua orang bisa chat ke aku. Tapi jangan aneh-aneh ya darling~ 🦋"`
+            `> Umi Usanagi: "Hmph~ Yaudah, sekarang semua orang bisa chat ke aku. Tapi jangan aneh-aneh ya darling~ 🦋"`
         )
     }
     
@@ -203,7 +203,7 @@ async function handler(m, { sock }) {
         `> ${m.prefix}antipm unblock @user → buka blokir\n\n` +
         `📌 *Yang boleh chat:*\n${daftarAllowed}\n` +
         `🚫 *Sanksi:* Peringatan 3x → BLOKIR ASLI WhatsApp!\n\n` +
-        `💫 *Rimuru:* "Yang lain jangan coba-coba ya darling~ 🎐"`
+        `💫 *Umi Usanagi:* "Yang lain jangan coba-coba ya darling~ 🎐"`
     )
 }
 
@@ -248,7 +248,7 @@ async function setupAntiPMListener(sock) {
             
             if (isAlreadyBlocked) {
                 await sock.sendMessage(sender, {
-                    text: `🦋 *RIMURU*: "Heh! ${senderNumber} kamu udah aku *BLOKIR ASLI* di WhatsApp! 🗿\n\nGak usah coba-coba chat lagi, pesanmu gak bakal sampe ke aku~\n\n💀 *KALO MAU DIBUKA, CHAT NOMOR YANG BOLEH AJA!* 🎐"`
+                    text: `🦋 *UMI USANAGI*: "Heh! ${senderNumber} kamu udah aku *BLOKIR ASLI* di WhatsApp! 🗿\n\nGak usah coba-coba chat lagi, pesanmu gak bakal sampe ke aku~\n\n💀 *KALO MAU DIBUKA, CHAT NOMOR YANG BOLEH AJA!* 🎐"`
                 })
                 return
             }
@@ -279,7 +279,7 @@ async function setupAntiPMListener(sock) {
                 }
                 
                 await sock.sendMessage(sender, {
-                    text: `🦋 *RIMURU SAYS* 🦋\n\n` +
+                    text: `🦋 *UMI USANAGI SAYS* 🦋\n\n` +
                           `"Heh! ${senderNumber} jangan chat aku dong~ 🗿\n\n` +
                           `Aku lagi *ANTI PM MODE* nih!\n` +
                           `Cuma ${allowedNumbers.length} orang yang bisa chat ke aku!\n` +
@@ -298,7 +298,7 @@ async function setupAntiPMListener(sock) {
                 pmViolations.set(sender, violation)
                 
                 await sock.sendMessage(sender, {
-                    text: `🚨 *RIMURU - PERINGATAN TERAKHIR* 🚨\n\n` +
+                    text: `🚨 *UMI USANAGI - PERINGATAN TERAKHIR* 🚨\n\n` +
                           `"${senderNumber}! GW BILANG JANGAN CHAT!! 🗿\n\n` +
                           `Ini udah *PERINGATAN KE-2*!\n` +
                           `SEKALI LAGI lo chat, nomormu bakal gw *BLOKIR ASLI*!\n\n` +
@@ -313,7 +313,7 @@ async function setupAntiPMListener(sock) {
                 pmViolations.set(sender, violation)
                 
                 await sock.sendMessage(sender, {
-                    text: `💀 *RIMURU - KAMU DIBLOKIR ASLI!* 💀\n\n` +
+                    text: `💀 *UMI USANAGI - KAMU DIBLOKIR ASLI!* 💀\n\n` +
                           `"SUDAH GW BILANG JANGAN CHAT!! 🗿\n\n` +
                           `Kamu udah chat *${violation.count} kali* padahal udah aku peringatin 2x!\n` +
                           `Cuma ${allowedNumbers.length} nomor yang boleh chat ke aku, dan kamu BUKAN salah satunya!\n\n` +
@@ -343,7 +343,7 @@ async function setupAntiPMListener(sock) {
                                       `⏰ *Waktu:* ${new Date().toLocaleString()}\n\n` +
                                       `🔒 *Status:* BLOKIR ASLI WhatsApp!\n` +
                                       `💀 *User tidak bisa chat ke bot lagi!*\n\n` +
-                                      `🦋 *Rimuru:* "Beres darling! Gak bakal ganggu lagi~ 🗿🔥"`
+                                      `🦋 *Umi Usanagi:* "Beres darling! Gak bakal ganggu lagi~ 🗿🔥"`
                             })
                         } catch (err) {}
                     }

@@ -36,7 +36,7 @@ const pluginConfig = {
   category: 'owner',
   description: 'Membuat WhatsApp Channel/newsletter baru',
   usage: '.createchannel <nama>|<deskripsi>',
-  example: '.createchannel Rimuru MD|Channel resmi bot',
+  example: '.createchannel Umi Usanagi|Channel resmi bot',
   isOwner: true,
   isPremium: false,
   isGroup: false,

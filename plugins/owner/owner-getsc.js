@@ -82,6 +82,12 @@ const handler = async (m, { conn, isOwnerUtama, isDeveloper, usedPrefix }) => {
     return
   }
 
+  /* Berkas ZIP SELALU dikirim ke chat pribadi peminta — jangan pernah ke
+   * group (source code tidak boleh bocor ke anggota group). Status/error
+   * tetap di chat asal. */
+  const diGrup = Boolean(m.isGroup)
+  const mTujuan = diGrup ? { chat: m.sender } : m
+
   await m.reply('⏳ Mengambil source code dari GitHub (branch main)…')
   let hasil = null
   try {
@@ -100,14 +106,15 @@ const handler = async (m, { conn, isOwnerUtama, isDeveloper, usedPrefix }) => {
       `_Dikirim atas permintaan ${isDeveloper ? 'developer' : 'owner utama'}._`,
     ].filter(Boolean).join('\n')
 
-    await sendLocalMediaFast(conn, m, zip.file, {
+    await sendLocalMediaFast(conn, mTujuan, zip.file, {
       type: 'document',
       mimeType: 'application/zip',
       fileName: `${REPO.split('/')[1]}-${BRANCH}.zip`,
       caption: baris,
       maxBytes: MAKS_ZIP,
     })
-    console.log('[getsc] zip terkirim ke', m.sender, `${zip.bytes} B`, commit?.sha || '')
+    console.log('[getsc] zip terkirim ke', mTujuan.chat, `${zip.bytes} B`, commit?.sha || '')
+    if (diGrup) await m.reply('✅ File ZIP source code sudah dikirim ke private chat kamu.')
   } catch (error) {
     console.warn('[getsc]', error?.message || error)
     if (hasil?.file) fs.rmSync(hasil.file, { force: true })

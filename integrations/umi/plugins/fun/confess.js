@@ -152,7 +152,7 @@ async function replyHandler(m, { sock }) {
   if (!replyMessage) return false;
 
   const saluranId = config.saluran?.id || "120363412350560864@newsletter";
-  const saluranName = config.saluran?.name || config.bot?.name || "Rimuru-AI";
+  const saluranName = config.saluran?.name || config.bot?.name || "Umi Usanagi";
 
   const replyText = `💌 *ADA BALASAN MENFESS NIH KAK!* 💌\n\n` +
     `Orang yang kamu kirimin menfess tadi barusan balas pesanmu:\n\n` +

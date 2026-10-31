@@ -70,7 +70,7 @@ async function handler(m, { sock }) {
 
     const app = data.data;
     const saluranId = config.saluran?.id || "120363412350560864@newsletter";
-    const saluranName = config.saluran?.name || config.bot?.name || "Rimuru-AI";
+    const saluranName = config.saluran?.name || config.bot?.name || "Umi Usanagi";
     if (app.url) {
       await sock.sendMessage(
         m.chat,

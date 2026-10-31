@@ -154,7 +154,7 @@ async function handler(m, { sock }) {
 
     if (!targetUrl) {
         return m.reply(
-            `🌐 *FETCH WEB - RIMURU* 🌐\n\n` +
+            `🌐 *FETCH WEB - UMI USANAGI* 🌐\n\n` +
             `💫 *"He~ mau ambil website apa darling?"* 💫\n\n` +
             `📌 *Cara pakai:*\n` +
             `> ${m.prefix}fetchweb <url>\n\n` +
@@ -224,7 +224,7 @@ async function handler(m, { sock }) {
         const fileExt = path.extname(filename) || 'unknown'
 
         let caption = `✅ *BERHASIL FETCH!* ✅\n\n`
-        caption += `🦋 *Rimuru:* "Selesai darling~! 🎉"\n\n`
+        caption += `🦋 *Umi Usanagi:* "Selesai darling~! 🎉"\n\n`
         caption += `┌─〔 📝 *DETAIL* 〕─🦋\n`
         caption += `│ 🌐 *URL:* ${targetUrl}\n`
         caption += `│ 📊 *Status:* ${res.status}\n`
@@ -233,7 +233,7 @@ async function handler(m, { sock }) {
         caption += `│ 💾 *Size:* ${fileSize}\n`
         caption += `│ 🔖 *Type:* ${contentType || 'unknown'}\n`
         caption += `└─────────────────────────🦋\n\n`
-        caption += `💬 *Rimuru:* "File sudah tersimpan darling~ 🗿"\n`
+        caption += `💬 *Umi Usanagi:* "File sudah tersimpan darling~ 🗿"\n`
         caption += `🌸 *Yosh! Semangat!* 🌸`
 
         // Kirim file kalau ukuran wajar (max 50MB)

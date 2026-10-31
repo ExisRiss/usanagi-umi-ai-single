@@ -172,7 +172,7 @@ body{padding:8px;overflow-y:auto}
   document.addEventListener('keydown',function(e){var k=e.key;if(k==='ArrowLeft')move(-1);else if(k==='ArrowRight')move(1);else if(k==='ArrowUp')rotate();else if(k==='ArrowDown')softDrop();else if(k===' ')hardDrop();});
   buildBoard();start();
 })();
-\n/* RIMURU LIGHT SFX: procedural WebAudio, no external audio asset */
+\n/* UMI USANAGI LIGHT SFX: procedural WebAudio, no external audio asset */
 (function(){
   if (window.__RIMURU_LIGHT_SFX__) return;
   var ac=null, master=null, last=0;

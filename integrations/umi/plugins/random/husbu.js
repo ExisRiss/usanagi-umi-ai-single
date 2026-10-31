@@ -49,7 +49,7 @@ async function handler(m, { sock }) {
     try {
         await m.react('💕')
         
-        const apikey = config.APIkey?.lolhuman || 'APIKey-Milik-Bot-RimuruMD(RIMURU)'
+        const apikey = config.APIkey?.lolhuman || 'APIKey-Milik-Bot-RimuruMD(UMI USANAGI)'
         const url = `https://api.lolhuman.xyz/api/random/husbu?apikey=${apikey}`
         
         const response = await axios.get(url, { 
@@ -58,7 +58,7 @@ async function handler(m, { sock }) {
         })
         
         const saluranId = RIMURU_CORE_CONFIG.saluran?.id || config.saluran?.id
-        const saluranName = RIMURU_CORE_CONFIG.saluran?.name || RIMURU_CORE_CONFIG.bot?.name || 'rimuru-AI'
+        const saluranName = RIMURU_CORE_CONFIG.saluran?.name || RIMURU_CORE_CONFIG.bot?.name || 'umi usanagi'
         
         await sock.sendMessage(m.chat, {
             image: Buffer.from(response.data),

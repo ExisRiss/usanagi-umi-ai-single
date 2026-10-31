@@ -32,7 +32,7 @@ const pluginConfig = {
     name: 'checkers',
     alias: ['dam', 'caturdam', 'zerocheckers'],
     category: 'game',
-    description: 'Game catur dam / checkers Rimuru! Makan semua pion lawan untuk menang.',
+    description: 'Game catur dam / checkers Umi Usanagi! Makan semua pion lawan untuk menang.',
     usage: '.checkers [@lawan]',
     example: '.checkers @user',
     isOwner: false,
@@ -236,7 +236,7 @@ async function renderBoard(game, selectedPos = null, validMoves = [], lastMove =
     ctx.textAlign = 'center'
     ctx.shadowColor = THEME.glow
     ctx.shadowBlur = 10
-    ctx.fillText('🦋 RIMURU CHECKERS 🦋', W/2, 45)
+    ctx.fillText('🦋 UMI USANAGI CHECKERS 🦋', W/2, 45)
     ctx.shadowBlur = 0
 
     ctx.fillStyle = THEME.textSecondary
@@ -312,7 +312,7 @@ async function renderBoard(game, selectedPos = null, validMoves = [], lastMove =
     // Footer
     ctx.fillStyle = `${THEME.primary}80`
     ctx.font = '10px "Segoe UI"'
-    ctx.fillText('❥ Rimuru AI', W - 70, H - 8)
+    ctx.fillText('❥ Umi Usanagi', W - 70, H - 8)
 
     return canvas.toBuffer('image/png')
 }
@@ -363,7 +363,7 @@ async function handler(m, { sock, config: botConfig }) {
             return m.reply(
                 `🏳️ @${senderId.split('@')[0]} menyerah!\n\n` +
                 `🏆 @${winner.split('@')[0]} *MENANG!*\n\n` +
-                `🦋 *Rimuru:* Aduh darling~ lain kali jangan nyerah dong! 💕`
+                `🦋 *Umi Usanagi:* Aduh darling~ lain kali jangan nyerah dong! 💕`
             )
         }
 
@@ -455,7 +455,7 @@ async function handler(m, { sock, config: botConfig }) {
                     sessions.delete(chatId)
                     return sock.sendMessage(chatId, {
                         image: img,
-                        caption: `🎉 *GAME OVER!* 🎉\n\n🏆 @${winner.split('@')[0]} *MENANG!*\n\n📊 Skor akhir: ${p1Count} vs ${p2Count}\n\n🦋 *Rimuru:* Selamat darling~ ${winner.split('@')[0]} pinter banget! 💕`,
+                        caption: `🎉 *GAME OVER!* 🎉\n\n🏆 @${winner.split('@')[0]} *MENANG!*\n\n📊 Skor akhir: ${p1Count} vs ${p2Count}\n\n🦋 *Umi Usanagi:* Selamat darling~ ${winner.split('@')[0]} pinter banget! 💕`,
                         mentions: [winner]
                     }, { quoted: m })
                 }
@@ -504,7 +504,7 @@ async function handler(m, { sock, config: botConfig }) {
 
             if (!opponent || opponent === senderId) {
                 return m.reply(
-                    `🎲 *RIMURU CHECKERS* 🎲\n\n` +
+                    `🎲 *UMI USANAGI CHECKERS* 🎲\n\n` +
                     `🦋 *Cara main:*\n` +
                     `• Pion jalan diagonal ke depan 1 langkah\n` +
                     `• Bisa "makan" pion lawan dengan melompat 2 langkah\n` +
@@ -526,11 +526,11 @@ async function handler(m, { sock, config: botConfig }) {
             
             const sentMsg = await sock.sendMessage(chatId, {
                 image: img,
-                caption: `🎲 *RIMURU CHECKERS DIMULAI!* 🎲\n\n` +
+                caption: `🎲 *UMI USANAGI CHECKERS DIMULAI!* 🎲\n\n` +
                     `🔴 *Player 1:* @${senderId.split('@')[0]}\n` +
                     `💕 *Player 2:* @${opponent.split('@')[0]}\n\n` +
                     `🎮 *Giliran pertama:* @${firstPlayer.split('@')[0]}\n\n` +
-                    `🦋 *Rimuru:* ${['Ayo main dam, darling~', 'Siapa yang jago strategi nih?', 'Jangan lupa promosi jadi raja ya~'][Math.floor(Math.random() * 3)]} 💕\n\n` +
+                    `🦋 *Umi Usanagi:* ${['Ayo main dam, darling~', 'Siapa yang jago strategi nih?', 'Jangan lupa promosi jadi raja ya~'][Math.floor(Math.random() * 3)]} 💕\n\n` +
                     `📌 *Cara gerak:* ${prefix}checkers A3 B4`,
                 mentions: [senderId, opponent, firstPlayer]
             }, { quoted: m })

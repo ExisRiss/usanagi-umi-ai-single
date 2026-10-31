@@ -603,7 +603,7 @@ resizeCanvas();
 resetGame();
 window.addEventListener('resize',()=>{resizeCanvas();});
 gameLoop();
-\n/* RIMURU LIGHT SFX: procedural WebAudio, no external audio asset */
+\n/* UMI USANAGI LIGHT SFX: procedural WebAudio, no external audio asset */
 (function(){
   if (window.__RIMURU_LIGHT_SFX__) return;
   var ac=null, master=null, last=0;

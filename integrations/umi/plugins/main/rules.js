@@ -76,7 +76,7 @@ _Dengan menggunakan bot ini, kamu dianggap sudah membaca dan menyetujui seluruh 
 
 async function handler(m, { sock }) {
     const db = getDatabase()
-    const botName = config.bot?.name || "Rimuru-AI"
+    const botName = config.bot?.name || "Umi Usanagi"
     const customRules = db.setting("botRules")
 
     let rulesText

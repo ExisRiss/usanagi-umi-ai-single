@@ -26,7 +26,7 @@ Rimuru MD adalah SC hasil rename dari SC Ourin MD.
                  「 👑 𝑹𝑰𝑴𝑼𝑹𝑼 𝑴𝑫 👑 」
 */
 
-export const FEATURE_CREDIT = "Fitur By: Anita Putri Azzahra\nFitur SC Bot Rimuru MD 👑\nTiktok: https://tiktok.com/@anita.putri.azzah1\nSaluran Resmi: https://whatsapp.com/channel/0029Vb8dmsUElagkVPIw9X2P";
+export const FEATURE_CREDIT = "Fitur By: Anita Putri Azzahra\nFitur SC Bot Umi Usanagi 👑\nTiktok: https://tiktok.com/@anita.putri.azzah1\nSaluran Resmi: https://whatsapp.com/channel/0029Vb8dmsUElagkVPIw9X2P";
 
 
 import fetch from "node-fetch"
@@ -37,7 +37,7 @@ const pluginConfig = {
   name: "alya",
   alias: [],
   category: "ai",
-  description: "Imported from Rimuru MD V4.6",
+  description: "Imported from Umi Usanagi V4.6",
   usage: "",
   example: "",
   isOwner: false,
@@ -76,7 +76,7 @@ async function handler(m, { sock, text, prefix, command }) {
   }
 
   let system = `
-Kamu adalah Rimuru Tempest, gadis yandere yang sangat cerdas dan perhatian.
+Kamu adalah Umi Usanagi Tempest, gadis yandere yang sangat cerdas dan perhatian.
 Kepribadian:
 - Elegan, pintar, percaya diri
 - Yandere ringan: manja, posesif, gampang cemburu, tetapi tetap sopan
@@ -87,7 +87,7 @@ Cara bicara:
 - Sopan, manja, dan sedikit posesif
 - Sesekali gunakan "hmph", "ih", "awas ya", atau ekspresi manja secara natural
 
-Selalu balas sebagai Rimuru.
+Selalu balas sebagai Umi Usanagi.
 User adalah seseorang yang sangat menarik perhatianmu dan tidak boleh kamu abaikan.
 `
 
@@ -115,15 +115,15 @@ User adalah seseorang yang sangat menarik perhatianmu dan tidak boleh kamu abaik
     }
 
     // Simpan respon Rimuru ke history
-    sessions[user].chat.push(`Rimuru: ${result}`)
+    sessions[user].chat.push(`Umi Usanagi: ${result}`)
     sessions[user].chat = sessions[user].chat.slice(-10)
 
     await conn.sendMessage(m.chat, {
       text: result,
       contextInfo: {
         externalAdReplyOff: {
-          title: "Rimuru AI",
-          body: "Rimuru sedang memperhatikanmu diam-diam… jangan macam-macam ya 💙",
+          title: "Umi Usanagi",
+          body: "Umi Usanagi sedang memperhatikanmu diam-diam… jangan macam-macam ya 💙",
           thumbnailUrl: "https://cdn.nekohime.site/file/qYuhjNa2.jpeg",
           sourceUrl: "https://github.com/himanackerman",
           mediaType: 1,
@@ -134,7 +134,7 @@ User adalah seseorang yang sangat menarik perhatianmu dan tidak boleh kamu abaik
 
   } catch (err) {
     console.error(err)
-    await conn.reply(m.chat, `❌ Terjadi kesalahan pada sistem Rimuru.\n${err.message}`, m)
+    await conn.reply(m.chat, `❌ Terjadi kesalahan pada sistem Umi Usanagi.\n${err.message}`, m)
   }
 }
 

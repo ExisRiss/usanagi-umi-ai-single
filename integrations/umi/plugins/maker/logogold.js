@@ -53,11 +53,11 @@ async function handler(m, { sock }) {
         
         // Kalo gak ada gambar dan gak ada teks
         if (!hasImage && !text) {
-            return m.reply(`👑 *CARA PAKAI LOGO GOLD* 👑\n\n1. Dengan teks:\n\`.logo-gold Rimuru\`\n\n2. Dengan gambar + teks:\nReply gambar lalu ketik:\n\`.logo-gold Rimuru\`\n\n3. Hanya gambar:\nReply gambar tanpa teks\n\n*Efek:*\n👑 Premium gold gradient\n✨ Gold glitter effect\n💎 Luxury shine`)
+            return m.reply(`👑 *CARA PAKAI LOGO GOLD* 👑\n\n1. Dengan teks:\n\`.logo-gold Umi Usanagi\`\n\n2. Dengan gambar + teks:\nReply gambar lalu ketik:\n\`.logo-gold Umi Usanagi\`\n\n3. Hanya gambar:\nReply gambar tanpa teks\n\n*Efek:*\n👑 Premium gold gradient\n✨ Gold glitter effect\n💎 Luxury shine`)
         }
         
         // Set default text
-        if (!text) text = 'RIMURU'
+        if (!text) text = 'UMI USANAGI'
         
         // Settings
         const width = 800
@@ -256,7 +256,7 @@ async function handler(m, { sock }) {
         
         ctx.font = '9px monospace'
         ctx.fillStyle = '#B8860B'
-        ctx.fillText('rimuru maker • luxury gold logo generator', centerX, height - 20)
+        ctx.fillText('umi usanagi maker • luxury gold logo generator', centerX, height - 20)
         
         // 17. WATERMARK PREMIUM
         ctx.font = '8px monospace'
@@ -268,7 +268,7 @@ async function handler(m, { sock }) {
         
         await sock.sendMessage(m.chat, {
             image: buffer,
-            caption: `👑 *GOLD LOGO MAKER* 👑\n\n╭─❍「 DETAIL 」\n│ 📝 Teks: ${textUpper}\n│ 🎨 Efek: Premium Gold / Emas Mewah\n│ ✨ Texture: Gold Glitter + 7 Layer Gradient\n│ 👑 Decor: Crown + Diamond Ornament\n╰─────────────❍\n\n💗 *Rimuru*: Logo emas premium untuk sayang tersayang~`
+            caption: `👑 *GOLD LOGO MAKER* 👑\n\n╭─❍「 DETAIL 」\n│ 📝 Teks: ${textUpper}\n│ 🎨 Efek: Premium Gold / Emas Mewah\n│ ✨ Texture: Gold Glitter + 7 Layer Gradient\n│ 👑 Decor: Crown + Diamond Ornament\n╰─────────────❍\n\n💗 *Umi Usanagi*: Logo emas premium untuk sayang tersayang~`
         }, { quoted: m })
         
     } catch (error) {

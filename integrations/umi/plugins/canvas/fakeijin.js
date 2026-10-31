@@ -34,7 +34,7 @@ const pluginConfig = {
     category: 'canvas',
     description: 'Bikin fake surat ijin (buat konten/gaguan doang)',
     usage: '.fakeijin <nama> | <alasan>',
-    example: '.fakeijin Rimuru | Sakit',
+    example: '.fakeijin Umi Usanagi | Sakit',
     isOwner: false,
     isPremium: false,
     isGroup: false,

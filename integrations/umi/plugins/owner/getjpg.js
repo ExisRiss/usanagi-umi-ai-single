@@ -63,7 +63,7 @@ async function handler(m, { sock }) {
         const buffer = fs.readFileSync(filePath)
         await sock.sendMessage(m.chat, {
             image: buffer,
-            caption: `📸 *Rimuru Gallery*\n\n> File: ${fileName}`,
+            caption: `📸 *Umi Usanagi Gallery*\n\n> File: ${fileName}`,
         }, { quoted: m })
 
     } catch (err) {

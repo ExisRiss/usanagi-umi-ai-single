@@ -40,7 +40,7 @@ const pluginConfig = {
     name: 'tebalteks',
     alias: ['boldtext'],
     category: 'tools',
-    description: 'Teks tebal ala Rimuru 😈💗 (4 style)',
+    description: 'Teks tebal ala Umi Usanagi 😈💗 (4 style)',
     usage: '.tebalteks <teks>',
     example: '.tebalteks rimuruWangy',
     cooldown: 3,
@@ -91,7 +91,7 @@ async function handler(m, { sock }) {
     // 💗 INTRO
     await sock.sendMessage(m.chat, {
         image: await loadImageBuffer(imgUrl),
-        caption: `💗✨ *Rimuru Mode ON...* ✨💗
+        caption: `💗✨ *Umi Usanagi Mode ON...* ✨💗
 
 (｡•̀ᴗ-)✧ *Eh eh darling~!!*
 Aku lagi siapin teks kamu nih... 😳💞`
@@ -133,12 +133,12 @@ Aku lagi siapin teks kamu nih... 😳💞`
     // 💗 RESULT
     await sock.sendMessage(m.chat, {
         image: await loadImageBuffer(imgUrl),
-        caption: `╭─〔 💗 *RIMURU RESULT* 💗 〕─⬣
+        caption: `╭─〔 💗 *UMI USANAGI RESULT* 💗 〕─⬣
 │ ✨ Input : *${text}*
 ╰──────────────⬣
 
 (≧◡≦) ♡ Udah jadi nih darling~!! 😈💗`,
-        footer: 'Rimuru AI 💗',
+        footer: 'Umi Usanagi 💗',
         interactiveButtons: buttons
     }, { quoted: m })
 }

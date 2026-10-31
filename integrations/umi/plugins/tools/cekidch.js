@@ -125,7 +125,7 @@ async function handler(m, { sock }) {
 
         await sock.sendButton(m.chat, chPicUrl, infoText, m, {
             buttons: buttons,
-            footer: `© ${config.bot?.name || 'Rimuru-AI'}`,
+            footer: `© ${config.bot?.name || 'Umi Usanagi'}`,
         })
 
         m.react('✅')

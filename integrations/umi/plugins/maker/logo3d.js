@@ -53,11 +53,11 @@ async function handler(m, { sock }) {
         
         // Kalo gak ada gambar dan gak ada teks
         if (!hasImage && !text) {
-            return m.reply(`✨ *CARA PAKAI LOGO 3D* ✨\n\n1. Dengan teks:\n\`.logo-3d Rimuru\`\n\n2. Dengan gambar + teks:\nReply gambar lalu ketik:\n\`.logo-3d Rimuru\`\n\n3. Hanya gambar:\nReply gambar tanpa teks\n\n*Efek:*\n🔥 3D Extrude\n💗 Shadow depth\n🎨 Gradient warna`)
+            return m.reply(`✨ *CARA PAKAI LOGO 3D* ✨\n\n1. Dengan teks:\n\`.logo-3d Umi Usanagi\`\n\n2. Dengan gambar + teks:\nReply gambar lalu ketik:\n\`.logo-3d Umi Usanagi\`\n\n3. Hanya gambar:\nReply gambar tanpa teks\n\n*Efek:*\n🔥 3D Extrude\n💗 Shadow depth\n🎨 Gradient warna`)
         }
         
         // Set default text
-        if (!text) text = 'RIMURU'
+        if (!text) text = 'UMI USANAGI'
         
         // Settings
         const width = 800
@@ -240,7 +240,7 @@ async function handler(m, { sock }) {
         
         ctx.font = '9px monospace'
         ctx.fillStyle = '#888888'
-        ctx.fillText('rimuru maker • 3d logo generator', centerX, height - 12)
+        ctx.fillText('umi usanagi maker • 3d logo generator', centerX, height - 12)
         
         // Reset shadow
         ctx.shadowBlur = 0
@@ -257,7 +257,7 @@ async function handler(m, { sock }) {
         
         await sock.sendMessage(m.chat, {
             image: buffer,
-            caption: `✨ *3D LOGO MAKER* ✨\n\n╭─❍「 DETAIL 」\n│ 📝 Teks: ${text.toUpperCase()}\n│ 🎨 Warna: ${colorName}\n│ 🎭 Efek: 3D Extrude + Shadow Depth\n│ 📐 Depth: 12 layer\n╰─────────────❍\n\n💗 *Rimuru*: Logo 3D untuk sayang~`
+            caption: `✨ *3D LOGO MAKER* ✨\n\n╭─❍「 DETAIL 」\n│ 📝 Teks: ${text.toUpperCase()}\n│ 🎨 Warna: ${colorName}\n│ 🎭 Efek: 3D Extrude + Shadow Depth\n│ 📐 Depth: 12 layer\n╰─────────────❍\n\n💗 *Umi Usanagi*: Logo 3D untuk sayang~`
         }, { quoted: m })
         
     } catch (error) {

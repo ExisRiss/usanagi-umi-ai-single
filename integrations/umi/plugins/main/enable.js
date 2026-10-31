@@ -29,14 +29,14 @@ Rimuru MD adalah SC hasil rename dari SC Ourin MD.
 import config from '../../config.js'
 import { getDatabase } from '../../src/lib/rimuru-database.js'
 
-export const FEATURE_CREDIT = "Fitur By: Anita Putri Azzahra\nFitur SC Bot Rimuru MD 👑\nTiktok: https://tiktok.com/@anita.putri.azzah1\nSaluran Resmi: https://whatsapp.com/channel/0029Vb8dmsUElagkVPIw9X2P";
+export const FEATURE_CREDIT = "Fitur By: Anita Putri Azzahra\nFitur SC Bot Umi Usanagi 👑\nTiktok: https://tiktok.com/@anita.putri.azzah1\nSaluran Resmi: https://whatsapp.com/channel/0029Vb8dmsUElagkVPIw9X2P";
 
 
 const pluginConfig = {
   name: "enable",
   alias: ["disable", "on", "off"],
   category: "main",
-  description: "Imported from Rimuru MD V4.6",
+  description: "Imported from Umi Usanagi V4.6",
   usage: "",
   example: "",
   isOwner: false,

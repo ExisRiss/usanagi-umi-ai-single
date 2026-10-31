@@ -77,7 +77,7 @@ function getRandomPraise() {
 
 function _saluranCtx() {
   const saluranId = config.saluran?.id || "120363412350560864@newsletter";
-  const saluranName = config.saluran?.name || config.bot?.name || "Rimuru-AI";
+  const saluranName = config.saluran?.name || config.bot?.name || "Umi Usanagi";
   return {
     forwardingScore: 9,
     isForwarded: true,
@@ -101,7 +101,7 @@ function getRpgContextInfo(title, body) {
   const base = _saluranCtx();
   if (title || body) {
     base.externalAdReply = {
-      title: title || config.bot?.name || "Rimuru RPG",
+      title: title || config.bot?.name || "Umi Usanagi RPG",
       body: body || "",
       sourceUrl: config.saluran?.link || "",
       mediaType: 1,
@@ -118,7 +118,7 @@ async function sendGamePreview(sock, jid, text, title, body, options) {
     {
       caption: `${config.info.website} ${text}`,
       url: `${config.info.website}`,
-      title: title || "🎮 RIMURU GAMES",
+      title: title || "🎮 UMI USANAGI GAMES",
       description: body || "Have fun playing!",
       jpegThumbnail: gameThumbBuffer,
       previewType: 0,
@@ -150,7 +150,7 @@ async function sendRpgPreview(sock, jid, text, title, body, options) {
     {
       caption: `${config.info.website} ${text}`,
       url: `${config.info.website}`,
-      title: title || "⚔️ RIMURU RPG",
+      title: title || "⚔️ UMI USANAGI RPG",
       description: body || "Adventure awaits!",
       jpegThumbnail: rpgThumbBuffer,
       previewType: 0,
@@ -166,7 +166,7 @@ async function sendToolsPreview(sock, jid, text, title, body, options) {
     {
       caption: `${config.info.website} ${text}`,
       url: `${config.info.website}`,
-      title: title || "🛠️ RIMURU TOOLS",
+      title: title || "🛠️ UMI USANAGI TOOLS",
       description: body || "Utility & tools",
       jpegThumbnail: gameThumbBuffer,
       previewType: 0,
@@ -197,7 +197,7 @@ function checkFastAnswer(session) {
   return { isFast: false, elapsed: elapsed };
 }
 
-function createFakeQuoted(botName = "Rimuru-AI", verified = true) {
+function createFakeQuoted(botName = "Umi Usanagi", verified = true) {
   return {
     key: {
       fromMe: false,

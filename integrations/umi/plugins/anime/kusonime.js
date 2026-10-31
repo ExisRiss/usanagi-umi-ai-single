@@ -226,13 +226,13 @@ async function handler(m, { sock }) {
             `┃   ${m.prefix}kusonime genre action\n` +
             `┃   ${m.prefix}kusonime detail https://kusonime.com/xxx\n` +
             `┃\n` +
-            `┃ 💗 *Rimuru:* Mau cari anime apa darling~?\n` +
+            `┃ 💗 *Umi Usanagi:* Mau cari anime apa darling~?\n` +
             `╰━━━━━━━━━━━━━━━━━━━━━⬣`
         );
     }
 
     m.react('💕');
-    await m.reply(`⏳ *ᴘʀᴏᴄᴇꜱꜱɪɴɢ...*\n\n💗 *Rimuru:* Lagi mencari anime darling~ tunggu sebentar yaa 🦋`);
+    await m.reply(`⏳ *ᴘʀᴏᴄᴇꜱꜱɪɴɢ...*\n\n💗 *Umi Usanagi:* Lagi mencari anime darling~ tunggu sebentar yaa 🦋`);
 
     try {
         let result;

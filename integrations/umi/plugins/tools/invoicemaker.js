@@ -129,7 +129,7 @@ async function handler(m, { sock }) {
     const data = response.data.data;
 
     const saluranId = config.saluran?.id || "120363412350560864@newsletter";
-    const saluranName = config.saluran?.name || config.bot?.name || "Rimuru-AI";
+    const saluranName = config.saluran?.name || config.bot?.name || "Umi Usanagi";
 
     let caption = `🧾 *ɪɴᴠᴏɪᴄᴇ ɢᴇɴᴇʀᴀᴛᴇᴅ*\n\n`;
     caption += `╭┈┈⬡「 📋 *ᴅᴇᴛᴀɪʟ* 」\n`;

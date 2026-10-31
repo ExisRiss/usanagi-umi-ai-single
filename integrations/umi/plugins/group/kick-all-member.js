@@ -46,7 +46,7 @@ async function handler(m, { sock }) {
 
     if (!args || args !== 'member') {
         return m.reply(
-`╭━━〔 ❤️ RIMURU MASS KICK 〕━━⬣
+`╭━━〔 ❤️ UMI USANAGI MASS KICK 〕━━⬣
 ┃
 ┃ ⚔️ *MODE PEMBERSIHAN*
 ┃
@@ -83,7 +83,7 @@ async function handler(m, { sock }) {
         m.react("✅")
 
         return m.reply(
-`╭━━〔 ❤️ RIMURU SYSTEM 〕━━⬣
+`╭━━〔 ❤️ UMI USANAGI SYSTEM 〕━━⬣
 ┃
 ┃ 💀 *MASS CLEAN SUCCESS*
 ┃

@@ -41,7 +41,7 @@ async function handler(m, { sock }) {
 
     if (!m.quoted) {
         return m.reply(
-`╭━━〔 💖 RIMURU SW STEALER 〕━━⬣
+`╭━━〔 💖 UMI USANAGI SW STEALER 〕━━⬣
 ┃
 ┃ Ehh darling 😳
 ┃ reply status yang mention grup dulu yaa~
@@ -73,7 +73,7 @@ async function handler(m, { sock }) {
 
         if (!isStatus || !isMentionGroup) {
             return m.reply(
-`╭━━〔 ❌ RIMURU NOTICE 〕━━⬣
+`╭━━〔 ❌ UMI USANAGI NOTICE 〕━━⬣
 ┃
 ┃ Ihh ini bukan SW yang mention grup 😤
 ┃ jangan asal colong yaa darling 😳
@@ -92,7 +92,7 @@ async function handler(m, { sock }) {
             await sock.sendMessage(m.chat, {
                 image: media,
                 caption:
-`╭━━〔 💖 RIMURU RESULT 〕━━⬣
+`╭━━〔 💖 UMI USANAGI RESULT 〕━━⬣
 ┃
 ┃ 🖼️ SW berhasil aku ambil 🤭
 ┃ khusus buat kamu darling 😳
@@ -110,7 +110,7 @@ async function handler(m, { sock }) {
             await sock.sendMessage(m.chat, {
                 video: media,
                 caption:
-`╭━━〔 💖 RIMURU RESULT 〕━━⬣
+`╭━━〔 💖 UMI USANAGI RESULT 〕━━⬣
 ┃
 ┃ 🎬 Nih SW nya darling 😋
 ┃ jangan disebar yaa 🤫
@@ -128,7 +128,7 @@ async function handler(m, { sock }) {
             'Tidak ada isi'
 
         await m.reply(
-`╭━━〔 💖 RIMURU TEXT 〕━━⬣
+`╭━━〔 💖 UMI USANAGI TEXT 〕━━⬣
 ┃
 ┃ 📄 Isi SW nya nih 😋
 ┃
@@ -142,7 +142,7 @@ async function handler(m, { sock }) {
         console.log(e)
 
         m.reply(
-`╭━━〔 ❌ RIMURU ERROR 〕━━⬣
+`╭━━〔 ❌ UMI USANAGI ERROR 〕━━⬣
 ┃
 ┃ Ihh gagal ambil SW 😭
 ┃ coba lagi yaa darling 😳

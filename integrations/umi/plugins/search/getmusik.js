@@ -58,7 +58,7 @@ async function getThumbMusic() {
 
 async function getContextInfo(title, body, thumbnail) {
     const saluranId = config.saluran?.id || config.saluran?.id
-    const saluranName = config.saluran?.name || config.bot?.name || 'rimuru-AI'
+    const saluranName = config.saluran?.name || config.bot?.name || 'umi usanagi'
 
     const ctx = {
         forwardingScore: 9999,

@@ -100,7 +100,7 @@ async function handler(m, { sock }) {
     // 💗 LOADING MESSAGE
     await sock.sendMessage(m.chat, {
         image: await loadImageBuffer(imgUrl),
-        caption: `💗 *Rimuru lagi nyusun preset kamu...* 😈
+        caption: `💗 *Umi Usanagi lagi nyusun preset kamu...* 😈
 
 Tunggu bentar ya darling~`
     }, { quoted: m })
@@ -122,7 +122,7 @@ Tunggu bentar ya darling~`
     await sock.sendMessage(m.chat, {
         image: await loadImageBuffer(imgUrl),
         caption: finalText,
-        footer: 'Rimuru AI 💗',
+        footer: 'Umi Usanagi 💗',
         interactiveButtons: buttons
     }, { quoted: m })
 }

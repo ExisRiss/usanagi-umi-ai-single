@@ -37,7 +37,7 @@ const pluginConfig = {
   category: "canvas",
   description: "Buat gambar dengan efek dynamic circular text",
   usage: ".dymc <teks>",
-  example: ".dymc RIMURU BOT (sambil reply gambar)",
+  example: ".dymc UMI USANAGI BOT (sambil reply gambar)",
   isOwner: false,
   isPremium: false,
   isGroup: false,

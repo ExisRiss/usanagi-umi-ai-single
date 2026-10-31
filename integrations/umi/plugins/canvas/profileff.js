@@ -36,7 +36,7 @@ const pluginConfig = {
   category: "canvas",
   description: "Buat gambar profil FF keren",
   usage: ".profileff <nama> | <guild> | <bg_index>",
-  example: ".profileff Fauzan | Rimuru | 1",
+  example: ".profileff Fauzan | Umi Usanagi | 1",
   isOwner: false,
   isPremium: false,
   isGroup: false,

@@ -91,7 +91,7 @@ async function getRandomWaifu() {
 
 async function handler(m, { sock }) {
     m.react('💕')
-    await m.reply(`⏳ *ᴘʀᴏᴄᴇꜱꜱɪɴɢ...*\n\n💗 *Rimuru:* Lagi nyari gambar waifu darling~ tunggu sebentar yaa 🦋`)
+    await m.reply(`⏳ *ᴘʀᴏᴄᴇꜱꜱɪɴɢ...*\n\n💗 *Umi Usanagi:* Lagi nyari gambar waifu darling~ tunggu sebentar yaa 🦋`)
     
     try {
         const result = await getRandomWaifu()
@@ -107,7 +107,7 @@ async function handler(m, { sock }) {
                     `┃ 🖼️ *ꜱᴏᴜʀᴄᴇ*: ${result.source}\n` +
                     `┃ 💗 *ᴡᴀɪꜰᴜ*: Untuk Darling tercinta~\n` +
                     `┃\n` +
-                    `┃ 💗 *Rimuru:* Ini waifu nya darling~ jangan liat yang lain ya! 😘\n` +
+                    `┃ 💗 *Umi Usanagi:* Ini waifu nya darling~ jangan liat yang lain ya! 😘\n` +
                     `╰━━━━━━━━━━━━━━━━━━━━━⬣`
         }, { quoted: m })
         

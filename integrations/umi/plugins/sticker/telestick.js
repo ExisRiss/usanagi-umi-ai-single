@@ -71,7 +71,7 @@ async function handler(m, { sock }) {
     return m.reply('❌ Telegram Bot Token belum diisi di config.telegram.botToken.');
   }
   if (typeof sock.sendStickerPack !== 'function') {
-    return m.reply('❌ WhatsApp client Rimuru tidak mendukung pengiriman sticker pack otomatis.');
+    return m.reply('❌ WhatsApp client Umi Usanagi tidak mendukung pengiriman sticker pack otomatis.');
   }
 
   await m.react('⏳');

@@ -76,7 +76,7 @@ async function handler(m, { sock }) {
     await m.react("🖤")
     
     try {
-        await m.reply("🩸 *Rimuru:* Darling... aku sedang mengambil musiknya untukmu~")
+        await m.reply("🩸 *Umi Usanagi:* Darling... aku sedang mengambil musiknya untukmu~")
         
         // Panggil API
         const api = `https://api-faa.my.id/faa/ytplay?url=${encodeURIComponent(url)}`
@@ -113,7 +113,7 @@ async function handler(m, { sock }) {
             text: caption,
             contextInfo: {
                 externalAdReply: {
-                    title: "🖤 Rimuru Dark Stage",
+                    title: "🖤 Umi Usanagi Dark Stage",
                     body: res.title,
                     mediaType: 1,
                     mediaUrl: res.url,

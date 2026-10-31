@@ -259,14 +259,14 @@ async function renderSchedule(schedules, season, filterDay = null, source = 'api
     // Sumber data
     ctx.fillStyle = `${THEME.textSecondary}80`
     ctx.font = '9px "Segoe UI"'
-    ctx.fillText(`📡 Source: ${source} | ❥ Rimuru AI`, W/2, H - 12)
+    ctx.fillText(`📡 Source: ${source} | ❥ Umi Usanagi`, W/2, H - 12)
     
     return canvas.toBuffer('image/png')
 }
 
 // Format caption text (fallback kalo gambar gagal)
 function formatCaption(schedules, season, filterDay = null, source = 'api') {
-    let caption = `🦋 *RIMURU ANIME SCHEDULE* 🦋\n\n`
+    let caption = `🦋 *UMI USANAGI ANIME SCHEDULE* 🦋\n\n`
     caption += `📅 *Musim:* ${season.toUpperCase()}\n`
     if (filterDay) caption += `📆 *Hari:* ${hariIndonesia[filterDay] || filterDay}\n`
     caption += `📡 *Source:* ${source}\n`
@@ -288,7 +288,7 @@ function formatCaption(schedules, season, filterDay = null, source = 'api') {
         caption += `\n*+ ${schedules.length - maxShow} anime lainnya...*\n`
     }
     
-    caption += `\n💕 *Rimuru:* ${['Selamat nonton darling~', 'Jangan lupa update episode ya!', 'Ayo tonton anime baru~'][Math.floor(Math.random() * 3)]} 🦋`
+    caption += `\n💕 *Umi Usanagi:* ${['Selamat nonton darling~', 'Jangan lupa update episode ya!', 'Ayo tonton anime baru~'][Math.floor(Math.random() * 3)]} 🦋`
     
     return caption
 }
@@ -314,7 +314,7 @@ async function handler(m, { sock }) {
     await m.react('⏳')
     
     try {
-        await m.reply('🦋 *Rimuru:* Sedang mengambil jadwal anime terbaru, darling~ tunggu sebentar ya! 💕')
+        await m.reply('🦋 *Umi Usanagi:* Sedang mengambil jadwal anime terbaru, darling~ tunggu sebentar ya! 💕')
         
         // Ambil data dari API
         const result = await fetchScheduleFromAPI(seasonQuery)

@@ -68,7 +68,7 @@ async function handler(m, { sock }) {
       `┃   ${m.prefix}luffyai Halo Luffy!\n` +
       `┃   ${m.prefix}luffyai Mau makan daging?\n` +
       `┃\n` +
-      `┃ 💗 *Rimuru:* Mau ngobrol sama Luffy darling~?\n` +
+      `┃ 💗 *Umi Usanagi:* Mau ngobrol sama Luffy darling~?\n` +
       `╰━━━━━━━━━━━━━━━━━━━━━⬣`
     );
   }

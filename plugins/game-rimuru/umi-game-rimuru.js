@@ -120,7 +120,7 @@ let handler = async (m, { conn, command, text, usedPrefix }) => {
 
   if (cmd === 'rimgames' || cmd === 'rimgame' || cmd === 'rimlist') {
     return m.reply(
-      `🎮 *GAME RIMURU* (${REGISTRY.length})\n\n${LIST}\n\n` +
+      `🎮 *GAME UMI USANAGI* (${REGISTRY.length})\n\n${LIST}\n\n` +
       `Pakai: \`${usedPrefix || '.'}rimbom\`, \`${usedPrefix || '.'}rimblackjack\`, ...\n` +
       `Game bertanda sama dengan UMI tetap memakai versi UMI tanpa awalan \`rim\`.`,
     )
@@ -163,7 +163,7 @@ let handler = async (m, { conn, command, text, usedPrefix }) => {
 handler.help = ['rimgames', 'rim<game>', 'rim <game>']
 handler.tags = ['game']
 handler.command = /^(rimgames|rimgame|rimlist|rim|rim[a-z0-9]+)$/i
-handler.description = `Game chat Rimuru MD — ${REGISTRY.length} permainan`
+handler.description = `Game chat Umi Usanagi — ${REGISTRY.length} permainan`
 handler.cooldown = 3
 
 export default handler

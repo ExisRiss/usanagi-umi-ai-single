@@ -153,7 +153,7 @@ async function renderInfoCard(query, wallpaper) {
     ctx.textAlign = 'center'
     ctx.shadowColor = THEME.glow
     ctx.shadowBlur = 10
-    ctx.fillText('🖼️ RIMURU WALLPAPER 🖼️', w/2, 45)
+    ctx.fillText('🖼️ UMI USANAGI WALLPAPER 🖼️', w/2, 45)
     ctx.shadowBlur = 0
 
     ctx.fillStyle = THEME.cardBg || '#1a0b1a'
@@ -188,7 +188,7 @@ async function renderInfoCard(query, wallpaper) {
 
     ctx.fillStyle = `${THEME.primary}80`
     ctx.font = '9px "Segoe UI"'
-    ctx.fillText('❥ Rimuru AI | Anime Wallpaper', w/2, h - 18)
+    ctx.fillText('❥ Umi Usanagi | Anime Wallpaper', w/2, h - 18)
 
     return canvas.toBuffer('image/png')
 }
@@ -209,7 +209,7 @@ function roundRect(ctx, x, y, w, h, r) {
 }
 
 function formatCaption(query, wallpaper) {
-    let caption = `🖼️ *RIMURU WALLPAPER* 🖼️\n\n`
+    let caption = `🖼️ *UMI USANAGI WALLPAPER* 🖼️\n\n`
     
     if (query) {
         caption += `📺 *Request:* ${query.toUpperCase()}\n`
@@ -228,7 +228,7 @@ function formatCaption(query, wallpaper) {
         caption += `⚠️ *Note:* API sedang sibuk, ini wallpaper cadangan.\n`
     }
     
-    caption += `💕 *Rimuru:* ${query ? `Nih wallpaper ${query} darling~` : 'Random wallpaper buat kamu darling~'} 🦋`
+    caption += `💕 *Umi Usanagi:* ${query ? `Nih wallpaper ${query} darling~` : 'Random wallpaper buat kamu darling~'} 🦋`
     
     return caption
 }
@@ -239,7 +239,7 @@ async function handler(m, { sock }) {
     await m.react('🖼️')
     
     try {
-        await m.reply(query ? `🦋 *Rimuru:* Lagi nyari wallpaper *${query}*... tunggu sebentar ya~ 🖼️` : `🦋 *Rimuru:* Lagi ambil random wallpaper... tunggu sebentar ya~ 🖼️`)
+        await m.reply(query ? `🦋 *Umi Usanagi:* Lagi nyari wallpaper *${query}*... tunggu sebentar ya~ 🖼️` : `🦋 *Umi Usanagi:* Lagi ambil random wallpaper... tunggu sebentar ya~ 🖼️`)
         
         const wallpaper = await fetchWallpaper(query)
         
@@ -261,7 +261,7 @@ async function handler(m, { sock }) {
             // Kirim wallpapernya
             await sock.sendMessage(m.chat, {
                 image: { url: wallpaper.url },
-                caption: `🖼️ *Wallpaper ${query ? query.toUpperCase() : 'Random'}* 🖼️\n\n📡 Source: ${wallpaper.source}\n💕 Rimuru: Semoga suka darling~`
+                caption: `🖼️ *Wallpaper ${query ? query.toUpperCase() : 'Random'}* 🖼️\n\n📡 Source: ${wallpaper.source}\n💕 Umi Usanagi: Semoga suka darling~`
             }, { quoted: m })
             
         } catch (imgErr) {

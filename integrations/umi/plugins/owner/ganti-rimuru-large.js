@@ -49,7 +49,7 @@ async function handler(m, { sock }) {
     const isImage = m.isImage || (m.quoted && m.quoted.type === 'imageMessage')
     
     if (!isImage) {
-        return m.reply(`🖼️ *ᴏᴜʀɪɴ ʟᴀʀɢᴇ ᴘʀᴇsᴇᴛ*\n\n> Kirim/reply gambar untuk mengganti kumpulan foto besar (rimuru.jpg, rimuru-v8.jpg, rimuru-v10.jpg) sekaligus.\n> Pastikan rasio gambar sesuai dengan yang diinginkan.`)
+        return m.reply(`🖼️ *ᴜᴍɪ ᴜꜱᴀɴᴀɢɪ ʟᴀʀɢᴇ ᴘʀᴇsᴇᴛ*\n\n> Kirim/reply gambar untuk mengganti kumpulan foto besar (rimuru.jpg, rimuru-v8.jpg, rimuru-v10.jpg) sekaligus.\n> Pastikan rasio gambar sesuai dengan yang diinginkan.`)
     }
     
     await m.react('🕕')
@@ -84,7 +84,7 @@ async function handler(m, { sock }) {
         }
         
         await m.react('✅')
-        m.reply(`✅ *ʙᴇʀʜᴀsɪʟ*\n\n> Gambar bundle *rimuru-large* berhasil diganti secara massal.\n> Mencakup: ${targetImages.join(', ')}\n> Restart bot jika gambar tidak langsung berubah.`)
+        m.reply(`✅ *ʙᴇʀʜᴀsɪʟ*\n\n> Gambar bundle *umi usanagi large* berhasil diganti secara massal.\n> Mencakup: ${targetImages.join(', ')}\n> Restart bot jika gambar tidak langsung berubah.`)
         
     } catch (error) {
         await m.react('☢')

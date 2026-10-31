@@ -258,7 +258,7 @@ mengedit gambar`
 ${prompt}`,
 
                 footer:
-                    'RIMURU AI',
+                    'UMI USANAGI',
 
                 contextInfo: {
 

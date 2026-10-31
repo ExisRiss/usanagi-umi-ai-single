@@ -127,7 +127,7 @@ async function handler(m, { sock }) {
     : null;
 
   return m.reply(
-    `🎁 *REFERRAL RIMURU*\n\n` +
+    `🎁 *REFERRAL UMI USANAGI*\n\n` +
       `Kode kamu: *${user.refCode}*\n` +
       `Sudah dipakai: *${user.refCount} orang*\n\n` +
       `💎 Hadiah pengguna baru: *+${XP_FIRST.toLocaleString("id-ID")} EXP*\n` +

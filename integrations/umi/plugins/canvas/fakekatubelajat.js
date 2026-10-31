@@ -36,7 +36,7 @@ const pluginConfig = {
     category: 'canvas',
     description: 'Bikin fake kartu pelajar (buat konten/gaguan doang)',
     usage: '.fakekartupelajar <nama> | <sekolah>',
-    example: '.fakekartupelajar Rimuru | SMA Negeri 02',
+    example: '.fakekartupelajar Umi Usanagi | SMA Negeri 02',
     isOwner: false,
     isPremium: false,
     isGroup: false,
@@ -78,7 +78,7 @@ async function generateFakeKartuPelajar(nama, sekolah) {
 
 async function handler(m, { sock }) {
     const text = m.args.join(' ') || m.text?.trim() || ''
-    if (!text) return m.reply(`*Cara pakai:*\n${m.prefix}fakekartupelajar <nama> | <sekolah>\nContoh: .fakekartupelajar Rimuru | SMA 02`)
+    if (!text) return m.reply(`*Cara pakai:*\n${m.prefix}fakekartupelajar <nama> | <sekolah>\nContoh: .fakekartupelajar Umi Usanagi | SMA 02`)
     
     const parts = text.split('|').map(p => p.trim())
     const nama = parts[0] || 'Darling'
@@ -89,7 +89,7 @@ async function handler(m, { sock }) {
     
     try {
         const imageBuffer = await generateFakeKartuPelajar(nama, sekolah)
-        await sock.sendMessage(m.chat, { image: imageBuffer, caption: `💕 *FAKE KARTU PELAJAR* 💕\n\n✅ Nama: ${nama}\n🏫 Sekolah: ${sekolah}\n\n💗 *Rimuru:* Ini kartu pelajarnya darling~` }, { quoted: m })
+        await sock.sendMessage(m.chat, { image: imageBuffer, caption: `💕 *FAKE KARTU PELAJAR* 💕\n\n✅ Nama: ${nama}\n🏫 Sekolah: ${sekolah}\n\n💗 *Umi Usanagi:* Ini kartu pelajarnya darling~` }, { quoted: m })
         m.react('✅')
     } catch (err) {
         m.react('💔')

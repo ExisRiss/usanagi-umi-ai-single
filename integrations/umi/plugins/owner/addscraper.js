@@ -137,7 +137,7 @@ async function handler(m, { sock }) {
         let statusMsg = !code ? '❌ Kode scraper tidak ditemukan!' : '❌ Nama scraper tidak ditemukan!'
         
         return m.reply(
-`💕 *RIMURU - ADD SCRAPER* 💕
+`💕 *UMI USANAGI - ADD SCRAPER* 💕
 
 ┌────────────────────┐
 │ ⚠️ *${statusMsg}*
@@ -165,7 +165,7 @@ async function handler(m, { sock }) {
 ${existingScrapers.length > 0 ? existingScrapers.slice(0, 15).map(s => `│ • ${s}.js`).join('\n') : '│ • Belum ada'}
 ${existingScrapers.length > 15 ? `│ • ...dan ${existingScrapers.length - 15} lainnya` : ''}
 
-💕 *Rimuru:* Coba cara ke-2, langsung tulis kodenya setelah command darling~ 🦋`
+💕 *Umi Usanagi:* Coba cara ke-2, langsung tulis kodenya setelah command darling~ 🦋`
         )
     }
     
@@ -249,7 +249,7 @@ ${existingScrapers.length > 15 ? `│ • ...dan ${existingScrapers.length - 15}
 │ • Status: ${exists ? 'Updated' : 'New'}
 └────────────────────┘
 
-💕 *Rimuru:* Scraper ${name} siap dipakai darling~
+💕 *Umi Usanagi:* Scraper ${name} siap dipakai darling~
 
 🦋 *Jangan lupa restart bot biar langsung aktif!*`
         )

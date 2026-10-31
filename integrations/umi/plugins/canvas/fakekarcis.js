@@ -36,7 +36,7 @@ const pluginConfig = {
     category: 'canvas',
     description: 'Bikin fake karcis bioskop (buat konten/gaguan doang)',
     usage: '.fakekarcis <nama> | <film> | <jam>',
-    example: '.fakekarcis Rimuru | DITF The Movie | 21:00',
+    example: '.fakekarcis Umi Usanagi | DITF The Movie | 21:00',
     isOwner: false,
     isPremium: false,
     isGroup: false,
@@ -82,7 +82,7 @@ async function generateFakeKarcis(nama, film, jam) {
 
 async function handler(m, { sock }) {
     const text = m.args.join(' ') || m.text?.trim() || ''
-    if (!text) return m.reply(`*Cara pakai:*\n${m.prefix}fakekarcis <nama> | <film> | <jam>\nContoh: .fakekarcis Rimuru | DITF | 21:00`)
+    if (!text) return m.reply(`*Cara pakai:*\n${m.prefix}fakekarcis <nama> | <film> | <jam>\nContoh: .fakekarcis Umi Usanagi | DITF | 21:00`)
     
     const parts = text.split('|').map(p => p.trim())
     const nama = parts[0] || 'Darling'
@@ -94,7 +94,7 @@ async function handler(m, { sock }) {
     
     try {
         const imageBuffer = await generateFakeKarcis(nama, film, jam)
-        await sock.sendMessage(m.chat, { image: imageBuffer, caption: `💕 *FAKE KARCIS BIOSKOP* 💕\n\n✅ Nama: ${nama}\n🎬 Film: ${film}\n⏰ Jam: ${jam}\n\n💗 *Rimuru:* Selamat menonton darling~` }, { quoted: m })
+        await sock.sendMessage(m.chat, { image: imageBuffer, caption: `💕 *FAKE KARCIS BIOSKOP* 💕\n\n✅ Nama: ${nama}\n🎬 Film: ${film}\n⏰ Jam: ${jam}\n\n💗 *Umi Usanagi:* Selamat menonton darling~` }, { quoted: m })
         m.react('✅')
     } catch (err) {
         m.react('💔')

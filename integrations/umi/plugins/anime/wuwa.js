@@ -92,7 +92,7 @@ async function handler(m, { sock }) {
     }
     
     m.react('💕')
-    await m.reply(`⏳ *ᴘʀᴏᴄᴇꜱꜱɪɴɢ...*\n\n💗 *Rimuru:* Lagi nyari sheet ${query} darling~ tunggu sebentar yaa 🎮`)
+    await m.reply(`⏳ *ᴘʀᴏᴄᴇꜱꜱɪɴɢ...*\n\n💗 *Umi Usanagi:* Lagi nyari sheet ${query} darling~ tunggu sebentar yaa 🎮`)
     
     try {
         const charId = characters[query]
@@ -121,7 +121,7 @@ async function handler(m, { sock }) {
                     `┃ ✦ *ᴋᴀʀᴀᴋᴛᴇʀ*: ${query.toUpperCase()}\n` +
                     `┃ ✦ *ɪᴅ*: ${charId}\n` +
                     `┃\n` +
-                    `┃ 💗 *Rimuru:* Ini sheet materialnya darling~ 🎮\n` +
+                    `┃ 💗 *Umi Usanagi:* Ini sheet materialnya darling~ 🎮\n` +
                     `╰━━━━━━━━━━━━━━━━━━━━━⬣`
         }, { quoted: m })
         

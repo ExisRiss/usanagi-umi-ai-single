@@ -135,7 +135,7 @@ async function handler(m, { sock }) {
         else {
 
             return m.reply(
-`╭━━━〔 💗 RIMURU GROUP STORY 💗 〕━━⬣
+`╭━━━〔 💗 UMI USANAGI GROUP STORY 💗 〕━━⬣
 ┃
 ┃ Darling kirim sesuatu dong~
 ┃
@@ -151,7 +151,7 @@ async function handler(m, { sock }) {
         await sendGroupStatus(sock, m.chat, content)
 
         await m.reply(
-`╭━━━〔 💗 RIMURU STORY 💗 〕━━⬣
+`╭━━━〔 💗 UMI USANAGI STORY 💗 〕━━⬣
 ┃
 ┃ 📡 Story grup berhasil dipost~
 ┃

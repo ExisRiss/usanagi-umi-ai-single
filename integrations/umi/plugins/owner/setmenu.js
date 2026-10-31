@@ -98,7 +98,7 @@ const VARIANTS = {
   v9: {
     id: 9,
     name: "V5 — LV2 (DEFAULT)",
-    desc: "Tampilan default yang sekarang digunakan Rimuru MD",
+    desc: "Tampilan default yang sekarang digunakan Umi Usanagi",
     emoji: "🌸",
   },
 };

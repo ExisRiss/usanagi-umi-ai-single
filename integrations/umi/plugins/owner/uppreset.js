@@ -54,7 +54,7 @@ const captionUser = text[2] || "Preset baru"
 
 if(!link5mb || !linkxml){
 return m.reply(
-`╭━━〔 *❤️ RIMURU PRESET UPLOADER* 〕━━⬣
+`╭━━〔 *❤️ UMI USANAGI PRESET UPLOADER* 〕━━⬣
 ┃
 ┃ *Format :*
 ┃
@@ -74,7 +74,7 @@ try{
 const time = new Date().toLocaleTimeString()
 
 const caption =
-`╭━━〔 *❤️ RIMURU PRESET STORE* 〕━━⬣
+`╭━━〔 *❤️ UMI USANAGI PRESET STORE* 〕━━⬣
 ┃
 ┃ ✨ *${captionUser}*
 ┃
@@ -103,7 +103,7 @@ CHANNEL_ID,
 m.react("✅")
 
 return m.reply(
-`╭━━〔 *❤️ RIMURU SYSTEM* 〕━━⬣
+`╭━━〔 *❤️ UMI USANAGI SYSTEM* 〕━━⬣
 ┃
 ┃ ✅ *Preset berhasil dikirim*
 ┃

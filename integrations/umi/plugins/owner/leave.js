@@ -109,7 +109,7 @@ async function handler(m, { sock }) {
     global.sewaLeaving = true;
 
     const saluranId = config.saluran?.id || "120363412350560864@newsletter";
-    const saluranName = config.saluran?.name || config.bot?.name || "Rimuru-AI";
+    const saluranName = config.saluran?.name || config.bot?.name || "Umi Usanagi";
 
     if (m.isGroup && targetGroupJid === m.chat) {
       await sock.sendMessage(m.chat, {

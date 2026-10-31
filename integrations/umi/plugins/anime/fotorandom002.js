@@ -33,7 +33,7 @@ const pluginConfig = {
   name: 'fotorandom002',
   alias: ['fotorimuru','randomfotozero'],
   category: 'anime',
-  description: 'Rimuru random image 💗',
+  description: 'Umi Usanagi random image 💗',
   usage: '.foto-randomrimuru',
   isEnabled: true,
   cooldown: 5
@@ -45,7 +45,7 @@ const folderPath = path.join(process.cwd(), 'integrations/rimuru/assets', 'foto-
 
 // cek folder
 if (!fs.existsSync(folderPath)) {
-    return m.reply('❌ Folder Rimuru belum ada, darling...')
+    return m.reply('❌ Folder Umi Usanagi belum ada, darling...')
 }
 
 // ambil file
@@ -60,7 +60,7 @@ const images = files.filter(file =>
 
 // kalau kosong
 if (images.length === 0) {
-    return m.reply('📂 Foto Rimuru masih kosong... aku jadi kesepian 😢')
+    return m.reply('📂 Foto Umi Usanagi masih kosong... aku jadi kesepian 😢')
 }
 
 // random file
@@ -86,7 +86,7 @@ await m.react('💗')
 // kirim
 await sock.sendMessage(m.chat, {
 image: fs.readFileSync(filePath),
-caption: `╭━━━〔 💗 RIMURU RANDOM 💗 〕━━━⬣
+caption: `╭━━━〔 💗 UMI USANAGI RANDOM 💗 〕━━━⬣
 ┃
 ┃ ${randomCaption}
 ┃

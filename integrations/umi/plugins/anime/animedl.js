@@ -210,7 +210,7 @@ async function handler(m, { sock }) {
             `┃   ${m.prefix}animedl jujutsu kaisen | 1\n` +
             `┃   ${m.prefix}animedl jujutsu kaisen | batch\n` +
             `┃\n` +
-            `┃ 💗 *Rimuru:* Mau download anime apa darling~?\n` +
+            `┃ 💗 *Umi Usanagi:* Mau download anime apa darling~?\n` +
             `╰━━━━━━━━━━━━━━━━━━━━━⬣`
         )
     }
@@ -227,7 +227,7 @@ async function handler(m, { sock }) {
     const isBatch = episode === 'batch'
     
     m.react('💕')
-    await m.reply(`⏳ *ᴘʀᴏᴄᴇꜱꜱɪɴɢ...*\n\n💗 *Rimuru:* Lagi mencari anime ${query} darling~ tunggu sebentar yaa 🦋`)
+    await m.reply(`⏳ *ᴘʀᴏᴄᴇꜱꜱɪɴɢ...*\n\n💗 *Umi Usanagi:* Lagi mencari anime ${query} darling~ tunggu sebentar yaa 🦋`)
     
     try {
         const searchResults = await searchAnime(query)
@@ -283,7 +283,7 @@ async function handler(m, { sock }) {
             txt += `╰━━━━━━━━━━━━━━━━━━━━━⬣\n\n`
         }
         
-        txt += `💗 *Rimuru:* Klik link di atas buat download darling~ 🎬`
+        txt += `💗 *Umi Usanagi:* Klik link di atas buat download darling~ 🎬`
         
         await m.reply(txt)
         m.react('✅')

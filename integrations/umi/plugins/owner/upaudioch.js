@@ -60,7 +60,7 @@ async function handler(m, { sock }) {
             `┃\n` +
             `┃   ${m.prefix}upaudioch Info terbaru!\n` +
             `┃\n` +
-            `┃ 💗 *Rimuru:* Mau upload audio ke channel apa darling~?\n` +
+            `┃ 💗 *Umi Usanagi:* Mau upload audio ke channel apa darling~?\n` +
             `╰━━━━━━━━━━━━━━━━━━━━━⬣`
         )
     }
@@ -84,7 +84,7 @@ async function handler(m, { sock }) {
     }
     
     m.react('💕')
-    await m.reply(`⏳ *ᴘʀᴏᴄᴇꜱꜱɪɴɢ...*\n\n💗 *Rimuru:* Lagi upload audio ke channel darling~ tunggu sebentar yaa 🎵`)
+    await m.reply(`⏳ *ᴘʀᴏᴄᴇꜱꜱɪɴɢ...*\n\n💗 *Umi Usanagi:* Lagi upload audio ke channel darling~ tunggu sebentar yaa 🎵`)
     
     try {
         const audioBuffer = await quoted.download()
@@ -119,7 +119,7 @@ async function handler(m, { sock }) {
             `┃ 📢 *ᴄʜᴀɴɴᴇʟ*: ${CHANNEL_ID}\n` +
             `┃ 📝 *ᴘᴇꜱᴀɴ*: ${text}\n` +
             `┃\n` +
-            `┃ 💗 *Rimuru:* Audio sudah terkirim darling~ 🎤\n` +
+            `┃ 💗 *Umi Usanagi:* Audio sudah terkirim darling~ 🎤\n` +
             `╰━━━━━━━━━━━━━━━━━━━━━⬣`
         )
         

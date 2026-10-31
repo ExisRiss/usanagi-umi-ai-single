@@ -78,7 +78,7 @@ try {
 
 function ctx(title, body) {
   const sId = config.saluran?.id || "120363412350560864@newsletter";
-  const sName = config.saluran?.name || config.bot?.name || "Rimuru-AI";
+  const sName = config.saluran?.name || config.bot?.name || "Umi Usanagi";
   const c = {
     forwardingScore: 9999,
     isForwarded: true,

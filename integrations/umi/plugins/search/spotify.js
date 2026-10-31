@@ -100,7 +100,7 @@ async function handler(m, { sock, text }) {
             address: `🎤 ${firstResult.artist} | ⏱️ ${firstResult.duration}`
           },
           contentText: contentText,
-          footerText: '🚀 Rimuru MD - Spotify Search',
+          footerText: '🚀 Umi Usanagi - Spotify Search',
           headerType: 6,
         },
       };

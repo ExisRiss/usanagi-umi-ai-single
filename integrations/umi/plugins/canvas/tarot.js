@@ -63,7 +63,7 @@ async function handler(m, { sock }) {
       try { avatar = await m.quoted.download(); } catch {}
     }
 
-    const username = m.pushName || String(m.sender || "").split("@")[0] || "Rimuru User";
+    const username = m.pushName || String(m.sender || "").split("@")[0] || "Umi Usanagi User";
     const card = getTarotCard(username);
     const result = await createTarotCard({ username, avatar, cardIndex, reversed });
 

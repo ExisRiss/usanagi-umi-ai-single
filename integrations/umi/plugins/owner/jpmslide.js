@@ -27,7 +27,7 @@ Rimuru MD adalah SC hasil rename dari SC Ourin MD.
 */
 
 import { generateWAMessageFromContent, generateWAMessage, proto } from '@rexxhayanasi/elaina-baileys';
-export const FEATURE_CREDIT = "Fitur By: Anita Putri Azzahra\nFitur SC Bot Rimuru MD 👑\nTiktok: https://tiktok.com/@anita.putri.azzah1\nSaluran Resmi: https://whatsapp.com/channel/0029Vb8dmsUElagkVPIw9X2P";
+export const FEATURE_CREDIT = "Fitur By: Anita Putri Azzahra\nFitur SC Bot Umi Usanagi 👑\nTiktok: https://tiktok.com/@anita.putri.azzah1\nSaluran Resmi: https://whatsapp.com/channel/0029Vb8dmsUElagkVPIw9X2P";
 const pluginConfig = {
   name: "jpmslide",
   alias: [],
@@ -60,7 +60,7 @@ async function handler(m, { sock, db }) {
 
   const dataSlide = [
     {
-      title: `</> ${globalThis.ownername || "Rimuru"} Menyediakan </>`,
+      title: `</> ${globalThis.ownername || "Umi Usanagi"} Menyediakan </>`,
       caption: `* Panel Pterodactyl Server Private\n* Script Bot WhatsApp\n* Domain & Jasa Bot\n* Jasa Fix/Edit/Tambah Fitur SC\n\n*Channel:*\n${globalThis.linkSaluran || "-"}`,
       button: "Hubungi Kami",
       source: globalThis.owner ? `https://wa.me/${String(globalThis.owner).replace(/\D/g, '')}` : "https://wa.me/",
@@ -72,7 +72,7 @@ async function handler(m, { sock, db }) {
       source: globalThis.linkSaluran || "https://whatsapp.com/",
     },
     {
-      title: "</> Rimuru MD 👑 </>",
+      title: "</> Umi Usanagi 👑 </>",
       caption: "Carousel slide JPM dengan beberapa kartu interaktif.\n\nGeser kartu untuk melihat informasi berikutnya.",
       button: "Website",
       source: "https://whatsapp.com/",

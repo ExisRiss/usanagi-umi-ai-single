@@ -178,7 +178,7 @@ async function renderCharacterCard(char) {
     ctx.textAlign = 'center'
     ctx.shadowColor = THEME.glow
     ctx.shadowBlur = 10
-    ctx.fillText('🦋 RIMURU CHARACTER 🦋', w/2, 42)
+    ctx.fillText('🦋 UMI USANAGI CHARACTER 🦋', w/2, 42)
     ctx.shadowBlur = 0
 
     // Image placeholder (karena download image berat, pake text aja)
@@ -279,7 +279,7 @@ async function renderCharacterCard(char) {
     // Footer
     ctx.fillStyle = `${THEME.primary}80`
     ctx.font = '9px "Segoe UI"'
-    ctx.fillText('❥ Rimuru AI | Data from MyAnimeList (Jikan API)', w/2, h - 18)
+    ctx.fillText('❥ Umi Usanagi | Data from MyAnimeList (Jikan API)', w/2, h - 18)
 
     return canvas.toBuffer('image/png')
 }
@@ -302,7 +302,7 @@ function roundRect(ctx, x, y, w, h, r) {
 
 // Format caption (fallback)
 function formatCaption(char) {
-    let caption = `🦋 *RIMURU CHARACTER* 🦋\n\n`
+    let caption = `🦋 *UMI USANAGI CHARACTER* 🦋\n\n`
     caption += `*${char.name}*\n`
     if (char.nameJapanese) caption += `*${char.nameJapanese}*\n`
     caption += `\n`
@@ -311,7 +311,7 @@ function formatCaption(char) {
     caption += `📺 *Anime:* ${char.animeAppear.slice(0, 3).join(', ') || 'Tidak diketahui'}\n`
     caption += `\n`
     caption += `📖 *About:*\n${char.about.substring(0, 400)}${char.about.length > 400 ? '...' : ''}\n\n`
-    caption += `💕 *Rimuru:* ${['Karakter favoritmu?', 'Keren banget nih karakter~', 'Seiyuu-nya siapa ya?'][Math.floor(Math.random() * 3)]} 🦋`
+    caption += `💕 *Umi Usanagi:* ${['Karakter favoritmu?', 'Keren banget nih karakter~', 'Seiyuu-nya siapa ya?'][Math.floor(Math.random() * 3)]} 🦋`
     return caption
 }
 
@@ -320,21 +320,21 @@ async function handler(m, { sock }) {
     
     if (!query) {
         return m.reply(
-            `🦋 *RIMURU CHARACTER SEARCH* 🦋\n\n` +
+            `🦋 *UMI USANAGI CHARACTER SEARCH* 🦋\n\n` +
             `📌 *Cara pakai:*\n` +
             `• ${m.prefix}character <nama karakter>\n\n` +
             `📌 *Contoh:*\n` +
             `• ${m.prefix}character zero two\n` +
             `• ${m.prefix}character gojo satoru\n` +
             `• ${m.prefix}character luffy\n\n` +
-            `💕 *Rimuru:* Cari karakter anime siapa nih darling~? 🦋`
+            `💕 *Umi Usanagi:* Cari karakter anime siapa nih darling~? 🦋`
         )
     }
     
     await m.react('⏳')
     
     try {
-        await m.reply(`🦋 *Rimuru:* Lagi nyari karakter *${query}*... tunggu sebentar ya~ 💕`)
+        await m.reply(`🦋 *Umi Usanagi:* Lagi nyari karakter *${query}*... tunggu sebentar ya~ 💕`)
         
         const result = await searchCharacter(query)
         

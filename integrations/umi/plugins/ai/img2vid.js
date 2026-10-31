@@ -127,7 +127,7 @@ async function handler(m, { sock }) {
         const videoUrl = res.data.data.url
         
         const saluranId = RIMURU_CORE_CONFIG.saluran?.id || config.saluran?.id
-        const saluranName = RIMURU_CORE_CONFIG.saluran?.name || RIMURU_CORE_CONFIG.bot?.name || 'rimuru-AI'
+        const saluranName = RIMURU_CORE_CONFIG.saluran?.name || RIMURU_CORE_CONFIG.bot?.name || 'umi usanagi'
         
         await sock.sendMessage(m.chat, {
             video: { url: videoUrl },

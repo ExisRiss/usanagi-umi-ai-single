@@ -149,7 +149,7 @@ async function handler(m, { sock }) {
       {
         image: resultBuffer,
         jpegThumbnail: thumbBuffer,
-        caption: `✨ *UNBLUR / HD ENHANCE*\n\nDibuat dengan ${config.bot?.name || "Rimuru MD"}`,
+        caption: `✨ *UNBLUR / HD ENHANCE*\n\nDibuat dengan ${config.bot?.name || "Umi Usanagi"}`,
       },
       { quoted: m },
     );

@@ -59,7 +59,7 @@ async function handler(m, { sock }) {
 
     await sock.sendMessage(m.chat, {
       image: buffer,
-      caption: `💞 *ᴋᴀsᴇᴅᴀɪᴋɪ*\n\n> Random image dari api.ourin.my.id\n> Enjoy darling~ 💕`
+      caption: `💞 *ᴋᴀsᴇᴅᴀɪᴋɪ*\n\n> Random image dari api.umi usanagi.my.id\n> Enjoy darling~ 💕`
     }, { quoted: m });
 
     await m.react("✅");

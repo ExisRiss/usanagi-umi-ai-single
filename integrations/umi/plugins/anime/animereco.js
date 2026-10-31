@@ -275,11 +275,11 @@ async function renderRecommendationCard(animes, type, genre = null) {
     ctx.fillStyle = '#ff2a6d'
     ctx.font = 'bold 30px "Segoe UI"'
     ctx.textAlign = 'left'
-    ctx.fillText('♡ RIMURU', 30, 48)
+    ctx.fillText('♡ UMI USANAGI', 30, 48)
     
     ctx.fillStyle = '#ff69b4'
     ctx.font = 'bold 30px "Segoe UI"'
-    ctx.fillText(' RECOMMENDATION', 30 + ctx.measureText('♡ RIMURU').width, 48)
+    ctx.fillText(' RECOMMENDATION', 30 + ctx.measureText('♡ UMI USANAGI').width, 48)
     ctx.shadowBlur = 0
 
     ctx.fillStyle = '#c084fc'
@@ -468,13 +468,13 @@ async function renderRecommendationCard(animes, type, genre = null) {
     ctx.fillStyle = '#ff2a6d'
     ctx.font = 'bold 10px "Segoe UI"'
     ctx.textAlign = 'center'
-    ctx.fillText('♡ RIMURU AI | ANIME RECOMMENDATION ♡', W / 2, H - 12)
+    ctx.fillText('♡ UMI USANAGI | ANIME RECOMMENDATION ♡', W / 2, H - 12)
     
     return canvas.toBuffer('image/png')
 }
 
 function formatCaption(animes, type, genre = null) {
-    let caption = `💕 *RIMURU RECOMMENDATION* 💕\n\n`
+    let caption = `💕 *UMI USANAGI RECOMMENDATION* 💕\n\n`
     
     if (type === 'top') {
         caption += `🏆 *TOP ANIME BY POPULARITY* 🏆\n\n`
@@ -491,7 +491,7 @@ function formatCaption(animes, type, genre = null) {
         caption += `   📖 ${anime.synopsis.substring(0, 100)}${anime.synopsis.length > 100 ? '...' : ''}\n\n`
     }
     
-    caption += `💕 *Rimuru:* ${type === 'top' ? 'Ini anime favorit banyak orang darling~' : `Wah suka anime ${genre}? Rekomendasi ini buat kamu darling~`} 🦋`
+    caption += `💕 *Umi Usanagi:* ${type === 'top' ? 'Ini anime favorit banyak orang darling~' : `Wah suka anime ${genre}? Rekomendasi ini buat kamu darling~`} 🦋`
     
     return caption
 }
@@ -505,28 +505,28 @@ async function handler(m, { sock }) {
         let result
         
         if (query === 'top' || query === 'popular') {
-            await m.reply(`🦋 *Rimuru:* Lagi ambil daftar top anime... tunggu sebentar ya darling~ ⭐`)
+            await m.reply(`🦋 *Umi Usanagi:* Lagi ambil daftar top anime... tunggu sebentar ya darling~ ⭐`)
             result = await getTopAnime(5)
         } else if (query && GENRES[query]) {
             const symbol = GENRE_SYMBOL[query] || '🎭'
-            await m.reply(`🦋 *Rimuru:* Lagi cari rekomendasi anime *${query}*... tunggu sebentar ya darling~ ${symbol}`)
+            await m.reply(`🦋 *Umi Usanagi:* Lagi cari rekomendasi anime *${query}*... tunggu sebentar ya darling~ ${symbol}`)
             result = await getAnimeByGenre(query, 5)
         } else if (query) {
             const genreList = Object.keys(GENRES).join(', ')
             return m.reply(
-                `🎭 *RIMURU ANIME RECOMMENDATION* 🎭\n\n` +
+                `🎭 *UMI USANAGI ANIME RECOMMENDATION* 🎭\n\n` +
                 `📌 *Genre yang tersedia:*\n${genreList}\n\n` +
                 `📌 *Contoh:*\n` +
                 `• ${m.prefix}animereco action\n` +
                 `• ${m.prefix}animereco romance\n` +
                 `• ${m.prefix}animereco top\n` +
                 `• ${m.prefix}animereco (tanpa genre = random)\n\n` +
-                `💕 *Rimuru:* Mau rekomendasi anime genre apa darling~? 🦋`
+                `💕 *Umi Usanagi:* Mau rekomendasi anime genre apa darling~? 🦋`
             )
         } else {
             const genreKeys = Object.keys(GENRES)
             const randomGenre = genreKeys[Math.floor(Math.random() * genreKeys.length)]
-            await m.reply(`🦋 *Rimuru:* Lagi cari rekomendasi anime random... tunggu sebentar ya darling~ 🎲`)
+            await m.reply(`🦋 *Umi Usanagi:* Lagi cari rekomendasi anime random... tunggu sebentar ya darling~ 🎲`)
             result = await getAnimeByGenre(randomGenre, 5)
         }
         

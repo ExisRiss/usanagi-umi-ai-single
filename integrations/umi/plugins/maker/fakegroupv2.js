@@ -26,7 +26,7 @@ Rimuru MD adalah SC hasil rename dari SC Ourin MD.
                  「 👑 𝑹𝑰𝑴𝑼𝑹𝑼 𝑴𝑫 👑 」
 */
 
-export const FEATURE_CREDIT = "Fitur By: Anita Putri Azzahra\nFitur SC Bot Rimuru MD 👑\nTiktok: https://tiktok.com/@anita.putri.azzah1\nSaluran Resmi: https://whatsapp.com/channel/0029Vb8dmsUElagkVPIw9X2P";
+export const FEATURE_CREDIT = "Fitur By: Anita Putri Azzahra\nFitur SC Bot Umi Usanagi 👑\nTiktok: https://tiktok.com/@anita.putri.azzah1\nSaluran Resmi: https://whatsapp.com/channel/0029Vb8dmsUElagkVPIw9X2P";
 
 
 import axios from 'axios'
@@ -53,7 +53,7 @@ const pluginConfig = {
   name: "fakegroupv2",
   alias: [],
   category: "maker",
-  description: "Imported from Rimuru MD V4.6",
+  description: "Imported from Umi Usanagi V4.6",
   usage: "",
   example: "",
   isOwner: false,
@@ -78,7 +78,7 @@ Reply gambar:
 ${usedPrefix + command} name|members|desc|author|date
 
 Contoh cepat:
-${usedPrefix}fakegroupv2 Rimuru|500|Grup ytta|Hilman|06/03/26 15:31`
+${usedPrefix}fakegroupv2 Umi Usanagi|500|Grup ytta|Hilman|06/03/26 15:31`
   }
 
   await m.react('🕒')
@@ -100,7 +100,7 @@ ${usedPrefix}fakegroupv2 Rimuru|500|Grup ytta|Hilman|06/03/26 15:31`
     } else {
       throw `Format salah.
 Contoh:
-${usedPrefix}fakegroupv2 Rimuru|500|Grup ytta|Hilman|06/03/26 15:31`
+${usedPrefix}fakegroupv2 Umi Usanagi|500|Grup ytta|Hilman|06/03/26 15:31`
     }
 
     let api = `https://api.zenzxz.my.id/maker/fakegroupv2?url=${encodeURIComponent(url)}&name=${encodeURIComponent(name)}&members=${encodeURIComponent(members)}&desc=${encodeURIComponent(desc)}&author=${encodeURIComponent(author)}&date=${encodeURIComponent(date)}`

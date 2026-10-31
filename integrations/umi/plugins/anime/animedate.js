@@ -210,7 +210,7 @@ async function renderCalendar(animes, season, year) {
     ctx.textAlign = 'center'
     ctx.shadowColor = THEME.glow
     ctx.shadowBlur = 10
-    ctx.fillText(`📅 RIMURU RELEASE CALENDAR 📅`, w/2, 42)
+    ctx.fillText(`📅 UMI USANAGI RELEASE CALENDAR 📅`, w/2, 42)
     ctx.shadowBlur = 0
 
     const seasonEmoji = SEASONS[season]?.emoji || '🌸'
@@ -261,14 +261,14 @@ async function renderCalendar(animes, season, year) {
 
     ctx.fillStyle = `${THEME.primary}80`
     ctx.font = '9px "Segoe UI"'
-    ctx.fillText('❥ Rimuru AI | Data from MyAnimeList (Jikan API)', w/2, h - 18)
+    ctx.fillText('❥ Umi Usanagi | Data from MyAnimeList (Jikan API)', w/2, h - 18)
 
     return canvas.toBuffer('image/png')
 }
 
 function formatCaption(animes, season, year) {
     const seasonData = SEASONS[season]
-    let caption = `📅 *RIMURU RELEASE CALENDAR* 📅\n\n`
+    let caption = `📅 *UMI USANAGI RELEASE CALENDAR* 📅\n\n`
     caption += `${seasonData.emoji} *${seasonData.name} ${year}* ${seasonData.emoji}\n`
     caption += `━━━━━━━━━━━━━━━━━━━━\n\n`
     
@@ -300,7 +300,7 @@ function formatCaption(animes, season, year) {
         caption += `\n`
     }
     
-    caption += `💕 *Rimuru:* ${seasonData.emoji} Jangan lupa nonton anime musim ini ya darling~ 🦋`
+    caption += `💕 *Umi Usanagi:* ${seasonData.emoji} Jangan lupa nonton anime musim ini ya darling~ 🦋`
     
     return caption
 }
@@ -322,7 +322,7 @@ async function handler(m, { sock }) {
     await m.react('📅')
     
     try {
-        await m.reply(`🦋 *Rimuru:* Lagi ambil kalender rilis anime ${SEASONS[season].emoji} ${SEASONS[season].name} ${year}... tunggu sebentar ya~ 📅`)
+        await m.reply(`🦋 *Umi Usanagi:* Lagi ambil kalender rilis anime ${SEASONS[season].emoji} ${SEASONS[season].name} ${year}... tunggu sebentar ya~ 📅`)
         
         const result = await getSeasonalAnime(season, year)
         

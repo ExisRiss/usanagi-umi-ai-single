@@ -104,7 +104,7 @@ async function handler(m, { sock }) {
     const buffer = await m.quoted.download();
     if (!buffer) throw new Error("Gagal mendownload stiker.");
 
-    const botName = RIMURU_CORE_CONFIG.bot?.name || 'Ourin-MD';
+    const botName = RIMURU_CORE_CONFIG.bot?.name || 'Umi Usanagi-MD';
     const dynamicPackName = `Anti colong •`;
     const dynamicPublisher = `By ${botName}`;
 

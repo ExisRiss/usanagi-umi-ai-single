@@ -53,11 +53,11 @@ async function handler(m, { sock }) {
         
         // Kalo gak ada gambar dan gak ada teks
         if (!hasImage && !text) {
-            return m.reply(`🔩 *CARA PAKAI LOGO METAL* 🔩\n\n1. Dengan teks:\n\`.logo-metal Rimuru\`\n\n2. Dengan gambar + teks:\nReply gambar lalu ketik:\n\`.logo-metal Rimuru\`\n\n3. Hanya gambar:\nReply gambar tanpa teks\n\n*Efek:*\n🔩 Brushed metal\n⚙️ Steel texture\n✨ Chrome highlight`)
+            return m.reply(`🔩 *CARA PAKAI LOGO METAL* 🔩\n\n1. Dengan teks:\n\`.logo-metal Umi Usanagi\`\n\n2. Dengan gambar + teks:\nReply gambar lalu ketik:\n\`.logo-metal Umi Usanagi\`\n\n3. Hanya gambar:\nReply gambar tanpa teks\n\n*Efek:*\n🔩 Brushed metal\n⚙️ Steel texture\n✨ Chrome highlight`)
         }
         
         // Set default text
-        if (!text) text = 'RIMURU'
+        if (!text) text = 'UMI USANAGI'
         
         // Settings
         const width = 800
@@ -219,7 +219,7 @@ async function handler(m, { sock }) {
         
         ctx.font = '9px monospace'
         ctx.fillStyle = '#666666'
-        ctx.fillText('rimuru maker • steel logo generator', centerX, height - 20)
+        ctx.fillText('umi usanagi maker • steel logo generator', centerX, height - 20)
         
         // 14. WATERMARK INDUSTRIAL
         ctx.font = '8px monospace'
@@ -231,7 +231,7 @@ async function handler(m, { sock }) {
         
         await sock.sendMessage(m.chat, {
             image: buffer,
-            caption: `🔩 *METAL LOGO MAKER* 🔩\n\n╭─❍「 DETAIL 」\n│ 📝 Teks: ${textUpper}\n│ 🎨 Efek: Brushed Metal / Steel\n│ ⚙️ Texture: Industrial Style\n│ 🔧 Layer: 6 depth layers\n╰─────────────❍\n\n💗 *Rimuru*: Logo metal untuk sayang yang kuat~`
+            caption: `🔩 *METAL LOGO MAKER* 🔩\n\n╭─❍「 DETAIL 」\n│ 📝 Teks: ${textUpper}\n│ 🎨 Efek: Brushed Metal / Steel\n│ ⚙️ Texture: Industrial Style\n│ 🔧 Layer: 6 depth layers\n╰─────────────❍\n\n💗 *Umi Usanagi*: Logo metal untuk sayang yang kuat~`
         }, { quoted: m })
         
     } catch (error) {

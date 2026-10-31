@@ -164,7 +164,7 @@ async function handler(m, { sock }) {
     });
     const buffer = Buffer.from(response.data);
     await sock.sendImageAsSticker(m.chat, buffer, m, {
-      packname: config.sticker?.packname || "Rimuru-AI",
+      packname: config.sticker?.packname || "Umi Usanagi",
       author: config.sticker?.author || "Bot",
     });
     m.react("✅");

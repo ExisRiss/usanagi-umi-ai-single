@@ -12,7 +12,7 @@ const pluginConfig = {
     name: 'groupsecurity',
     alias: ['grupsecurity', 'groupsec', 'grupsec', 'securitygrup'],
     category: 'group',
-    description: 'Preset keamanan grup ketat untuk berbagai proteksi Rimuru',
+    description: 'Preset keamanan grup ketat untuk berbagai proteksi Umi Usanagi',
     usage: '.groupsecurity <on/off/status>',
     example: '.groupsecurity on',
     isOwner: false,

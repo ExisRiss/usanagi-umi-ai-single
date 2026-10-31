@@ -32,7 +32,7 @@ const pluginConfig = {
     name: 'leaderboard-orang-kaya',
     alias: ['topkaya', 'orangkaya', 'lbkaya', 'toprich', 'leaderboardkaya'],
     category: 'economy',
-    description: 'Ranking orang paling kaya ala Rimuru dengan dashboard keren 💰🔥',
+    description: 'Ranking orang paling kaya ala Umi Usanagi dengan dashboard keren 💰🔥',
     usage: '.topkaya',
     example: '.topkaya',
     isOwner: false,
@@ -271,7 +271,7 @@ async function drawLeaderboard(users, totalKoin, type = 'kaya') {
     
     ctx.fillStyle = THEME.textSecondary
     ctx.font = '12px Arial'
-    ctx.fillText(`${type === 'kaya' ? '💎 Sultan Terkaya' : '🪙 Miskin Teratas'} • Rimuru Edition`, 85, 78)
+    ctx.fillText(`${type === 'kaya' ? '💎 Sultan Terkaya' : '🪙 Miskin Teratas'} • Umi Usanagi Edition`, 85, 78)
     
     // Badge total peserta
     ctx.save()
@@ -476,7 +476,7 @@ async function handler(m, { sock }) {
             caption += `   └ 💰 ${formatRupiah(u.koin)}\n`
         })
         
-        caption += `\n😈 *Rimuru:* Darling, lihat tuh siapa aja yang kaya raya~ Jangan iri ya, nanti kamu juga bisa jadi sultan kalau rajin nabung! 💕`
+        caption += `\n😈 *Umi Usanagi:* Darling, lihat tuh siapa aja yang kaya raya~ Jangan iri ya, nanti kamu juga bisa jadi sultan kalau rajin nabung! 💕`
         
         const mentions = topUsers.map(u => u.jid)
         
@@ -493,7 +493,7 @@ async function handler(m, { sock }) {
     } catch (error) {
         console.error('[TopKaya] Error:', error)
         await m.react('❌')
-        await m.reply(`❌ *Rimuru:* Wah error nih darling~ ${error.message}`)
+        await m.reply(`❌ *Umi Usanagi:* Wah error nih darling~ ${error.message}`)
     }
 }
 

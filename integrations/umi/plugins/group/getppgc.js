@@ -79,7 +79,7 @@ Aku ambil dulu foto group ini 👀`)
 Ara ara~ ini dia foto group kalian darling 📸
 
 Jaga baik-baik group ini ya~
-Rimuru selalu mengawasi group ini 👀💗`
+Umi Usanagi selalu mengawasi group ini 👀💗`
 
     await sock.sendMessage(m.chat, {
         image: { url: pp },

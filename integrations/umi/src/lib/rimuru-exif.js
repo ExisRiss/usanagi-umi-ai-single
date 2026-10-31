@@ -72,7 +72,7 @@ function getTempDir() {
 }
 
 const DEFAULT_METADATA = {
-    packname: 'Rimuru-AI',
+    packname: 'Umi Usanagi',
     author: 'Bot',
     packId: 'com.rimuru.sticker',
     emojis: ['🤖']
@@ -394,28 +394,28 @@ function cleanTempFiles(maxAge = 3600000) {
 
 const PRESETS = {
     default: {
-        packname: 'Rimuru-AI',
+        packname: 'Umi Usanagi',
         author: 'Bot',
         emojis: ['🤖']
     },
     meme: {
         packname: 'Meme Pack',
-        author: 'Rimuru-AI',
+        author: 'Umi Usanagi',
         emojis: ['😂', '🤣']
     },
     love: {
         packname: 'Love Pack',
-        author: 'Rimuru-AI',
+        author: 'Umi Usanagi',
         emojis: ['❤️', '💕', '💖']
     },
     sad: {
         packname: 'Sad Pack',
-        author: 'Rimuru-AI',
+        author: 'Umi Usanagi',
         emojis: ['😢', '😭', '💔']
     },
     angry: {
         packname: 'Angry Pack',
-        author: 'Rimuru-AI',
+        author: 'Umi Usanagi',
         emojis: ['😠', '😡', '💢']
     }
 };

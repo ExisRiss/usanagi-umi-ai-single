@@ -101,7 +101,7 @@ async function handler(m, { sock }) {
             `┃\n` +
             `┃   (lalu reply dengan .encrypt)\n` +
             `┃\n` +
-            `┃ 💗 *Rimuru:* Mau enkripsi kode apa darling~?\n` +
+            `┃ 💗 *Umi Usanagi:* Mau enkripsi kode apa darling~?\n` +
             `╰━━━━━━━━━━━━━━━━━━━━━⬣`
         )
     }
@@ -114,7 +114,7 @@ async function handler(m, { sock }) {
     }
     
     m.react('🔒')
-    await m.reply(`⏳ *ᴇɴᴄʀʏᴘᴛɪɴɢ...*\n\n💗 *Rimuru:* Lagi mengenkripsi kode darling~ tunggu sebentar yaa 🔐`)
+    await m.reply(`⏳ *ᴇɴᴄʀʏᴘᴛɪɴɢ...*\n\n💗 *Umi Usanagi:* Lagi mengenkripsi kode darling~ tunggu sebentar yaa 🔐`)
     
     try {
         const encrypted = await encryptCode(code)
@@ -132,7 +132,7 @@ async function handler(m, { sock }) {
                     `┃ 📦 *sɪᴢᴇ*: ${(encrypted.length / 1024).toFixed(2)} KB\n` +
                     `┃ 📝 *ᴛʏᴘᴇ*: JavaScript Obfuscated\n` +
                     `┃\n` +
-                    `┃ 💗 *Rimuru:* Ini kode terenkripsinya darling~ 🔒\n` +
+                    `┃ 💗 *Umi Usanagi:* Ini kode terenkripsinya darling~ 🔒\n` +
                     `╰━━━━━━━━━━━━━━━━━━━━━⬣`
         }, { quoted: m })
         

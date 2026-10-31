@@ -26,7 +26,7 @@ Rimuru MD adalah SC hasil rename dari SC Ourin MD.
                  「 👑 𝑹𝑰𝑴𝑼𝑹𝑼 𝑴𝑫 👑 」
 */
 
-export const FEATURE_CREDIT = "Fitur By: Anita Putri Azzahra\nFitur SC Bot Rimuru MD 👑\nTiktok: https://tiktok.com/@anita.putri.azzah1\nSaluran Resmi: https://whatsapp.com/channel/0029Vb8dmsUElagkVPIw9X2P";
+export const FEATURE_CREDIT = "Fitur By: Anita Putri Azzahra\nFitur SC Bot Umi Usanagi 👑\nTiktok: https://tiktok.com/@anita.putri.azzah1\nSaluran Resmi: https://whatsapp.com/channel/0029Vb8dmsUElagkVPIw9X2P";
 
 
 import { getDatabase } from '../../src/lib/rimuru-database.js';
@@ -60,7 +60,7 @@ async function handler(m, { sock }) {
         db.save()
 
         return m.reply(
-`╭━━━〔 💔 RIMURU DELETE 💔 〕━━━⬣
+`╭━━━〔 💔 UMI USANAGI DELETE 💔 〕━━━⬣
 ┃
 ┃ Ara ara~ user berhasil dihapus 😈
 ┃
@@ -91,7 +91,7 @@ async function handler(m, { sock }) {
     // 💗 UI RIMURU
     await sock.sendMessage(m.chat, {
         text:
-`╭━━━〔 💗 RIMURU SYSTEM 💗 〕━━━⬣
+`╭━━━〔 💗 UMI USANAGI SYSTEM 💗 〕━━━⬣
 ┃
 ┃ Hai ${m.pushName || 'Darling'} 😋
 ┃ Mau hapus siapa nih?
@@ -100,7 +100,7 @@ async function handler(m, { sock }) {
 ┃ Jangan salah pilih 😈
 ┃
 ╰━━━━━━━━━━━━━━━━━━⬣`,
-        footer: 'Rimuru AI 💗',
+        footer: 'Umi Usanagi 💗',
         interactiveButtons: [
             {
                 name: 'single_select',

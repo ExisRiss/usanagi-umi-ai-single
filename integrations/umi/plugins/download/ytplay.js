@@ -313,7 +313,7 @@ async function getPlayableStream(youtubeUrl) {
       }
     }
   } catch (e) {
-    console.warn("[YTPLAY] sumber OURIN/Kilua gagal:", e?.message || e);
+    console.warn("[YTPLAY] sumber UMI USANAGI/Kilua gagal:", e?.message || e);
   }
 
   // 3. SaveTube (video)

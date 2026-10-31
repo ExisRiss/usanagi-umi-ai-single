@@ -48,7 +48,7 @@ const pluginConfig = {
   category: 'tts',
   description: 'TTS suara karakter Hololive via RVC Hugging Face',
   usage: '.holotts <karakter>|<teks>',
-  example: '.holotts roboco|Hello Rimuru!',
+  example: '.holotts roboco|Hello Umi Usanagi!',
   isOwner: false,
   isPremium: false,
   isGroup: false,

@@ -70,7 +70,7 @@ ganti intro bawaan dengan .setintro <text>`
         .replace(/@date/gi, dateStr)
         .replace(/@time/gi, timeStr)
         .replace(/@desc/gi, groupMeta?.desc || 'Tidak ada deskripsi')
-        .replace(/@botname/gi, config.bot?.name || 'Rimuru-AI')
+        .replace(/@botname/gi, config.bot?.name || 'Umi Usanagi')
 }
 
 async function handler(m, { sock }) {

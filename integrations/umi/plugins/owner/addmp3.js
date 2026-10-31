@@ -68,7 +68,7 @@ async function handler(m, { sock }) {
             `┃ ✦ *Ekstensi yang didukung*\n` +
             `┃   ${validExtensions.join(', ')}\n` +
             `╰━━━━━━━━━━━━━━━━━━━━━⬣\n\n` +
-            `💗 *Rimuru:* Kirim audionya darling~`
+            `💗 *Umi Usanagi:* Kirim audionya darling~`
         )
     }
     
@@ -116,7 +116,7 @@ async function handler(m, { sock }) {
             `┃ 📁 *ʟᴏᴋᴀꜱɪ*: assets/audio/${fileName}\n` +
             `┃ 📦 *ᴜᴋᴜʀᴀɴ*: ${fileSizeMB} MB\n` +
             `┃\n` +
-            `┃ 💗 *Rimuru:* Audio nya udah tersimpan darling~\n` +
+            `┃ 💗 *Umi Usanagi:* Audio nya udah tersimpan darling~\n` +
             `╰━━━━━━━━━━━━━━━━━━━━━⬣`
         )
         

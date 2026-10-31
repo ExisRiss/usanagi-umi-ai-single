@@ -36,7 +36,7 @@ const pluginConfig = {
     category: 'canvas',
     description: 'Bikin fake sertifikat penghargaan (buat konten/gaguan doang)',
     usage: '.fakesertifikat <nama> | <penghargaan>',
-    example: '.fakesertifikat Rimuru | Best Darling Award',
+    example: '.fakesertifikat Umi Usanagi | Best Darling Award',
     isOwner: false,
     isPremium: false,
     isGroup: false,
@@ -104,9 +104,9 @@ async function handler(m, { sock }) {
             `┃\n` +
             `┃ ✦ *Contoh*\n` +
             `┃\n` +
-            `┃   ${m.prefix}fakesertifikat Rimuru | Best Darling Award\n` +
+            `┃   ${m.prefix}fakesertifikat Umi Usanagi | Best Darling Award\n` +
             `┃\n` +
-            `┃ 💗 *Rimuru:* Mau award apa darling~?\n` +
+            `┃ 💗 *Umi Usanagi:* Mau award apa darling~?\n` +
             `╰━━━━━━━━━━━━━━━━━━━━━⬣`
         )
     }
@@ -116,7 +116,7 @@ async function handler(m, { sock }) {
     let penghargaan = parts[1] || AWARDS[Math.floor(Math.random() * AWARDS.length)]
     
     m.react('💕')
-    await m.reply(`⏳ *ᴘʀᴏᴄᴇꜱꜱɪɴɢ...*\n\n💗 *Rimuru:* Lagi bikin sertifikat darling~`)
+    await m.reply(`⏳ *ᴘʀᴏᴄᴇꜱꜱɪɴɢ...*\n\n💗 *Umi Usanagi:* Lagi bikin sertifikat darling~`)
     
     try {
         const imageBuffer = await generateFakeSertifikat(nama, penghargaan)
@@ -129,7 +129,7 @@ async function handler(m, { sock }) {
                     `┃ 👤 *ɴᴀᴍᴀ*: ${nama}\n` +
                     `┃ 🏆 *ᴘᴇɴɢʜᴀʀɢᴀᴀɴ*: ${penghargaan}\n` +
                     `┃\n` +
-                    `┃ 💗 *Rimuru:* Selamat ya darling! 🗿\n` +
+                    `┃ 💗 *Umi Usanagi:* Selamat ya darling! 🗿\n` +
                     `╰━━━━━━━━━━━━━━━━━━━━━⬣`
         }, { quoted: m })
         

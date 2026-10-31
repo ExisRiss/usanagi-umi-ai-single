@@ -28,12 +28,12 @@ Rimuru MD adalah SC hasil rename dari SC Ourin MD.
 
 import fs from 'fs';
 import path from 'path';
-export const FEATURE_CREDIT = "Fitur By: Anita Putri Azzahra\nFitur SC Bot Rimuru MD 👑\nTiktok: https://tiktok.com/@anita.putri.azzah1\nSaluran Resmi: https://whatsapp.com/channel/0029Vb8dmsUElagkVPIw9X2P";
+export const FEATURE_CREDIT = "Fitur By: Anita Putri Azzahra\nFitur SC Bot Umi Usanagi 👑\nTiktok: https://tiktok.com/@anita.putri.azzah1\nSaluran Resmi: https://whatsapp.com/channel/0029Vb8dmsUElagkVPIw9X2P";
 const pluginConfig = {
     name: 'saluran',
     alias: ['channel','ch','joinch'],
     category: 'main',
-    description: 'Join saluran resmi Rimuru 😈',
+    description: 'Join saluran resmi Umi Usanagi 😈',
     usage: '.saluran',
     cooldown: 5,
     isEnabled: true
@@ -56,7 +56,7 @@ async function handler(m, { sock }) {
     }
 
     const caption = 
-`╭━━━〔 💗 RIMURU CHANNEL 💗 〕━━━⬣
+`╭━━━〔 💗 UMI USANAGI CHANNEL 💗 〕━━━⬣
 ┃
 ┃ Ara ara~ 😏
 ┃ Kamu mau tetap dekat denganku kan, darling?
@@ -75,7 +75,7 @@ async function handler(m, { sock }) {
 ┃ 👑 Saluran Owner
 ┃ Liat update & behind the scene~
 ┃
-┃ 🎭 Saluran Sticker Rimuru
+┃ 🎭 Saluran Sticker Umi Usanagi
 ┃ Biar chat kamu makin hidup 💕
 ┃
 ╰━━━⬣
@@ -88,7 +88,7 @@ aku bisa saja mengabaikanmu juga, darling 😌💔”
         await sock.sendMessage(m.chat, {
             image: imageBuffer,
             caption: caption,
-            footer: 'Rimuru 💗',
+            footer: 'Umi Usanagi 💗',
             interactiveButtons: [
                 {
                     name: 'cta_url',
@@ -107,7 +107,7 @@ aku bisa saja mengabaikanmu juga, darling 😌💔”
                 {
                     name: 'cta_url',
                     buttonParamsJson: JSON.stringify({
-                        display_text: '🎭 Sticker Rimuru',
+                        display_text: '🎭 Sticker Umi Usanagi',
                         url: chSticker
                     })
                 }

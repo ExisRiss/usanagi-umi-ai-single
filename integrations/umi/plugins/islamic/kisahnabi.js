@@ -74,7 +74,7 @@ async function handler(m, { sock }) {
         
         await m.react('📖')
         
-        const apikey = config.APIkey?.lolhuman || 'APIKey-Milik-Bot-RimuruMD(RIMURU)'
+        const apikey = config.APIkey?.lolhuman || 'APIKey-Milik-Bot-RimuruMD(UMI USANAGI)'
         const url = `https://api.lolhuman.xyz/api/kisahnabi/${nabiName}?apikey=${apikey}`
         
         const response = await axios.get(url, { timeout: 30000 })
@@ -87,7 +87,7 @@ async function handler(m, { sock }) {
         
         const result = data.result
         const saluranId = RIMURU_CORE_CONFIG.saluran?.id || config.saluran?.id
-        const saluranName = RIMURU_CORE_CONFIG.saluran?.name || RIMURU_CORE_CONFIG.bot?.name || 'rimuru-AI'
+        const saluranName = RIMURU_CORE_CONFIG.saluran?.name || RIMURU_CORE_CONFIG.bot?.name || 'umi usanagi'
         
         let story = result.story || ''
         if (story.length > 3500) {

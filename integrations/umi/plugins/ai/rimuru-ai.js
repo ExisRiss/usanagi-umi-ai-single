@@ -33,9 +33,9 @@ const pluginConfig = {
   name: "rimuru-ai",
   alias: ["rimuruai", "rimuru"],
   category: "ai",
-  description: "Chat dengan Rimuru AI — Asisten bot cerdas",
-  usage: ".rimuru-ai <pertanyaan>",
-  example: ".rimuru-ai Apa itu Node.js?",
+  description: "Chat dengan Umi Usanagi — Asisten bot cerdas",
+  usage: ".umi-ai <pertanyaan>",
+  example: ".umi-ai Apa itu Node.js?",
   isOwner: false,
   isPremium: false,
   isGroup: false,
@@ -49,12 +49,12 @@ async function handler(m, { sock }) {
   const text = m.args.join(" ");
   if (!text) {
     return m.reply(
-      `🤖 *Rimuru AI*\n\n` +
+      `🤖 *Umi Usanagi*\n\n` +
         `> Asisten cerdas siap membantu\n\n` +
         `*PENGGUNAAN:*\n` +
-        `> *${m.prefix}rimuru-ai <pertanyaan>*\n\n` +
+        `> *${m.prefix}umi-ai <pertanyaan>*\n\n` +
         `*CONTOH:*\n` +
-        `> *${m.prefix}rimuru-ai Apa itu Node.js?*`
+        `> *${m.prefix}umi-ai Apa itu Node.js?*`
     );
   }
 
@@ -65,7 +65,7 @@ async function handler(m, { sock }) {
 
     if (!result.status) {
       await m.react("☢");
-      return m.reply(`❌ *Rimuru AI Error*\n\n> ${result.error || "Gagal mendapatkan respons"}`);
+      return m.reply(`❌ *Umi Usanagi Error*\n\n> ${result.error || "Gagal mendapatkan respons"}`);
     }
 
     await m.react("✅");

@@ -34,7 +34,7 @@ const pluginConfig = {
     category: 'canvas',
     description: 'Bikin fake ijazah (buat konten/gaguan doang)',
     usage: '.fakeijazah <nama> | <gelar> | <universitas>',
-    example: '.fakeijazah Rimuru | S.Kom | Universitas Zero',
+    example: '.fakeijazah Umi Usanagi | S.Kom | Universitas Zero',
     isOwner: false,
     isPremium: false,
     isGroup: false,
