@@ -5,9 +5,13 @@
  * Perintah:
  *   /seleksi                  → dapat kode + link pendaftaran (di grup tujuan)
  *   /buatseleksi <nama>       → pemilik grup membuat seleksi (di grup tujuan)
- *   /addanggotaseleksi <nomor/@tag> → tambah helper seleksi
+ *   /grupseleksi [nama]       → tandai chat WA ini sebagai grup seleksi (Task194:
+ *                               notifikasi + tombol Terima/Tolak masuk ke sini)
+ *   /addseleksi <@tag/reply>  → beri akses seleksi + akun web otomatis (Task194;
+ *                               alias: addanggotaseleksi)
  *   /fieldseleksi +<kolom> [label]  → tambah kolom isian
  *   /fieldseleksi hapus <kolom>     → hapus kolom isian
+ *   /tutorialseleksi           → panduan lengkap (plugin terpisah)
  *   Tombol [Terima]/[Tolak] di pesan notifikasi (id: SELEKSI:ACC/TOLAK:<id>)
  *
  * Semua data tersimpan di server website (umi-alz-seleksi.gwenna.my.id);
@@ -62,11 +66,20 @@ function botKey(conn) {
 
 /* ── kirim notifikasi pendaftar baru ke grup tujuan ── */
 
+function labelKolom(kunci) {
+    return String(kunci || '').replace(/_/g, ' ').replace(/\b\p{L}/gu, c => c.toUpperCase())
+}
+
 async function kirimNotifikasi(conn, p) {
-    const meta = await conn.groupMetadata(p.grup.tujuanJid).catch(() => null)
+    /* Task194 — notifikasi masuk ke GRUP SELEKSI (grup WA khusus review),
+     * fallback ke grup tujuan bila belum diatur (/grupseleksi). */
+    const tujuan = p.grup.seleksiJid || p.grup.tujuanJid
+    const meta = await conn.groupMetadata(tujuan).catch(() => null)
     const admin = (meta?.participants || []).filter(x => x.admin).map(x => x.id).filter(Boolean)
     const foto = await unduhFoto(p.foto)
-    const kv = Object.entries(p.data || {}).map(([k, v]) => `• ${k}: ${v}`).join('\n')
+    const kv = Object.entries(p.data || {})
+        .filter(([, v]) => String(v ?? '').trim() !== '')
+        .map(([k, v]) => `• *${labelKolom(k)}:* ${v}`).join('\n')
     const isi = `📋 *PENDAFTAR BARU*\n\n${kv}\n\nKode: ${p.kode}\nWaktu: ${new Date(p.waktu).toLocaleString('id-ID')}\nPanel: ${p.grup.url}/seleksi`
     const opsi = {
         title: `🎯 Seleksi — ${p.grup.nama}`,
@@ -79,13 +92,19 @@ async function kirimNotifikasi(conn, p) {
             { label: '❌ Tolak', command: 'SELEKSI:TOLAK:' + p.id },
             { label: '🌐 Buka panel', type: 'url', url: p.grup.url + '/seleksi' },
         ],
-        fallbackToText: true,
+        fallbackToText: false,   // Task194 — kalau rich gagal, kita kirim teks rapi sendiri
     }
     if (foto) opsi.image = foto
-    else opsi.body = (admin.length ? admin.map(j => '@' + j.split('@')[0]).join(' ') + '\n' : '') + isi
-    await sendInteractive(conn, p.grup.tujuanJid, opsi)
+    try {
+        await sendInteractive(conn, tujuan, opsi)
+    } catch (e) {
+        console.log('[SELEKSI] Rich notif gagal, fallback teks:', e?.message || e)
+        const sebut = admin.length ? admin.map(j => '@' + j.split('@')[0]).join(' ') + '\n\n' : ''
+        if (foto) await conn.sendMessage(tujuan, { image: foto, caption: sebut + isi, mentions: admin })
+        else await conn.sendMessage(tujuan, { text: sebut + isi, mentions: admin })
+    }
     await api('/api/sinkron/antar', { method: 'POST', body: { idPendaftar: p.id } }).catch(() => {})
-    console.log(`[SELEKSI] Notifikasi pendaftar ${p.id} terkirim ke ${p.grup.nama}`)
+    console.log(`[SELEKSI] Notifikasi pendaftar ${p.id} terkirim ke ${tujuan === p.grup.seleksiJid ? 'grup seleksi' : 'grup tujuan'} ${p.grup.nama}`)
 }
 
 let timerPoll = null
@@ -99,8 +118,10 @@ function mulaiPoller(conn) {
             if (typeof global.mainBotEnabled === 'boolean' && !global.mainBotEnabled && conn !== global.conn) return
             const r = await api('/api/sinkron/pending', { query: { server: botKey(conn) } })
             for (const p of (r.pendaftar || [])) {
-                /* hanya kirim kalau bot INI berada di grup tujuan */
-                const punya = await conn.groupMetadata(p.grup.tujuanJid).then(() => true).catch(() => false)
+                /* Task194 — hanya kirim kalau bot INI berada di grup target
+                 * (grup seleksi bila sudah diatur, fallback grup tujuan). */
+                const tujuanKirim = p.grup.seleksiJid || p.grup.tujuanJid
+                const punya = await conn.groupMetadata(tujuanKirim).then(() => true).catch(() => false)
                 if (!punya) continue
                 try {
                     await api('/api/sinkron/antar', { method: 'POST', body: { idPendaftar: p.id } })  // claim
@@ -189,13 +210,14 @@ const handler = async (m, { conn, args, usedPrefix, command, text }) => {
             method: 'POST',
             body: { chatJid: m.chat, senderJid: m.sender, senderNama: m.name, serverKey: botKey(conn) },
         })
+        const kolom = (r.fields && r.fields.length) ? r.fields.join(', ') : 'data diri'
         await conn.reply(m.chat,
             `📝 *PENDAFTARAN SELEKSI — ${r.namaGrup}*\n\n` +
             `Kode kamu: *${r.kode}*\n` +
             `Link: ${r.url}\n\n` +
             `1. Salin kode & buka link\n` +
-            `2. Isi nama, umur, kelas, agama, hobi, tujuan join + foto\n` +
-            `3. Tunggu admin grup meninjau`, m)
+            `2. Isi ${kolom} + foto\n` +
+            `3. Tunggu admin meninjau ( hasilnya dikirim ke grup seleksi )`, m)
         return
     }
 
@@ -229,21 +251,50 @@ const handler = async (m, { conn, args, usedPrefix, command, text }) => {
         return
     }
 
-    if (cmd === 'addanggotaseleksi' || cmd === 'addanggota') {
-        if (!m.isGroup) return m.reply('Jalankan di grup tujuan seleksi.')
-        const target = (m.mentionedJid && m.mentionedJid[0]) || (args[0] ? String(args[0]).replace(/\D/g, '') + '@s.whatsapp.net' : null)
-        if (!target) return m.reply(`Pemakaian: ${usedPrefix}addanggotaseleksi <nomor>\nAtau tag langsung: ${usedPrefix}addanggotaseleksi @user`)
-        /* Hanya pemilik grup seleksi (atau developer) yang boleh. */
-        const r = await api('/api/sinkron/grup-info', { query: { chatJid: m.chat } }).catch(() => null)
-        if (r && !r.grup) return m.reply('Grup ini belum punya seleksi. Jalankan /buatseleksi dulu.')
-        if (r && !r.boleh) return m.reply('Hanya pemilik grup seleksi yang boleh menambah anggota. Minta akses ke pemilik.')
-        const nomor = target.split('@')[0]
+    if (cmd === 'grupseleksi') {
+        if (!m.isGroup) return m.reply('Jalankan perintah ini di grup WhatsApp yang mau dijadikan grup seleksi.')
+        const info = await api('/api/sinkron/grup-info', { query: { chatJid: m.chat, jid: m.sender } }).catch(() => null)
+        const body = (info?.peranGrup === 'tujuan' && info?.boleh)
+            ? { aksi: 'aturSeleksi', seleksiJid: m.chat, olehJid: m.sender, grupSlug: info.slug }
+            : { aksi: 'aturSeleksi', seleksiJid: m.chat, olehJid: m.sender, nama: args.join(' ') }
+        const r = await api('/api/sinkron/grup', { method: 'POST', body })
+        if (r.perluPilih) {
+            return m.reply('Kamu punya beberapa grup seleksi — sebut salah satu:\n' +
+                r.kandidat.map(k => `• ${k.nama} (\`${k.slug}\`)`).join('\n') +
+                `\n\nPakai: ${usedPrefix}grupseleksi <nama>`)
+        }
+        if (!r.ok) return m.reply('⚠️ ' + (r.error || 'Gagal mengatur grup seleksi.'))
+        await conn.reply(m.chat,
+            `✅ Grup ini resmi jadi *grup seleksi* untuk *${r.nama}*.\n` +
+            `Notifikasi pendaftar baru (lengkap dengan tombol Terima/Tolak) akan masuk ke sini.\n` +
+            `Panel: ${r.url}/seleksi`, m)
+        return
+    }
+
+    if (cmd === 'addseleksi' || cmd === 'addanggotaseleksi' || cmd === 'addanggota') {
+        if (!m.isGroup) return m.reply('Jalankan di grup seleksi atau grup tujuan seleksi.')
+        const nomorTag = (m.mentionedJid && m.mentionedJid[0]) || (m.quoted && m.quoted.sender) ||
+            (args[0] && /^\d{5,}$/.test(String(args[0]).replace(/\D/g, '')) ? String(args[0]).replace(/\D/g, '') + '@s.whatsapp.net' : null)
+        if (!nomorTag) return m.reply(`Pemakaian:\n• ${usedPrefix}addseleksi @tag\n• Reply pesan orang lalu ${usedPrefix}addseleksi\n• ${usedPrefix}addseleksi 628xxxx`)
+        /* Task194 — pemilik ATAU anggota dengan akses boleh menambah. */
+        const r = await api('/api/sinkron/grup-info', { query: { chatJid: m.chat, jid: m.sender } }).catch(() => null)
+        if (r && !r.grup) return m.reply('Grup ini belum terhubung seleksi. Jalankan /buatseleksi di grup tujuan, atau /grupseleksi di sini.')
+        if (r && !r.boleh) return m.reply('Hanya pemilik grup seleksi atau anggota dengan akses yang boleh menambah. Minta ke pemilik.')
+        const nomor = nomorTag.split('@')[0]
         const hasil = await api('/api/sinkron/helper', {
             method: 'POST',
-            body: { grupSlug: r?.slug, nomor, olehJid: m.sender, nama: m.name },
+            body: { grupSlug: r?.slug, nomor, olehJid: m.sender, olehNama: m.name, nama: '' },
         })
+        if (hasil.akunBaru) {
+            await conn.sendMessage(nomorTag, {
+                text: `🔑 *AKUN WEB SELEKSI*\n\nKamu ditambahkan ke seleksi *${r?.nama || ''}*.\n` +
+                    `Username: ${hasil.akunBaru.username}\nPassword: ${hasil.akunBaru.password}\n\n` +
+                    `Panel: ${r?.url ? r.url + '/seleksi' : 'link dari pemilik'} → *Masuk* dengan akun ini.\n` +
+                    `Satu akun bisa dipakai di semua grup seleksi tempat kamu ditambahkan. Simpan baik-baik & ganti password di menu Profil.`,
+            }).catch(() => {})
+        }
         await conn.reply(m.chat,
-            `✅ *${nomor}* ditambahkan sebagai anggota seleksi${hasil.akunWebDitemukan ? ' (akun web sudah ada — langsung aktif)' : '. Kalau dia belum punya akun web, suruh daftar di website dengan nomor yang sama.'}`, m)
+            `✅ *${nomor}* sekarang punya akses seleksi${hasil.akunBaru ? ' — akun web dibuat otomatis, kredensial dikirim ke DM' : ' (akun web sudah ada, langsung aktif)'}.`, m)
         return
     }
 
@@ -276,8 +327,8 @@ handler.before = async function (m, { conn }) {
     try { await tanganiTombol(m, conn || this) } catch (e) { console.log('[SELEKSI] tombol error:', e?.message || e) }
 }
 
-handler.command = /^(seleksi|buatseleksi|addanggotaseleksi|addanggota|fieldseleksi)$/i
-handler.help = ['seleksi', 'buatseleksi <nama>', 'addanggotaseleksi <nomor/@tag>', 'fieldseleksi +<kolom>']
+handler.command = /^(seleksi|buatseleksi|grupseleksi|addseleksi|addanggotaseleksi|addanggota|fieldseleksi)$/i
+handler.help = ['seleksi', 'buatseleksi <nama>', 'grupseleksi [nama]', 'addseleksi <@tag/reply/nomor>', 'fieldseleksi +<kolom>']
 handler.tags = ['group']
 handler.group = true
 /* Task192 — customPrefix dihapus: fitur seleksi mengikuti prefix bot masing-masing

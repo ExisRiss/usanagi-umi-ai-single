@@ -331,21 +331,36 @@ function gambarNav(hal) {
 async function halUtama() {
   gambarNav('utama')
   const s = await api('/api/status')
+  /* Task194 — akun bisa punya akses banyak grup seleksi (pemilik / diundang). */
+  let grupSaya = []
+  if (AKUN) { try { grupSaya = (await api('/api/grup/saya')).grup || [] } catch { grupSaya = [] } }
+  const kartuGrup = grupSaya.map(g => `
+    <div class="kartu">
+      <div class="baris" style="justify-content:space-between;align-items:center">
+        <div>
+          <b>${esc(g.nama)}</b>
+          <div class="sub">${g.peran === 'pemilik' ? 'Pemilik grup' : g.peran === 'owner' ? 'Owner sistem' : 'Anggota seleksi'}${g.banned ? ' · dibatasi' : ''}${g.daftarAktif ? '' : ' · pendaftaran tutup'}</div>
+        </div>
+        <button class="tombol kecil" data-panel="${esc(g.panelUrl)}">Buka panel</button>
+      </div>
+    </div>`).join('')
   app.innerHTML = `
     <div class="kartu">
       <h2>Selamat datang ${ik('wave')}</h2>
       <p class="sub">${esc(s.pesanSambutan)}</p>
     </div>
+    ${kartuGrup}
     <div class="grid">
       <div class="stat"><div class="stat-ik">${ik('folder')}</div><div class="l">Grup seleksi aktif</div><div class="n">${s.jumlahGrup}</div></div>
       <div class="stat"><div class="stat-ik">${ik('inbox')}</div><div class="l" data-status="menunggu"><span class="dot"></span>Menunggu tinjauan</div><div class="n">${s.pendaftarMenunggu}</div></div>
       <div class="stat"><div class="stat-ik">${ik('server')}</div><div class="l">Status server · ${s.server.ramMb} MB</div><div class="n">${Math.floor(s.server.uptime/60)} mnt</div></div>
     </div>
-    ${AKUN ? '' : `<div class="kartu" style="margin-top:14px"><h3>Punya undangan seleksi?</h3><p class="sub">Buka link & kode dari bot, atau masuk untuk ikut chat. Pemilik grup bisa mengelola seleksi lewat sini.</p>
+    ${AKUN ? (grupSaya.length ? '' : `<div class="kartu" style="margin-top:14px"><h3>Belum ada grup seleksi</h3><p class="sub">Akunmu belum punya akses grup. Minta pemilik menjalankan <b>/addseleksi @kamu</b> di grup seleksinya, atau buat sendiri dengan <b>/buatseleksi</b> dari bot.</p></div>`) : `<div class="kartu" style="margin-top:14px"><h3>Punya undangan seleksi?</h3><p class="sub">Buka link & kode dari bot, atau masuk untuk ikut chat. Pemilik grup bisa mengelola seleksi lewat sini.</p>
       <div class="baris"><button class="tombol kecil" id="ke-masuk">Masuk</button><button class="tombol kecil netral" id="ke-daftar">Daftar akun</button></div></div>`}
     <div class="kartu"><h3>${ik('lock')} Seleksi privat</h3>
       <p class="sub">Halaman seleksi tidak lagi ditampilkan di sini. Kamu hanya bisa membuka seleksi lewat <b>link langsung</b> dari pemilik grup (atau daftar milikmu setelah masuk akun).</p>
     </div>`
+  document.querySelectorAll('[data-panel]').forEach(b => { b.onclick = () => { const u = new URL(b.dataset.panel); halPanel(u.pathname.split('/')[1], u.pathname.split('/')[2]) } })
   if (!AKUN) {
     $('#ke-masuk').onclick = halMasuk
     $('#ke-daftar').onclick = halDaftar
