@@ -186,6 +186,9 @@ a .ic{width:15px;height:15px;vertical-align:-3px}
 img.preview{max-width:170px;border-radius:var(--r-kecil);margin-top:10px;border:1px solid rgba(255,255,255,.9);outline:1px solid var(--garis);box-shadow:var(--bayang-1)}
 .hapus-kolom{cursor:pointer;color:var(--merah);margin-left:8px;font-size:12px}
 footer.kecil{text-align:center;color:var(--redup2);font-size:11px;margin-top:30px;letter-spacing:.06em;text-transform:uppercase;font-weight:600}
+/* Task192 — aksi pendaftar: desktop di kanan, HP dua tombol sejajar rapi */
+.pendaftar .aksi{display:flex;gap:8px;align-self:flex-start}
+.pendaftar .aksi .tombol{flex:1;min-width:118px}
 .icon-kosong{
   width:96px;height:96px;border-radius:var(--r-kecil);background:rgba(245,245,247,.9);border:1px solid var(--garis);
   display:flex;align-items:center;justify-content:center;color:var(--redup2);
@@ -196,6 +199,12 @@ footer.kecil{text-align:center;color:var(--redup2);font-size:11px;margin-top:30p
 .reveal{opacity:0;transform:translateY(24px);filter:blur(8px);transition:opacity .7s var(--ease),transform .7s var(--ease),filter .7s var(--ease)}
 .reveal.tampil{opacity:1;transform:none;filter:none}
 
+@media(max-width:719px){
+  .pendaftar{gap:12px}
+  .pendaftar .aksi{width:100%;align-self:auto;flex-wrap:wrap}
+  .pendaftar .aksi .tombol{flex:1 1 calc(50% - 4px);min-width:0}
+  .info-kode{flex-wrap:wrap}
+}
 @media(min-width:720px){
   .wrap{padding:34px 30px}
   header.top .logo{font-size:19px}
@@ -295,7 +304,6 @@ function gambarNav(hal) {
 async function halUtama() {
   gambarNav('utama')
   const s = await api('/api/status')
-  const g = await api('/api/grup/publik')
   app.innerHTML = `
     <div class="kartu">
       <h2>Selamat datang ${ik('wave')}</h2>
@@ -308,13 +316,8 @@ async function halUtama() {
     </div>
     ${AKUN ? '' : `<div class="kartu" style="margin-top:14px"><h3>Punya undangan seleksi?</h3><p class="sub">Buka link & kode dari bot, atau masuk untuk ikut chat. Pemilik grup bisa mengelola seleksi lewat sini.</p>
       <div class="baris"><button class="tombol kecil" id="ke-masuk">Masuk</button><button class="tombol kecil netral" id="ke-daftar">Daftar akun</button></div></div>`}
-    <div class="kartu"><h3>${ik('folder')} Grup seleksi terbuka</h3>
-      ${g.grup.length ? g.grup.map(x => `
-        <div style="padding:10px 0;border-bottom:1px dashed rgba(96,145,220,.14)">
-          <b>${esc(x.nama)}</b> <span class="badge">${x.menunggu} menunggu</span>
-          <div class="sub">${esc(x.deskripsi||'')}</div>
-          <a href="/${esc(x.idAkun)}/${esc(x.slug)}">Halaman pendaftaran ${ik('arrow')}</a>
-        </div>`).join('') : '<p class="sub">Belum ada grup seleksi aktif.</p>'}
+    <div class="kartu"><h3>${ik('lock')} Seleksi privat</h3>
+      <p class="sub">Halaman seleksi tidak lagi ditampilkan di sini. Kamu hanya bisa membuka seleksi lewat <b>link langsung</b> dari pemilik grup (atau daftar milikmu setelah masuk akun).</p>
     </div>`
   if (!AKUN) {
     $('#ke-masuk').onclick = halMasuk
@@ -356,7 +359,9 @@ async function halForm(idAkun, slug) {
     <div class="kartu">
       <h2>${ik('edit')} Pendaftaran — ${esc(info.grup.nama)}</h2>
       <p class="sub">${esc(info.grup.deskripsi||'Isi data di bawah ini dengan benar.')}</p>
-      <div class="info-kode">Kode dari bot: <input id="kode" placeholder="AB12CD" style="max-width:140px;text-align:center;font-weight:800;letter-spacing:2px;text-transform:uppercase"></div>
+      <div class="info-kode"><span class="kode-tanda">Kode dari bot</span> <input id="kode" inputmode="numeric" autocomplete="off" maxlength="8" placeholder="12345678" style="max-width:170px;text-align:center;font-weight:800;letter-spacing:.3em;font-family:var(--mono)"></div>
+      ${info.grup.linkGrup ? `<div class="info-kode"><span class="kode-tanda">Grup seleksi</span> <a href="${esc(info.grup.linkGrup)}" target="_blank" rel="noopener">Buka grup seleksi ${ik('ext')}</a></div>` : ''}
+      ${info.grup.linkUtama ? `<div class="info-kode"><span class="kode-tanda">Setelah lolos masuk ke</span> <a href="${esc(info.grup.linkUtama)}" target="_blank" rel="noopener">Grup utama ${ik('ext')}</a></div>` : ''}
       <div id="fields"></div>
       <label>Foto (wajib)</label><input id="foto" type="file" accept="image/*">
       <img class="preview" id="foto-prev" style="display:none">
@@ -379,7 +384,7 @@ async function halForm(idAkun, slug) {
       const data = {}
       app.querySelectorAll('[data-kunci]').forEach(i => data[i.dataset.kunci] = i.value)
       const r = await api('/api/pendaftaran', {method:'POST', body:{ idAkun, slug, kode: $('#kode').value.trim()||undefined, nomor: $('#nomor').value.trim(), data, fotoBase64 }})
-      $('#ok').textContent = r.pesan + ' (ID: ' + r.id + ')'
+      $('#ok').textContent = r.pesan + ' (ID: ' + r.id + ')' + (r.linkUtama ? ' — setelah lolos masuk lewat link grup utama di atas.' : '')
     } catch (e) { $('#err').textContent = e.message }
   }
 }
@@ -420,7 +425,7 @@ function kartuPendaftar(p, d) {
       <div class="kv">Kode ${esc(p.kode)} · ${fmtWaktu(p.waktu)}${p.nomor?' · WA ••••'+esc(p.nomor.slice(-4)):''}</div>
       ${kv}
     </div>
-    ${p.status==='menunggu' ? `<div style="display:flex;flex-direction:column;gap:8px">
+    ${p.status==='menunggu' ? `<div class="aksi">
       <button class="tombol kecil hijau" data-aksi="acc">${ik('check')} Terima</button>
       <button class="tombol kecil merah" data-aksi="tolak">${ik('x')} Tolak</button>
     </div>` : ''}
@@ -559,6 +564,11 @@ async function halOwner() {
             <button class="tombol kecil ${g.banned?'hijau':'merah'}" data-ban="${esc(g.slug)}" data-nyala="${g.banned}">${g.banned?'Unban':'Ban'}</button>
             <button class="tombol kecil netral" data-tutup="${esc(g.slug)}" data-aktif="${g.daftarAktif}">${g.daftarAktif?'Tutup daftar':'Buka daftar'}</button>
           </div>
+          <div class="baris" style="margin-top:8px;align-items:stretch">
+            <input data-link-grup="${esc(g.slug)}" placeholder="https://link grup seleksi" value="${esc(g.linkGrup||'')}" style="flex:2;min-width:170px;min-height:44px;font-size:13px">
+            <input data-link-utama="${esc(g.slug)}" placeholder="https://link grup utama (setelah lolos)" value="${esc(g.linkUtama||'')}" style="flex:2;min-width:170px;min-height:44px;font-size:13px">
+            <button class="tombol kecil netral" data-link-simpan="${esc(g.slug)}">Simpan link</button>
+          </div>
         </div>`).join('') || '<p class="sub">Belum ada grup.</p>'}
     </div>
     <div class="kartu"><h3>${ik('users')} Akun & role</h3>
@@ -583,6 +593,16 @@ async function halOwner() {
   app.querySelectorAll('[data-role]').forEach(b => b.onclick = async () => {
     await api('/api/owner/role', {method:'POST', body:{ akunId: b.dataset.role, role: b.dataset.r }})
     halOwner()
+  })
+  app.querySelectorAll('[data-link-simpan]').forEach(b => b.onclick = async () => {
+    const slug = b.dataset.linkSimpan
+    const linkGrup = app.querySelector('[data-link-grup="' + slug + '"]').value
+    const linkUtama = app.querySelector('[data-link-utama="' + slug + '"]').value
+    try {
+      await api('/api/owner/grup', {method:'PATCH', body:{ slug, linkGrup, linkUtama }})
+      alert('Link tersimpan.')
+      halOwner()
+    } catch (e) { alert(e.message) }
   })
   $('#sambutan-go').onclick = async () => {
     await api('/api/owner/grup', {method:'PATCH', body:{ pesanSambutan: $('#sambutan').value }})
@@ -610,12 +630,20 @@ async function render() {
   }
 }
 async function halGrupPublik() {
-  const g = await api('/api/grup/publik')
-  app.innerHTML = `<div class="kartu"><h2>${ik('folder')} Semua grup seleksi</h2>
+  /* Task192 — privat: daftar hanya untuk akun yang masuk (grup miliknya sendiri). */
+  if (!AKUN) {
+    app.innerHTML = `<div class="kartu"><h2>${ik('lock')} Grup privat</h2>
+      <p class="sub">Seleksi tidak bisa dijelajahi tanpa link. Masuk akun untuk melihat grup milikmu, atau buka langsung link dari pemilik grup seleksi.</p>
+      <button class="tombol" id="m-grup">Masuk</button></div>`
+    $('#m-grup').onclick = halMasuk
+    return
+  }
+  const g = await api('/api/grup/publik?idAkun=' + encodeURIComponent(AKUN.id))
+  app.innerHTML = `<div class="kartu"><h2>${ik('folder')} Grup seleksiku</h2>
     ${g.grup.map(x => `<div style="padding:10px 0;border-bottom:1px dashed rgba(96,145,220,.14)">
       <b>${esc(x.nama)}</b> <span class="badge">${x.menunggu} menunggu</span>
       <div class="sub">${esc(x.deskripsi||'')}</div>
-      <a href="/${esc(x.idAkun)}/${esc(x.slug)}">Halaman pendaftaran ${ik('arrow')}</a></div>`).join('') || '<p class="sub">Belum ada grup seleksi.</p>'}
+      <a href="/${esc(x.idAkun)}/${esc(x.slug)}">Halaman pendaftaran ${ik('arrow')}</a></div>`).join('') || '<p class="sub">Belum ada grup seleksi di akun ini.</p>'}
   </div>`
 }
 render()

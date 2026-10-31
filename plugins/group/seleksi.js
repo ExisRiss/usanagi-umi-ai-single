@@ -91,13 +91,41 @@ async function kirimNotifikasi(conn, p) {
 let timerPoll = null
 function mulaiPoller(conn) {
     if (timerPoll) return
+    /* Task192 — dua tugas poller:
+     *  1) notifikasi pendaftar baru (claim dulu, kirim; gagal → balik antar=true)
+     *  2) pendaftar diterima yang belum masuk grup (acc web / acc tombol gagal) */
     const jalan = async () => {
         try {
-            if (!global.mainBotEnabled && conn !== global.conn) return
+            if (typeof global.mainBotEnabled === 'boolean' && !global.mainBotEnabled && conn !== global.conn) return
             const r = await api('/api/sinkron/pending', { query: { server: botKey(conn) } })
             for (const p of (r.pendaftar || [])) {
-                try { await kirimNotifikasi(conn, p) } catch (e) {
+                /* hanya kirim kalau bot INI berada di grup tujuan */
+                const punya = await conn.groupMetadata(p.grup.tujuanJid).then(() => true).catch(() => false)
+                if (!punya) continue
+                try {
+                    await api('/api/sinkron/antar', { method: 'POST', body: { idPendaftar: p.id } })  // claim
+                    await kirimNotifikasi(conn, p)
+                } catch (e) {
+                    await api('/api/sinkron/antar-batal', { method: 'POST', body: { idPendaftar: p.id } }).catch(() => {})
                     console.log('[SELEKSI] Gagal kirim notifikasi:', e?.message || e)
+                }
+            }
+            const acc = await api('/api/sinkron/acc-pending')
+            for (const x of (acc.pendaftar || [])) {
+                if (!x.grup?.tujuanJid) continue
+                const punya = await conn.groupMetadata(x.grup.tujuanJid).then(() => true).catch(() => false)
+                if (!punya) continue
+                try {
+                    await conn.groupParticipantsAdd(x.grup.tujuanJid, [x.jid])
+                    await api('/api/sinkron/acc-selesai', { method: 'POST', body: { idPendaftar: x.id } })
+                    await conn.reply(x.grup.tujuanJid, `✅ *${x.nama || x.nomor}* resmi masuk grup (acc dari panel web).`, undefined).catch(() => {})
+                    try {
+                        await conn.sendMessage(x.jid, {
+                            text: `🎉 Selamat! Kamu DITERIMA di *${x.grup.nama}*.` + (x.grup.linkUtama ? `\n\nJoin grup utama:\n${x.grup.linkUtama}` : ''),
+                        })
+                    } catch { /* DM opsional */ }
+                } catch (e) {
+                    console.log('[SELEKSI] Acc-pending gagal:', e?.message || e)
                 }
             }
         } catch { /* server website sedang tidak siap — coba lagi nanti */ }
@@ -105,6 +133,7 @@ function mulaiPoller(conn) {
     timerPoll = setInterval(jalan, 14000)
     timerPoll.unref?.()
     setTimeout(jalan, 8000).unref?.()
+    setTimeout(jalan, 30000).unref?.()
 }
 
 /* ── handler ── */
@@ -120,16 +149,21 @@ async function tanganiTombol(m, conn) {
             body: { idPendaftar, aksi, olehJid: m.sender, olehNama: m.name || m.sender.split('@')[0] },
         })
         if (aksi === 'acc' && hasil.pendaftar?.jid && hasil.grup?.tujuanJid) {
+            let masuk = false
             try {
                 await conn.groupParticipantsAdd(hasil.grup.tujuanJid, [hasil.pendaftar.jid])
+                masuk = true
                 await conn.reply(m.chat, `✅ *Diterima!* ${hasil.pendaftar.data?.nama || hasil.pendaftar.nomor || ''} resmi masuk grup.`, m)
             } catch (e) {
-                await conn.reply(m.chat, `✅ Data diterima, tapi penambahan otomatis gagal (${e?.message || e}). Tambah manual atau kirim link undangan.`, m)
+                await conn.reply(m.chat, `✅ Data diterima — penambahan otomatis mencoba lagi lewat pengawas (${e?.message || e}).`, m)
             }
+            /* Task192 — tandai selesai hanya bila benar-benar masuk; kalau gagal
+             * accPending tetap true sehingga poller bot mencoba lagi. */
+            if (masuk) await api('/api/sinkron/acc-selesai', { method: 'POST', body: { idPendaftar } }).catch(() => {})
             try {
-                await conn.sendMessage(hasil.pendaftar.jid, {
-                    text: `🎉 Selamat! Pendaftaranmu di *${hasil.grup.nama}* DITERIMA. Selamat bergabung!`,
-                })
+                const sambutan = `🎉 Selamat! Pendaftaranmu di *${hasil.grup.nama}* DITERIMA.`
+                const tautan = hasil.grup.linkUtama ? `\n\nJoin grup utama sekarang:\n${hasil.grup.linkUtama}` : ''
+                await conn.sendMessage(hasil.pendaftar.jid, { text: sambutan + tautan })
             } catch { /* DM gagal — bukan kritis */ }
         } else {
             if (aksi === 'tolak' && hasil.pendaftar?.jid && hasil.grup?.tujuanJid) {
@@ -167,15 +201,17 @@ const handler = async (m, { conn, args, usedPrefix, command, text }) => {
 
     if (cmd === 'buatseleksi') {
         if (!m.isGroup) return m.reply('Buat seleksi di grup tujuan ya.')
-        if (!args[0]) return m.reply(`Pembuatan grup seleksi:\n${usedPrefix}buatseleksi <nama grup seleksi> [deskripsi]`)
+        if (!args[0]) return m.reply(`Pembuatan grup seleksi:\n${usedPrefix}buatseleksi <nama> [linkGrupSeleksi] [linkGrupUtama]\nTask192 — dua link opsional agar pendaftar tahu ke mana masuk setelah lolos.`)
         const nama = args[0]
-        const deskripsi = args.slice(1).join(' ')
+        const linkGrup = /^https?:\/\//.test(args[1] || '') ? args[1] : ''
+        const linkUtama = /^https?:\/\//.test(args[2] || '') ? (linkGrup ? args[2] : args[1] || '') : ''
         const r = await api('/api/sinkron/grup', {
             method: 'POST',
             body: {
-                chatJid: m.chat, nama, deskripsi,
+                chatJid: m.chat, nama, deskripsi: '',
                 pemilikJid: m.sender, pemilikNama: m.name,
                 serverKey: botKey(conn),
+                linkGrup, linkUtama,
             },
         })
         let balasan = `🎯 *Grup seleksi dibuat${r.sudah ? ' (sudah ada — memakai yang lama)' : ''}*\n\n` +
@@ -244,7 +280,9 @@ handler.command = /^(seleksi|buatseleksi|addanggotaseleksi|addanggota|fieldselek
 handler.help = ['seleksi', 'buatseleksi <nama>', 'addanggotaseleksi <nomor/@tag>', 'fieldseleksi +<kolom>']
 handler.tags = ['group']
 handler.group = true
-handler.customPrefix = [/^\W/]  // Task188 — semua prefix simbol dikenali
+/* Task192 — customPrefix dihapus: fitur seleksi mengikuti prefix bot masing-masing
+ * (kebijakan Task117). Tombol SELEKSI:ACC/TOLAK tetap tertangkap handler.before
+ * yang dipanggil dispatcher tanpa syarat prefix. */
 handler.description = 'Sistem seleksi member grup — website umi-alz-seleksi.gwenna.my.id'
 
 /* Poller notifikasi — mulai saat plugin dimuat (butuh global.conn siap). */
