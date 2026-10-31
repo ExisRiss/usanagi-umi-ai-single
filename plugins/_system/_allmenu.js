@@ -236,6 +236,158 @@ const Styles = (
 }
 
 // ============================================================
+// BATAS KAPTION — Task180 (allmenu kepotong)
+// ============================================================
+//
+// Keluhan owner: `.allmenu` terpotong di tengah daftar (berhenti di
+// kategori STALKER). Penyebab: WhatsApp memotong satu pesan di 65.536
+// byte, sementara:
+//   - menu kini 2.014+ perintah (37 kategori),
+//   - `Styles()` mengubah tiap huruf jadi smallcaps unicode (3–4 byte
+//     per huruf, bukan 1 byte) → teks utuh bisa >300 KB,
+//   - read-more 4.001 karakter ≈ 12 KB,
+//   - TIDAK ada sama sekali pemeriksaan ukuran sebelum kirim.
+//
+// Sekarang ukuran diukur SETELAH gaya dipakai. Kalau melebihi batas,
+// teks dikompresi bertahap sampai muat, tanpa pernah membuang kategori:
+//   1. read-more 4001 → 1200
+//   2. buang baris perintah identik (perintah generik `.umi-menu` dsb.
+//      yang diulang di tiap kategori)
+//   3. daftar perintah huruf biasa + tanpa argumen + digabung rapat
+//      (judul kategori TETAP gaya AlzRiss)
+//   4. pangkas blok statistik kepala
+//   5. batas keras (garis terakhir cadangan, log warning)
+//
+const BATAS_KAPTION = 64_500
+const MORE_CH = String.fromCharCode(8206)
+const READMORE_PENUH = MORE_CH.repeat(4001)
+const READMORE_KECIL = MORE_CH.repeat(1200)
+const BARIS_CMD = '╠➺ '
+
+/** Hapus baris perintah yang identik muncul lebih dari sekali. */
+function buangDuplikatPerintah(teks) {
+    const pernah = new Set()
+    const hasil = []
+    for (const baris of String(teks).split('\n')) {
+        if (baris.startsWith(BARIS_CMD)) {
+            if (pernah.has(baris)) continue
+            pernah.add(baris)
+        }
+        hasil.push(baris)
+    }
+    return hasil.join('\n')
+}
+
+/**
+ * Tahap kompresi berat: perintah jadi huruf biasa, argumen dibuang,
+ * beberapa perintah digabung per baris. Judul kategori tetap smallcaps.
+ */
+function modeHemat(teks) {
+    const keluar = []
+    const antre = []
+    const tutup = () => {
+        if (!antre.length) return
+        let sekarang = ''
+        for (const cmd of antre) {
+            const bersih = cmd
+                .replace(/^╠➺ /, '')
+                .replace(/\s*[<[(][^>)\]]*[>)\]]/g, '')
+                .trim()
+            const calon = sekarang ? `${sekarang} · ${bersih}` : bersih
+            if (calon.length > 72 && sekarang) {
+                keluar.push(BARIS_CMD + sekarang)
+                sekarang = bersih
+            } else {
+                sekarang = calon
+            }
+        }
+        if (sekarang) keluar.push(BARIS_CMD + sekarang)
+        antre.length = 0
+    }
+    for (const baris of String(teks).split('\n')) {
+        if (baris.startsWith(BARIS_CMD)) {
+            antre.push(baris)
+            continue
+        }
+        tutup()
+        keluar.push(baris)
+    }
+    tutup()
+    return keluar
+        .map(l => (l.startsWith(BARIS_CMD) ? l : Styles(l)))
+        .join('\n')
+}
+
+/** Tahap 4: sisakan sapaan pendek + baris read-more, blok statistik dibuang. */
+function pangkasKepala(teks) {
+    const baris = String(teks).split('\n')
+    const idxHeader = baris.findIndex(l => l.startsWith('❖'))
+    const idxRead = baris.findIndex(l => l.includes(MORE_CH))
+    if (idxHeader < 0 || idxRead < 0 || idxRead >= idxHeader) return teks
+    const awal = baris.slice(0, Math.max(1, Math.min(4, idxHeader)))
+    return [...awal, '', baris[idxRead], '', ...baris.slice(idxHeader)].join('\n')
+}
+
+/** Tahap 5 (jarang terpakai): potong di batas byte, ekor dijaga utuh. */
+function batasKeras(teks) {
+    const baris = String(teks).split('\n')
+    const ekor = baris.slice(-6)
+    const sisa = BATAS_KAPTION
+        - Buffer.byteLength(ekor.join('\n'), 'utf8')
+        - Buffer.byteLength('… (daftar terlalu panjang — sisa menu ada di pesan berikutnya)', 'utf8')
+    const atas = []
+    let n = 0
+    for (const baris2 of baris) {
+        const b = Buffer.byteLength(baris2, 'utf8') + 1
+        if (n + b > sisa) break
+        atas.push(baris2)
+        n += b
+    }
+    return [...atas, '… (daftar terlalu panjang — sisa menu ada di pesan berikutnya)', ...ekor].join('\n')
+}
+
+/**
+ * Susun caption final yang DIJAMIN muat dalam batas WhatsApp.
+ * Di bawah batas: hasilnya SAMA PERSIS dengan perilaku lama
+ * (`${url}\n${Styles(text)`), jadi tampilan tidak berubah.
+ */
+export function jagaBatasCaption(text, url = '') {
+    const kepala = `${url}\n`
+    const gaya = t => kepala + Styles(t)
+    const ukur = s => Buffer.byteLength(s, 'utf8')
+    const asli = String(text == null ? '' : text)
+
+    if (ukur(gaya(asli)) <= BATAS_KAPTION) return gaya(asli)
+
+    let t = asli.includes(READMORE_PENUH)
+        ? asli.replace(READMORE_PENUH, READMORE_KECIL)
+        : asli
+    if (ukur(gaya(t)) <= BATAS_KAPTION) return gaya(t)
+
+    t = buangDuplikatPerintah(t)
+    if (ukur(gaya(t)) <= BATAS_KAPTION) return gaya(t)
+
+    const hemats = modeHemat(t)
+    if (ukur(kepala + hemats) <= BATAS_KAPTION) return kepala + hemats
+
+    /* Tahap 4 — mode hemats diperkuat: footer tiap kategori dibuang,
+     * blok statistik kepala dipangkas (nama kategori tetap ada). */
+    const hematsRapi = hemats
+        .split('\n')
+        .filter(l => l.trim() !== '╚═─━╍╍━╍╾')
+        .join('\n')
+    const ringkas = pangkasKepala(hematsRapi)
+    if (ukur(kepala + ringkas) <= BATAS_KAPTION) return kepala + ringkas
+
+    console.warn(
+        '[ALLMENU] melebihi batas setelah kompresi:',
+        ukur(kepala + hemats),
+        'byte → batas keras'
+    )
+    return kepala + batasKeras(hemats)
+}
+
+// ============================================================
 // LOADING ALZRISS
 // ============================================================
 
@@ -784,7 +936,7 @@ Ada error atau mau upgrade premium? Hubungi owner ya~ 🥜
                 ...(menuMedia.type === 'image'
                     ? { image: menuMedia.data, mimetype: menuMedia.mimetype }
                     : { video: menuMedia.data, mimetype: menuMedia.mimetype, gifPlayback: true }),
-                caption: `${websiteUrl()}\n${Styles(text)}`,
+                caption: jagaBatasCaption(text, websiteUrl()),
                 mentions: [m.sender]
             },
             {
