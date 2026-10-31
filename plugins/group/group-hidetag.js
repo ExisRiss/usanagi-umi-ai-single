@@ -116,6 +116,7 @@ let handler = async (m, { conn, text, participants, groupMetadata }) => {
 
 handler.help = ['ht <teks>', 'hidetag <teks>']  // Task188 — alias utama: ht
 handler.tags = ['group']
+handler.command = /^(hidetag|ht|h)$/i  // Task188 — perintah utama: ht
 handler.description = 'Tag seluruh anggota grup tanpa terlihat — perintah: ht (alias: hidetag, h)'
 /* Task188 — supaya /ht, .ht, $ht SEMUA dikenali apa pun prefix chat:
  * customPrefix ^\W menerima semua prefix simbol yang sah ($ / . ! # & + ? dst)
