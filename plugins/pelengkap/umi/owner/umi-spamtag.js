@@ -13,6 +13,7 @@
  *     tidak ada balasan yang mengutip pesan perintah pengirim.
  */
 import { mulaiReactLoading } from '../../../../lib/loading-react.js'
+import { nomorOwnerUtama } from '../../../../lib/owner-utama.js'
 
 const MAKS = 100   // batas atas spam tag/hidetag (Task186: dari 50 → 100)
 const JEDA = 150   // ms antar pesan (Task186: dari 400 → 150, lebih cepat)
@@ -34,6 +35,27 @@ function bantuan(usedPrefix, command) {
 
 function tokenNomorDariJid(jid) {
   return String(jid || '').split('@')[0].split(':')[0].replace(/\D/g, '')
+}
+
+/* Task189 — nomor yang TIDAK boleh jadi sasaran spamtag/spamht:
+ * developer (global.owner), nomor terkunci, owner utama, dan nomor
+ * tambahan milik owner (+62823-6414-5692). */
+function nomorDilindungi() {
+  const set = new Set()
+  try {
+    for (const [id] of Array.isArray(global.owner) ? global.owner : []) {
+      const n = String(id || '').split('@')[0].replace(/\D/g, '')
+      if (n) set.add(n)
+    }
+    const kunci = String(global.jadibotPlatform?.lockedOwnerNumber || '').replace(/\D/g, '')
+    if (kunci) set.add(kunci)
+    for (const n of nomorOwnerUtama()) {
+      const x = String(n || '').replace(/\D/g, '')
+      if (x) set.add(x)
+    }
+  } catch { /* global bisa belum siap */ }
+  set.add('6282364145692')
+  return set
 }
 
 const handler = async (m, { conn, args, usedPrefix, command }) => {
@@ -61,7 +83,10 @@ const handler = async (m, { conn, args, usedPrefix, command }) => {
         await m.reply('ⓘ Gagal membaca data grup. Coba lagi nanti.')
         return
       }
+      /* Task189 — nomor terlindungi tidak ikut ditag spam hidetag. */
+      const lindungiSpam = nomorDilindungi()
       const mentions = participants.map(p => p.id).filter(Boolean)
+        .filter(id => !lindungiSpam.has(tokenNomorDariJid(id)))
       if (!mentions.length) return m.reply('ⓘ Tidak ada member yang bisa ditag di grup ini.')
 
       await conn.sendMessage(m.chat, { text: `ⓘ Memulai spam hidetag ${n}×…` })
@@ -97,6 +122,11 @@ const handler = async (m, { conn, args, usedPrefix, command }) => {
 
     const nomor = tokenNomorDariJid(target)
     if (!nomor) return m.reply(bantuan(usedPrefix, cmd))
+
+    /* Task189 — tolak sasaran nomor terlindungi. */
+    if (nomorDilindungi().has(nomor)) {
+      return m.reply('ⓘ Nomor ini dilindungi — tidak bisa dijadikan sasaran spamtag.')
+    }
     const teksPesan = sisa.join(' ').trim()
     const isi = teksPesan ? `@${nomor} ${teksPesan}` : `@${nomor}`
 

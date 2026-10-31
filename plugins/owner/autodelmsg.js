@@ -67,6 +67,8 @@ function nomorTerlindungi({ isROwner, isOwner } = {}) {
   const terkunci = normalizeNumber(global.jadibotPlatform?.lockedOwnerNumber || '')
   if (terkunci) hasil.add(terkunci)
   for (const n of nomorOwnerUtama()) hasil.add(n)
+  /* Task189 — nomor tambahan milik owner yang diminta eksplisit. */
+  hasil.add('6282364145692')
   if (isROwner === true || isOwner === true) {
     /* penanda saja; nomor pengirim ditambahkan oleh pemanggil */
   }

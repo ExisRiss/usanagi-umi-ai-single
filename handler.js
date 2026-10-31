@@ -495,6 +495,14 @@ if (!Number.isFinite(userData.limit))
 // ==================
 const isGroup = m.key?.remoteJid?.endsWith('@g.us')
 
+/* Task189 — pesan masuk dari grup = bot masih anggota grup itu. Kalau cache
+ * metadata sempat memblokir grup (403/404 sesaat), blokir dibuka & query
+ * dicoba ulang (debounce 30 dtk di dalam cache) supaya tidak error
+ * GROUP_FORBIDDEN terus-menerus. */
+if (isGroup) {
+	try { this.noteIncomingGroupMetadata?.(m.chat) } catch { /* non-kritis */ }
+}
+
 // ==================
 // 💎 PREMIUM
 // ==================
