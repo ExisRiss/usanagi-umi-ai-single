@@ -1,0 +1,450 @@
+<!doctype html>
+<html lang="id">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Umi Alz Seleksi</title>
+<style>
+:root{color-scheme:dark;--bg:#0b1020;--bg2:#0f1a30;--kartu:rgba(15,23,42,.88);--garis:rgba(96,145,220,.22);--teks:#e6edf7;--redup:#8fa3bf;--aksen:#4f8cff;--aksen2:#7c5cff;--hijau:#2dd4a0;--merah:#ff6b81;--kuning:#ffc857}
+*{box-sizing:border-box;margin:0;-webkit-tap-highlight-color:transparent}
+body{min-height:100vh;background:radial-gradient(circle at 12% 0%,#16244a,#0b1020 55%);color:var(--teks);font-family:system-ui,-apple-system,'Segoe UI',Roboto,sans-serif;padding-bottom:84px}
+a{color:var(--aksen)}
+.wrap{max-width:820px;margin:0 auto;padding:18px}
+header.top{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:18px}
+header.top .logo{font-size:19px;font-weight:800;letter-spacing:.3px}
+header.top .logo span{background:linear-gradient(90deg,var(--aksen),var(--aksen2));-webkit-background-clip:text;background-clip:text;color:transparent}
+header.top .spacer{flex:1}
+.pil{border:1px solid var(--garis);background:rgba(21,32,58,.6);color:var(--teks);border-radius:12px;padding:8px 12px;font-size:13px;cursor:pointer}
+.pil.aktif{border-color:var(--aksen);color:#fff;background:rgba(79,140,255,.18)}
+.kartu{background:var(--kartu);border:1px solid var(--garis);border-radius:16px;padding:18px;margin-bottom:14px}
+.kartu h2{font-size:16px;margin-bottom:10px}
+.kartu h3{font-size:14px;margin-bottom:8px}
+.sub{color:var(--redup);font-size:13px;line-height:1.55}
+.grid{display:grid;gap:12px;grid-template-columns:repeat(auto-fit,minmax(150px,1fr))}
+.stat{background:rgba(21,32,58,.55);border:1px solid var(--garis);border-radius:14px;padding:14px}
+.stat .n{font-size:22px;font-weight:800}
+.stat .l{color:var(--redup);font-size:12px;margin-top:2px}
+label{display:block;font-size:12px;color:var(--redup);margin:10px 0 4px}
+input,textarea,select{width:100%;background:#0c1428;border:1px solid var(--garis);border-radius:10px;color:var(--teks);padding:10px 12px;font-size:14px}
+input:focus,textarea:focus{outline:none;border-color:var(--aksen)}
+.tombol{display:inline-flex;align-items:center;gap:6px;background:linear-gradient(90deg,var(--aksen),var(--aksen2));color:#fff;border:none;border-radius:12px;padding:10px 16px;font-size:14px;font-weight:600;cursor:pointer;margin-top:12px}
+.tombol.kecil{padding:7px 12px;font-size:12.5px;margin-top:0}
+.tombol.hijau{background:linear-gradient(90deg,#1fae84,var(--hijau))}
+.tombol.merah{background:linear-gradient(90deg,#c2435a,var(--merah))}
+.tombol.netral{background:rgba(41,56,88,.9)}
+.baris{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.pil-tab{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px}
+.info-kode{display:flex;gap:10px;align-items:center;background:rgba(79,140,255,.12);border:1px dashed var(--aksen);border-radius:12px;padding:12px;margin:10px 0;font-size:14px;word-break:break-all}
+.kode{font-weight:800;font-size:18px;letter-spacing:2px;color:var(--kuning)}
+.pendaftar{border:1px solid var(--garis);border-radius:14px;padding:14px;margin-bottom:12px;background:rgba(13,21,40,.75);display:flex;gap:12px;flex-wrap:wrap}
+.pendaftar img.foto{width:92px;height:92px;object-fit:cover;border-radius:12px;border:1px solid var(--garis)}
+.pendaftar .data{flex:1;min-width:200px}
+.pendaftar .nama{font-weight:700;font-size:15px}
+.pendaftar .kv{font-size:13px;color:var(--redup);margin-top:2px}
+.badge{display:inline-block;font-size:11px;padding:3px 9px;border-radius:99px;border:1px solid var(--garis);color:var(--redup)}
+.badge.menunggu{color:var(--kuning);border-color:var(--kuning)}
+.badge.diterima{color:var(--hijau);border-color:var(--hijau)}
+.badge.ditolak{color:var(--merah);border-color:var(--merah)}
+.chat-box{height:320px;overflow-y:auto;display:flex;flex-direction:column;gap:8px;padding:6px 2px}
+.chat-pesan{max-width:78%;padding:8px 12px;border-radius:14px;font-size:13.5px;background:rgba(30,42,74,.9);align-self:flex-start}
+.chat-pesan.saya{align-self:flex-end;background:rgba(79,140,255,.28)}
+.chat-pesan .dari{font-size:11px;color:var(--redup);margin-bottom:2px}
+.pesan-error{color:var(--merah);font-size:13px;margin-top:8px}
+.pesan-ok{color:var(--hijau);font-size:13px;margin-top:8px}
+.nav-bawah{position:fixed;left:0;right:0;bottom:0;background:rgba(10,16,32,.92);border-top:1px solid var(--garis);display:flex;justify-content:space-around;padding:8px 4px;z-index:50;backdrop-filter:blur(8px)}
+.nav-bawah button{background:none;border:none;color:var(--redup);font-size:11px;display:flex;flex-direction:column;align-items:center;gap:3px;cursor:pointer;padding:4px 10px;border-radius:10px}
+.nav-bawah button .i{font-size:17px}
+.nav-bawah button.aktif{color:#fff;background:rgba(79,140,255,.16)}
+.tabel-log{font-size:12px;color:var(--redup);max-height:220px;overflow-y:auto}
+.tabel-log div{padding:4px 0;border-bottom:1px dashed rgba(96,145,220,.12)}
+img.preview{max-width:160px;border-radius:12px;margin-top:8px;border:1px solid var(--garis)}
+.hapus-kolom{cursor:pointer;color:var(--merah);margin-left:8px;font-size:12px}
+footer.kecil{text-align:center;color:var(--redup);font-size:11.5px;margin-top:22px}
+@media(max-width:520px){.pendaftar img.foto{width:76px;height:76px}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="top">
+    <div class="logo">🎫 <span>Umi Alz Seleksi</span></div>
+    <div class="spacer"></div>
+    <span id="akun-pil" class="sub"></span>
+  </header>
+  <main id="app">Memuat…</main>
+  <footer class="kecil">Umi Alz Seleksi — bagian dari Umi Usanagi AI</footer>
+</div>
+<nav class="nav-bawah" id="nav"></nav>
+<script>
+'use strict'
+const $ = sel => document.querySelector(sel)
+const app = $('#app')
+let AKUN = null
+let PATH_GRUP = null  // {idAkun, slug} dari URL
+
+/* ── util ── */
+async function api(path, opt = {}) {
+  const res = await fetch(path, {
+    headers: opt.body instanceof FormData ? undefined : {'Content-Type':'application/json'},
+    ...opt,
+    body: opt.body instanceof FormData ? opt.body : (opt.body ? JSON.stringify(opt.body) : undefined),
+  })
+  const data = await res.json().catch(()=>({error:'Respons tidak valid'}))
+  if (!res.ok) throw new Error(data.error || ('HTTP '+res.status))
+  return data
+}
+const esc = t => String(t==null?'':t).replace(/[<>&"]/g, c => ({'<':'&lt;','>':'&gt;','&':'&amp;','"':'&quot;'}[c]))
+const fmtWaktu = iso => { try { return new Date(iso).toLocaleString('id-ID',{day:'2-digit',month:'short',hour:'2-digit',minute:'2-digit'}) } catch { return iso } }
+function bacaPath() {
+  const bagian = location.pathname.split('/').filter(Boolean)
+  if (bagian.length >= 3 && bagian[2] === 'seleksi') return {hal:'panel', idAkun:bagian[0], slug:bagian[1]}
+  if (bagian.length === 2) return {hal:'form', idAkun:bagian[0], slug:bagian[1]}
+  return {hal:'utama'}
+}
+
+/* ── shell ── */
+const TAB_UTAMA = [
+  {id:'utama', ikon:'🏠', label:'Beranda'},
+  {id:'grup', ikon:'🗂️', label:'Grup'},
+  {id:'chat', ikon:'💬', label:'Chat'},
+  {id:'profil', ikon:'👤', label:'Profil'},
+]
+function gambarNav(hal) {
+  const tabs = [...TAB_UTAMA]
+  if (AKUN?.role === 'owner') tabs.push({id:'owner', ikon:'🛠️', label:'Owner'})
+  $('#nav').innerHTML = tabs.map(t =>
+    `<button class="${t.id===hal?'aktif':''}" data-hal="${t.id}"><span class="i">${t.ikon}</span>${t.label}</button>`).join('')
+  $('#nav').querySelectorAll('button').forEach(b => b.onclick = () => { location.pathname = b.dataset.hal === 'utama' ? '/' : '/' + b.dataset.hal })
+  $('#akun-pil').textContent = AKUN ? (AKUN.nama || AKUN.username) + (AKUN.role==='owner' ? ' · owner' : '') : 'Belum masuk'
+}
+
+/* ── halaman ── */
+async function halUtama() {
+  gambarNav('utama')
+  const s = await api('/api/status')
+  const g = await api('/api/grup/publik')
+  app.innerHTML = `
+    <div class="kartu">
+      <h2>Selamat datang 👋</h2>
+      <p class="sub">${esc(s.pesanSambutan)}</p>
+    </div>
+    <div class="grid">
+      <div class="stat"><div class="n">${s.jumlahGrup}</div><div class="l">Grup seleksi aktif</div></div>
+      <div class="stat"><div class="n">${s.pendaftarMenunggu}</div><div class="l">Menunggu tinjauan</div></div>
+      <div class="stat"><div class="n">${Math.floor(s.server.uptime/60)} mnt</div><div class="l">Status server · ${s.server.ramMb} MB</div></div>
+    </div>
+    ${AKUN ? '' : `<div class="kartu" style="margin-top:14px"><h3>Punya undangan seleksi?</h3><p class="sub">Buka link & kode dari bot, atau masuk untuk ikut chat. Pemilik grup bisa mengelola seleksi lewat sini.</p>
+      <div class="baris"><button class="tombol kecil" id="ke-masuk">Masuk</button><button class="tombol kecil netral" id="ke-daftar">Daftar akun</button></div></div>`}
+    <div class="kartu"><h3>Grup seleksi terbuka</h3>
+      ${g.grup.length ? g.grup.map(x => `
+        <div style="padding:10px 0;border-bottom:1px dashed rgba(96,145,220,.14)">
+          <b>${esc(x.nama)}</b> <span class="badge">${x.menunggu} menunggu</span>
+          <div class="sub">${esc(x.deskripsi||'')}</div>
+          <a href="/${esc(x.idAkun)}/${esc(x.slug)}">Halaman pendaftaran →</a>
+        </div>`).join('') : '<p class="sub">Belum ada grup seleksi aktif.</p>'}
+    </div>`
+  if (!AKUN) {
+    $('#ke-masuk').onclick = halMasuk
+    $('#ke-daftar').onclick = halDaftar
+  }
+}
+
+function formAkun(mode) {
+  app.innerHTML = `
+    <div class="kartu" style="max-width:420px">
+      <h2>${mode==='daftar'?'Daftar akun':'Masuk'}</h2>
+      <p class="sub">${mode==='daftar'?'Akun jadibot Umi bisa dipakai juga — daftarkan nomor WhatsApp kamu supaya pemilik seleksi mengenali.':'Gunakan username & password akun seleksi kamu.'}</p>
+      <label>Username</label><input id="u" autocomplete="username" placeholder="mis. riskyxd">
+      ${mode==='daftar'?'<label>Nomor WhatsApp (opsional, untuk link bot)</label><input id="n" inputmode="numeric" placeholder="628xxx">':''}
+      <label>Password</label><input id="p" type="password" autocomplete="${mode==='daftar'?'new-password':'current-password'}">
+      <button class="tombol" id="go">${mode==='daftar'?'Daftar':'Masuk'}</button>
+      <p class="pesan-error" id="err"></p>
+      <p class="sub" style="margin-top:12px">${mode==='daftar'?'Sudah punya akun? <a href="#" id="pindah">Masuk</a>':'Belum punya akun? <a href="#" id="pindah">Daftar</a>'}</p>
+    </div>`
+  $('#pindah').onclick = e => { e.preventDefault(); mode==='daftar'?halMasuk():halDaftar() }
+  $('#go').onclick = async () => {
+    try {
+      const body = { username: $('#u').value.trim(), password: $('#p').value }
+      if (mode==='daftar') body.nomor = $('#n').value.trim()
+      const r = await api('/api/akun/' + (mode==='daftar'?'daftar':'masuk'), {method:'POST', body})
+      AKUN = r.akun
+      halProfil()
+    } catch (e) { $('#err').textContent = e.message }
+  }
+}
+const halMasuk = () => { gambarNav(''); formAkun('masuk') }
+const halDaftar = () => { gambarNav(''); formAkun('daftar') }
+
+/* ── form publik seleksi ── */
+async function halForm(idAkun, slug) {
+  gambarNav('utama')
+  const info = await api(`/api/grup/form?idAkun=${encodeURIComponent(idAkun)}&slug=${encodeURIComponent(slug)}`)
+  app.innerHTML = `
+    <div class="kartu">
+      <h2>📝 Pendaftaran — ${esc(info.grup.nama)}</h2>
+      <p class="sub">${esc(info.grup.deskripsi||'Isi data di bawah ini dengan benar.')}</p>
+      <div class="info-kode">Kode dari bot: <input id="kode" placeholder="AB12CD" style="max-width:140px;text-align:center;font-weight:800;letter-spacing:2px;text-transform:uppercase"></div>
+      <div id="fields"></div>
+      <label>Foto (wajib)</label><input id="foto" type="file" accept="image/*">
+      <img class="preview" id="foto-prev" style="display:none">
+      <label>Nomor WhatsApp (kalau belum dapat kode dari bot)</label><input id="nomor" inputmode="numeric" placeholder="628xxx (opsional)">
+      <button class="tombol" id="kirim">Kirim pendaftaran</button>
+      <p class="pesan-error" id="err"></p><p class="pesan-ok" id="ok"></p>
+    </div>`
+  $('#fields').innerHTML = info.fields.map(f =>
+    `<label>${esc(f.label)}${f.wajib?' *':''}</label><input data-kunci="${esc(f.kunci)}" ${f.tipe==='angka'?'inputmode="numeric"':''}>`).join('')
+  let fotoBase64 = ''
+  $('#foto').onchange = e => {
+    const f = e.target.files[0]; if (!f) return
+    const r = new FileReader()
+    r.onload = () => { fotoBase64 = r.result; const p = $('#foto-prev'); p.src = r.result; p.style.display = 'block' }
+    r.readAsDataURL(f)
+  }
+  $('#kirim').onclick = async () => {
+    $('#err').textContent=''; $('#ok').textContent=''
+    try {
+      const data = {}
+      app.querySelectorAll('[data-kunci]').forEach(i => data[i.dataset.kunci] = i.value)
+      const r = await api('/api/pendaftaran', {method:'POST', body:{ idAkun, slug, kode: $('#kode').value.trim()||undefined, nomor: $('#nomor').value.trim(), data, fotoBase64 }})
+      $('#ok').textContent = r.pesan + ' (ID: ' + r.id + ')'
+    } catch (e) { $('#err').textContent = e.message }
+  }
+}
+
+/* ── panel seleksi ── */
+async function halPanel(idAkun, slug, status = 'menunggu') {
+  gambarNav('')
+  let d
+  try { d = await api(`/api/seleksi/list?idAkun=${encodeURIComponent(idAkun)}&slug=${encodeURIComponent(slug)}&status=${status}`) }
+  catch (e) {
+    app.innerHTML = `<div class="kartu"><h2>Akses panel</h2><p class="sub">${esc(e.message)}</p>
+      ${AKUN?'':'<button class="tombol" id="masuk">Masuk dulu</button>'}</div>`
+    if (!AKUN) $('#masuk').onclick = halMasuk
+    return
+  }
+  PATH_GRUP = {idAkun, slug}
+  const g = d.grup
+  app.innerHTML = `
+    <div class="kartu">
+      <h2>🎯 Panel Seleksi — ${esc(g.nama)}</h2>
+      <p class="sub">Akses: <b>${esc(d.akses)}</b> · ${esc(g.deskripsi||'')}<br>
+      Statistik: <span class="badge diterima">${g.statistik.acc} diterima</span> <span class="badge ditolak">${g.statistik.tolak} ditolak</span> <span class="badge menunggu">${Object.values(d.pendaftar).filter(x=>x.status==='menunggu').length} menunggu</span></p>
+      <a href="/${esc(idAkun)}/${esc(slug)}" target="_blank">Link pendaftaran publik ↗</a>
+    </div>
+    <div class="pil-tab">
+      ${['menunggu','diterima','ditolak',''].map(s2 => `<button class="pil ${s2===status?'aktif':''}" data-s="${s2}">${s2||'Semua'}</button>`).join('')}
+    </div>
+    <div id="daftar">${d.pendaftar.map(p => kartuPendaftar(p, d)).join('') || '<div class="kartu"><p class="sub">Tidak ada pendaftar.</p></div>'}</div>`
+  app.querySelectorAll('.pil[data-s]').forEach(b => b.onclick = () => halPanel(idAkun, slug, b.dataset.s))
+  pasangAksi(d)
+}
+function kartuPendaftar(p, d) {
+  const kv = d.grup.fields.map(f => p.data?.[f.kunci] ? `<div class="kv"><b>${esc(f.label)}:</b> ${esc(p.data[f.kunci])}</div>` : '').join('')
+  return `<div class="pendaftar" data-id="${esc(p.id)}">
+    ${p.foto ? `<img class="foto" src="${esc(p.foto)}" loading="lazy">` : '<div class="foto" style="width:92px;height:92px;border-radius:12px;background:rgba(41,56,88,.5);border:1px solid var(--garis);display:flex;align-items:center;justify-content:center">📷</div>'}
+    <div class="data">
+      <div class="nama">${esc(p.data?.nama || p.nomor || p.id)} <span class="badge ${esc(p.status)}">${esc(p.status)}</span></div>
+      <div class="kv">Kode ${esc(p.kode)} · ${fmtWaktu(p.waktu)}${p.nomor?' · WA ••••'+esc(p.nomor.slice(-4)):''}</div>
+      ${kv}
+    </div>
+    ${p.status==='menunggu' ? `<div style="display:flex;flex-direction:column;gap:8px">
+      <button class="tombol kecil hijau" data-aksi="acc">✅ Terima</button>
+      <button class="tombol kecil merah" data-aksi="tolak">❌ Tolak</button>
+    </div>` : ''}
+  </div>`
+}
+function pasangAksi(d) {
+  app.querySelectorAll('.pendaftar [data-aksi]').forEach(b => b.onclick = async () => {
+    const id = b.closest('.pendaftar').dataset.id
+    b.disabled = true
+    try {
+      const r = await api('/api/seleksi/aksi', {method:'POST', body:{ idPendaftar: id, aksi: b.dataset.aksi }})
+      alert(r.pesan || r.perintah || 'Selesai')
+      halPanel(d ? Object.keys({}) || PATH_GRUP.idAkun : PATH_GRUP.idAkun, PATH_GRUP.slug, 'menunggu')
+    } catch (e) { alert(e.message); b.disabled = false }
+  })
+}
+
+/* ── chat ── */
+async function halChat() {
+  gambarNav('chat')
+  if (!AKUN) { app.innerHTML = `<div class="kartu"><h2>💬 Chat</h2><p class="sub">Masuk dulu untuk mengobrol dengan sesama pengguna.</p><button class="tombol" id="m">Masuk</button></div>`; $('#m').onclick = halMasuk; return }
+  app.innerHTML = `
+    <div class="kartu"><h2>💬 Chat umum</h2>
+      <div class="chat-box" id="box"></div>
+      <div class="baris" style="margin-top:8px"><input id="teks" placeholder="Tulis pesan…" style="flex:1"><button class="tombol kecil" id="kirim">Kirim</button></div>
+    </div>`
+  const muat = async () => {
+    try {
+      const r = await api('/api/chat')
+      const box = $('#box'); if (!box) return
+      const dekat = box.scrollHeight - box.scrollTop - box.clientHeight < 60
+      box.innerHTML = r.pesan.map(p => `<div class="chat-pesan ${p.dari===AKUN.id?'saya':''}"><div class="dari">${esc(p.nama)} · ${fmtWaktu(p.waktu)}</div>${esc(p.teks)}</div>`).join('')
+      if (dekat) box.scrollTop = box.scrollHeight
+    } catch { /* diam */ }
+  }
+  await muat()
+  setInterval(muat, 5000)
+  $('#kirim').onclick = async () => {
+    const teks = $('#teks').value.trim(); if (!teks) return
+    $('#teks').value = ''
+    try { await api('/api/chat', {method:'POST', body:{teks}}); muat() } catch (e) { alert(e.message) }
+  }
+  $('#teks').onkeydown = e => { if (e.key === 'Enter') $('#kirim').click() }
+}
+
+/* ── profil ── */
+async function halProfil() {
+  gambarNav('profil')
+  if (!AKUN) { halMasuk(); return }
+  let a
+  try { a = await api('/api/akun/profil') } catch { AKUN = null; halMasuk(); return }
+  app.innerHTML = `
+    <div class="kartu">
+      <h2>👤 Profil</h2>
+      <div class="baris" style="gap:14px">
+        ${a.akun.foto?`<img src="${esc(a.akun.foto)}" style="width:72px;height:72px;border-radius:50%;object-fit:cover;border:1px solid var(--garis)">`:'<div style="width:72px;height:72px;border-radius:50%;background:rgba(41,56,88,.6);display:flex;align-items:center;justify-content:center;font-size:26px">👤</div>'}
+        <div><b>${esc(a.akun.nama||a.akun.username)}</b><div class="sub">@${esc(a.akun.username)} · role ${esc(a.akun.role)}${a.akun.nomor?' · ••••'+esc(a.akun.nomor.slice(-4)):''}</div></div>
+      </div>
+      <label>Nama tampilan</label><input id="nama" value="${esc(a.akun.nama||'')}">
+      <label>Bio</label><textarea id="bio" rows="2">${esc(a.akun.bio||'')}</textarea>
+      <label>Foto profil</label><input id="foto" type="file" accept="image/*">
+      <button class="tombol" id="simpan">Simpan profil</button>
+      <p class="pesan-ok" id="ok"></p><p class="pesan-error" id="err"></p>
+    </div>
+    <div class="kartu">
+      <h3>🔑 Token akun (untuk API/integrasi)</h3>
+      <input id="token" readonly value="${esc(a.akun.token)}" style="font-family:monospace;font-size:12px">
+      <div class="baris"><button class="tombol kecil netral" id="salin">Salin</button><button class="tombol kecil netral" id="putar">Putar token</button></div>
+    </div>
+    <div class="kartu">
+      <h3>🔒 Ganti password</h3>
+      <label>Password lama</label><input id="pl" type="password">
+      <label>Password baru</label><input id="pb" type="password">
+      <button class="tombol kecil netral" id="ganti">Ganti password</button>
+    </div>
+    <div class="kartu"><button class="tombol merah kecil" id="keluar">Keluar</button></div>`
+  let fotoBase64 = ''
+  $('#foto').onchange = e => { const f = e.target.files[0]; if (!f) return; const r = new FileReader(); r.onload = () => fotoBase64 = r.result; r.readAsDataURL(f) }
+  $('#simpan').onclick = async () => {
+    try {
+      const r = await api('/api/akun/profil', {method:'POST', body:{ nama: $('#nama').value, bio: $('#bio').value, fotoBase64: fotoBase64||undefined }})
+      AKUN = r.akun; $('#ok').textContent = 'Profil tersimpan.'; $('#err').textContent=''
+    } catch (e) { $('#err').textContent = e.message }
+  }
+  $('#salin').onclick = () => { $('#token').select(); navigator.clipboard?.writeText($('#token').value); }
+  $('#putar').onclick = async () => {
+    if (!confirm('Putar token? Token lama langsung tidak berlaku.')) return
+    try { const r = await api('/api/akun/profil', {method:'POST', body:{ rolToken:'putar' }}); $('#token').value = r.token } catch (e) { alert(e.message) }
+  }
+  $('#ganti').onclick = async () => {
+    try {
+      await api('/api/akun/profil', {method:'POST', body:{ passwordLama: $('#pl').value, passwordBaru: $('#pb').value }})
+      alert('Password diganti.'); $('#pl').value=''; $('#pb').value=''
+    } catch (e) { alert(e.message) }
+  }
+  $('#keluar').onclick = async () => { await api('/api/akun/keluar', {method:'POST'}); AKUN = null; halUtama() }
+}
+
+/* ── owner ── */
+function barisAkun(a) {
+  const tujuan = a.role === 'owner' ? 'user' : 'owner'
+  const label = a.role === 'owner' ? 'Turunkan ke user' : 'Naikkan ke owner'
+  return '<div style="padding:6px 0;border-bottom:1px dashed rgba(96,145,220,.12)" class="baris">' +
+    '<span style="flex:1">@' + esc(a.username) + ' — ' + esc(a.nama || '') + ' <span class="badge">' + esc(a.role) + '</span></span>' +
+    '<button class="tombol kecil netral" data-role="' + esc(a.id) + '" data-r="' + tujuan + '">' + label + '</button>' +
+    '</div>'
+}
+async function halOwner() {
+  gambarNav('owner')
+  if (!AKUN) { halMasuk(); return }
+  let d
+  try { d = await api('/api/owner/ringkasan') }
+  catch (e) { app.innerHTML = `<div class="kartu"><h2>🛠️ Owner panel</h2><p class="sub">${esc(e.message)}</p></div>`; return }
+  app.innerHTML = `
+    <div class="grid">
+      <div class="stat"><div class="n">${d.jumlahGrup}</div><div class="l">Grup seleksi</div></div>
+      <div class="stat"><div class="n">${d.jumlahAkun}</div><div class="l">Akun web</div></div>
+      <div class="stat"><div class="n" style="color:var(--hijau)">${d.acc}</div><div class="l">Diterima</div></div>
+      <div class="stat"><div class="n" style="color:var(--merah)">${d.tolak}</div><div class="l">Ditolak</div></div>
+      <div class="stat"><div class="n" style="color:var(--kuning)">${d.menunggu}</div><div class="l">Menunggu</div></div>
+    </div>
+    <div class="kartu" style="margin-top:14px">
+      <h3>➕ Tambah grup seleksi</h3>
+      <label>Nama grup</label><input id="g-nama" placeholder="mis. Seleksi Angkatan 7">
+      <label>JID grup WA tujuan (opsional)</label><input id="g-jid" placeholder="120363xxxxx@g.us">
+      <label>Deskripsi</label><input id="g-desc">
+      <label>Server key (044f34b0 / d1ebc84a)</label><input id="g-server" placeholder="044f34b0">
+      <button class="tombol" id="g-buat">Buat grup seleksi</button><p class="pesan-ok" id="g-ok"></p><p class="pesan-error" id="g-err"></p>
+    </div>
+    <div class="kartu"><h3>🗂️ Grup seleksi</h3>
+      ${d.grup.map(g => `
+        <div style="padding:10px 0;border-bottom:1px dashed rgba(96,145,220,.14)">
+          <b>${esc(g.nama)}</b> <span class="badge">${esc(g.slug)}</span> ${g.banned?'<span class="badge ditolak">BANNED</span>':''} ${g.daftarAktif?'':'<span class="badge">tutup</span>'}
+          <div class="sub">${g.statistik.acc} acc · ${g.statistik.tolak} tolak · ${g.statistik.total} total · ${g.helper} helper · tujuan ${esc(g.tujuan||'-')}</div>
+          <div class="baris" style="margin-top:6px">
+            <button class="tombol kecil ${g.banned?'hijau':'merah'}" data-ban="${esc(g.slug)}" data-nyala="${g.banned}">${g.banned?'Unban':'Ban'}</button>
+            <button class="tombol kecil netral" data-tutup="${esc(g.slug)}" data-aktif="${g.daftarAktif}">${g.daftarAktif?'Tutup daftar':'Buka daftar'}</button>
+          </div>
+        </div>`).join('') || '<p class="sub">Belum ada grup.</p>'}
+    </div>
+    <div class="kartu"><h3>👥 Akun & role</h3>
+      ${d.akun.map(barisAkun).join('')}
+    </div>
+    <div class="kartu"><h3>📜 Log</h3><div class="tabel-log">${d.log.map(l => `<div>[${fmtWaktu(l.waktu)}] ${esc(l.pesan)}</div>`).join('') || '<div>Belum ada log.</div>'}</div></div>
+    <div class="kartu"><h3>💬 Pesan sambutan</h3><textarea id="sambutan" rows="2">${esc(d.pesanSambutan||'')}</textarea><button class="tombol kecil" id="sambutan-go">Simpan</button></div>`
+  $('#g-buat').onclick = async () => {
+    try {
+      const r = await api('/api/owner/grup', {method:'POST', body:{ nama: $('#g-nama').value, grupTujuanJid: $('#g-jid').value, deskripsi: $('#g-desc').value, serverKey: $('#g-server').value }})
+      $('#g-ok').textContent = 'Dibuat: ' + r.grup.url
+    } catch (e) { $('#g-err').textContent = e.message }
+  }
+  app.querySelectorAll('[data-ban]').forEach(b => b.onclick = async () => {
+    await api('/api/owner/grup', {method:'PATCH', body:{ slug: b.dataset.ban, banned: b.dataset.nyala !== 'true' }})
+    halOwner()
+  })
+  app.querySelectorAll('[data-tutup]').forEach(b => b.onclick = async () => {
+    await api('/api/owner/grup', {method:'PATCH', body:{ slug: b.dataset.tutup, daftarAktif: b.dataset.aktif !== 'true' }})
+    halOwner()
+  })
+  app.querySelectorAll('[data-role]').forEach(b => b.onclick = async () => {
+    await api('/api/owner/role', {method:'POST', body:{ akunId: b.dataset.role, role: b.dataset.r }})
+    halOwner()
+  })
+  $('#sambutan-go').onclick = async () => {
+    await api('/api/owner/grup', {method:'PATCH', body:{ pesanSambutan: $('#sambutan').value }})
+    alert('Pesan sambutan tersimpan.')
+  }
+}
+
+/* ── router ── */
+async function render() {
+  try {
+    try { const r = await api('/api/akun/profil'); AKUN = r.akun } catch { AKUN = null }
+    const p = bacaPath()
+    if (p.hal === 'form') return halForm(p.idAkun, p.slug)
+    if (p.hal === 'panel') return halPanel(p.idAkun, p.slug)
+    const hal = (location.pathname.replace(/^\//,'').split('/')[0]) || 'utama'
+    if (hal === 'grup') return gambarNav('grup'), halGrupPublik()
+    if (hal === 'chat') return halChat()
+    if (hal === 'profil') return halProfil()
+    if (hal === 'owner') return halOwner()
+    if (hal === 'masuk') return halMasuk()
+    if (hal === 'daftar') return halDaftar()
+    return halUtama()
+  } catch (e) {
+    app.innerHTML = `<div class="kartu"><h2>Terjadi kesalahan</h2><p class="sub">${esc(e.message)}</p></div>`
+  }
+}
+async function halGrupPublik() {
+  const g = await api('/api/grup/publik')
+  app.innerHTML = `<div class="kartu"><h2>🗂️ Semua grup seleksi</h2>
+    ${g.grup.map(x => `<div style="padding:10px 0;border-bottom:1px dashed rgba(96,145,220,.14)">
+      <b>${esc(x.nama)}</b> <span class="badge">${x.menunggu} menunggu</span>
+      <div class="sub">${esc(x.deskripsi||'')}</div>
+      <a href="/${esc(x.idAkun)}/${esc(x.slug)}">Halaman pendaftaran →</a></div>`).join('') || '<p class="sub">Belum ada grup seleksi.</p>'}
+  </div>`
+}
+render()
+</script>
+</body>
+</html>
