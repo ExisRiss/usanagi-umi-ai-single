@@ -116,7 +116,7 @@ function mulaiPoller(conn) {
                 const punya = await conn.groupMetadata(x.grup.tujuanJid).then(() => true).catch(() => false)
                 if (!punya) continue
                 try {
-                    await conn.groupParticipantsAdd(x.grup.tujuanJid, [x.jid])
+                    await conn.groupParticipantsUpdate(x.grup.tujuanJid, [x.jid], 'add')
                     await api('/api/sinkron/acc-selesai', { method: 'POST', body: { idPendaftar: x.id } })
                     await conn.reply(x.grup.tujuanJid, `✅ *${x.nama || x.nomor}* resmi masuk grup (acc dari panel web).`, undefined).catch(() => {})
                     try {
@@ -151,7 +151,7 @@ async function tanganiTombol(m, conn) {
         if (aksi === 'acc' && hasil.pendaftar?.jid && hasil.grup?.tujuanJid) {
             let masuk = false
             try {
-                await conn.groupParticipantsAdd(hasil.grup.tujuanJid, [hasil.pendaftar.jid])
+                await conn.groupParticipantsUpdate(hasil.grup.tujuanJid, [hasil.pendaftar.jid], 'add')
                 masuk = true
                 await conn.reply(m.chat, `✅ *Diterima!* ${hasil.pendaftar.data?.nama || hasil.pendaftar.nomor || ''} resmi masuk grup.`, m)
             } catch (e) {
