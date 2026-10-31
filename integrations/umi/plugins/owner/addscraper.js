@@ -50,6 +50,19 @@ function isValidScraperName(name) {
     return /^[a-zA-Z0-9_]+$/.test(name)
 }
 
+/**
+ * Task186 — folder scraper YANG DIPAKAI bot ada di
+ * `integrations/umi/src/scraper/` (semua modul di situ ESM). Path lama
+ * `process.cwd()/src/scraper` tidak pernah dibaca bot → scraper "tersimpan"
+ * tapi tidak berguna. Fallback `src/scraper` dipertahankan hanya bila folder
+ * integrations tidak ada (pemasangan tidak lazim).
+ */
+function resolveScraperDir() {
+    const integrasi = path.join(process.cwd(), 'integrations', 'umi', 'src', 'scraper')
+    if (fs.existsSync(path.dirname(path.dirname(integrasi)))) return integrasi
+    return path.join(process.cwd(), 'src', 'scraper')
+}
+
 function getExistingScrapers(scraperDir) {
     if (!fs.existsSync(scraperDir)) return []
     const files = fs.readdirSync(scraperDir)
@@ -131,7 +144,7 @@ async function handler(m, { sock }) {
     
     // Tampilkan menu kalo kurang
     if (!code || !name) {
-        const scraperDir = path.join(process.cwd(), 'src', 'scraper')
+        const scraperDir = resolveScraperDir()
         const existingScrapers = getExistingScrapers(scraperDir)
         
         let statusMsg = !code ? '❌ Kode scraper tidak ditemukan!' : '❌ Nama scraper tidak ditemukan!'
@@ -148,13 +161,11 @@ async function handler(m, { sock }) {
 │    [Reply kode scraper]
 │    .addscraper hdvid
 │
-│ 2️⃣ *Command langsung + kode:*
+│ 2️⃣ *Command langsung + kode:* (format ESM — folder scraper pakai import)
 │    .addscraper hdvid
-│    const axios = require('axios')
-│    async function hdvid(url) {
+│    export async function hdvid(url) {
 │        return { data: 'test' }
 │    }
-│    module.exports = { hdvid }
 │
 │ 📌 *Nama Valid:*
 │ huruf, angka, _
@@ -209,7 +220,7 @@ ${existingScrapers.length > 15 ? `│ • ...dan ${existingScrapers.length - 15}
     await m.react('📝')
     
     try {
-        const scraperDir = path.join(process.cwd(), 'src', 'scraper')
+        const scraperDir = resolveScraperDir()
         
         if (!fs.existsSync(scraperDir)) {
             fs.mkdirSync(scraperDir, { recursive: true })
@@ -225,10 +236,20 @@ ${existingScrapers.length > 15 ? `│ • ...dan ${existingScrapers.length - 15}
             console.log(`[AddScraper] Backup created: ${backupPath}`)
         }
         
-        // Format kode - pastikan ada module.exports
+        // Task186 — folder scraper memakai ESM (import/export). Kode pola
+        // umum `module.exports = { a, b }` dikonversi jadi `export { a, b }`;
+        // kalau sudah ada `export`, ditulis apa adanya.
         let finalCode = code
-        if (!code.includes('module.exports') && !code.includes('exports.')) {
-            finalCode = `// Scraper: ${name}\n// Dibuat: ${new Date().toLocaleString()}\n\n${code}\n\nmodule.exports = { ${name} }`
+        if (!/\bexport\s/.test(code)) {
+            if (/module\.exports\s*=\s*\{[^}]*\}/.test(code)) {
+                finalCode = code.replace(/module\.exports\s*=\s*\{([^}]*)\}/g,
+                    (_all, isi) => `export { ${String(isi).trim()} }`)
+            } else if (/module\.exports\s*=\s*[A-Za-z_$][\w$]*\s*$/.test(code.trim())) {
+                finalCode = code.replace(/module\.exports\s*=\s*([A-Za-z_$][\w$]*)\s*$/,
+                    (_all, nama) => `export default ${nama}`)
+            } else {
+                finalCode = `// Scraper: ${name}\n// Dibuat: ${new Date().toLocaleString()}\n\n${code}\n\nexport { ${name} }\nexport default { ${name} }`
+            }
         }
         
         // Tulis file
@@ -243,7 +264,7 @@ ${existingScrapers.length > 15 ? `│ • ...dan ${existingScrapers.length - 15}
 ┌────────────────────┐
 │ 📋 *Info:*
 │ • Nama: ${name}.js
-│ • Lokasi: src/scraper/
+│ • Lokasi: integrations/umi/src/scraper/
 │ • Baris: ${lines}
 │ • Ukuran: ${size} KB
 │ • Status: ${exists ? 'Updated' : 'New'}

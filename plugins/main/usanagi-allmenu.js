@@ -326,8 +326,20 @@ export async function tampilkanAllMenu(m, { conn, prefix = '.' } = {}) {
   return { ok: true, mode: 'allmenu-asli+loading', kategori, perintah, panjang: caption.length, dipotong }
 }
 
-const handler = async (m, extra = {}) =>
-  tampilkanAllMenu(m, { conn: extra.conn, prefix: extra.usedPrefix || extra.prefix || '.' })
+const handler = async (m, extra = {}) => {
+  /* Task186 — animasi reaction 1️⃣→🔟 selama allmenu dibangun (di luar
+   * animasi edit-pesan loadingAlzRiss yang sudah ada). */
+  const { mulaiReactLoading } = await import('../../lib/loading-react.js')
+  const anim = mulaiReactLoading(extra.conn, m)
+  try {
+    return await tampilkanAllMenu(m, { conn: extra.conn, prefix: extra.usedPrefix || extra.prefix || '.' })
+  } catch (error) {
+    await anim.stop('⚠️')
+    throw error
+  } finally {
+    await anim.stop('✅')
+  }
+}
 
 handler.command = /^allmenu$/i
 handler.help = ['allmenu']

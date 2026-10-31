@@ -18,6 +18,7 @@ import crypto from 'node:crypto'
 import { pipeline } from 'node:stream/promises'
 import { Transform } from 'node:stream'
 import { sendLocalMediaFast } from '../../lib/awang-media-transfer.js'
+import { mulaiReactLoading } from '../../lib/loading-react.js'
 
 const REPO = 'ExisRiss/usanagi-umi-ai-single'
 const BRANCH = 'main'
@@ -88,6 +89,8 @@ const handler = async (m, { conn, isOwnerUtama, isDeveloper, usedPrefix }) => {
   const diGrup = Boolean(m.isGroup)
   const mTujuan = diGrup ? { chat: m.sender } : m
 
+  /* Task186 — animasi reaction 1️⃣→🔟 selama zip diambil & dikirim. */
+  const anim = mulaiReactLoading(conn, m)
   await m.reply('⏳ Mengambil source code dari GitHub (branch main)…')
   let hasil = null
   try {
@@ -115,10 +118,14 @@ const handler = async (m, { conn, isOwnerUtama, isDeveloper, usedPrefix }) => {
     })
     console.log('[getsc] zip terkirim ke', mTujuan.chat, `${zip.bytes} B`, commit?.sha || '')
     if (diGrup) await m.reply('✅ File ZIP source code sudah dikirim ke private chat kamu.')
+    await anim.stop('✅')
   } catch (error) {
     console.warn('[getsc]', error?.message || error)
     if (hasil?.file) fs.rmSync(hasil.file, { force: true })
+    await anim.stop('⚠️')
     await m.reply(`❌ Gagal mengirim source code: ${error?.message || 'coba lagi nanti.'}`)
+  } finally {
+    await anim.stop('✅')
   }
 }
 

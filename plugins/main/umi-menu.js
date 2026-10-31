@@ -28,6 +28,7 @@ import {
   dispatchMenuCommand, handleNumericSelection, parseActionId, sendTextMenu,
   readMenuSettings, writeMenuSettings, richEnabled,
 } from '../../lib/umi-menu/router.js'
+import { mulaiReactLoading } from '../../lib/loading-react.js'
 import { buildCatalogue } from '../../lib/umi-menu/registry.js'
 import { isOwner } from '../../lib/awang-cekakses.js'
 import { sendModernMenu, teksMenuBaru } from '../../lib/awang-menu.js'
@@ -201,6 +202,20 @@ let handler = async function (m, extra = {}) {
   const parsed = parseActionId(command)
   if (!parsed) return
   return dispatchMenuCommand(m, { conn, prefix, action: parsed.action, page: parsed.page })
+}
+
+/* Task186 — animasi reaction 1️⃣→🔟 selama menu diproses. */
+const jalankanMenu = handler
+handler = async function (m, extra = {}) {
+  const anim = mulaiReactLoading(extra.conn || this, m)
+  try {
+    return await jalankanMenu.call(this, m, extra)
+  } catch (error) {
+    await anim.stop('⚠️')
+    throw error
+  } finally {
+    await anim.stop('✅')
+  }
 }
 
 handler.command = COMMAND_RE
