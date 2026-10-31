@@ -12,6 +12,11 @@ const handler = async (m, { conn }) => {
   )
 }
 
+/* Task188 — dimatikan: duplikat command `hidetag` dengan group-hidetag.js.
+ * Fitur hidetag/ht kini SEMUA di plugins/group/group-hidetag.js (prefix bebas,
+ * LID-aware, fallback metadata). File dipertahankan — hanya tidak mendaftar
+ * command agar tidak berebut dengan implementasi utama. */
+handler.disabled = true
 handler.command = /^hidetag$/i
 handler.help = ['hidetag']
 handler.tags = ['group']
