@@ -83,6 +83,11 @@ function unwrapPesan(msg = {}) {
 
 /* ---------- helpers gambar (port dari sumber, tanpa perubahan mutu) ---------- */
 
+/* Task183 — HD: kanvas diperbesar 2× (2160×2700) dengan smoothing kualitas
+ * tinggi; semua koordinat tetap di ruang 1080×1350 lewat ctx.scale. Foto bukti
+ * tf kini dirender tajam, bukan blur. */
+const SKALA = 2
+
 function mulberry32(a) {
   return () => {
     a |= 0; a = (a + 0x6d2b79f5) | 0
@@ -193,8 +198,11 @@ function drawFooter(ctx, { number, name }) {
 }
 
 async function renderTesti(buffers, info) {
-  const canvas = createCanvas(BW, BH)
+  const canvas = createCanvas(BW * SKALA, BH * SKALA)
   const ctx = canvas.getContext('2d')
+  ctx.scale(SKALA, SKALA)
+  ctx.imageSmoothingEnabled = true
+  ctx.imageSmoothingQuality = 'high'
   const images = []
   for (const b of buffers) images.push(await loadImage(b))
   await drawBackground(ctx)
@@ -202,7 +210,7 @@ async function renderTesti(buffers, info) {
   drawTitle(ctx)
   drawSlots(ctx, images)
   drawFooter(ctx, info)
-  return await canvas.encode('jpeg', 0.92)
+  return await canvas.encode('jpeg', 0.95)
 }
 
 /* ---------- command ---------- */

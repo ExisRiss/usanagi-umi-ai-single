@@ -1,35 +1,45 @@
 /* By AlzRiss - Usanagi Umi AI
  *
- * IQONTACT — kartu kontak gaya iOS (Task182)
+ * IQONTACT — kartu kontak gaya iOS (Task182) → TAMPILAN WHATSAPP (Task183)
  *
- * Sumber: kiriman owner (iqontact.js, gaya bot lain: npm i canvas + handler
- * manual). Disesuaikan dengan bot ini:
- *   • canvas → @napi-rs/canvas (dependensi resmi repo)
- *   • prefix/parse command diserahkan ke framework handler
- *   • jam kartu memakai timezone bot (config/settings.js → Asia/Makassar/WITA)
+ * Task183 (keluhan owner: "kaku, harus benar-benar mirip tampilan WA"):
+ * kartu dirender seperti halaman "Info kontak" WhatsApp:
+ *   • latar hero gradiat lembut, avatar bulat besar + shadow + titik online
+ *   • nama tebal, nomor format +62, baris About "Halo! Saya menggunakan WhatsApp."
+ *   • tiga tombol bundar hijau (Pesan/Audio/Video) — bukan kotak kaku
+ *   • section card rounded dengan PEMISAH TIPIS antar baris (gaya WA)
+ *   • palet gelap/terang persis WhatsApp (#111b21 / #ffffff, #e9edef / #111b21)
  *
  * Pakai:
- *   iqontact <nama> | <nomor>              → tema default (gelap)
+ *   iqontact <nama> | <nomor>              → tema gelap (default)
  *   iqontact <nama> | <nomor> | light      → tema terang
  */
 
 import { createCanvas, loadImage } from '@napi-rs/canvas'
 import { settings } from '../../config/settings.js'
 
-const W = 720, H = 1000
+const W = 720, H = 1060
 
 const cfg = {
   separator: '|',
   defaultTheme: 'dark',
-  accent: '#25d366',
   fontFamily: 'sans-serif',
   maxNameLength: 25,
   countryCode: '62',
+  aboutText: 'Halo! Saya menggunakan WhatsApp.',
   themes: {
-    dark: { bg: '#000000', card: '#1c1c1e', text: '#ffffff', sub: '#8e8e93' },
-    light: { bg: '#f2f2f7', card: '#ffffff', text: '#000000', sub: '#6c6c70' },
+    dark: {
+      bg: '#111b21', hero: '#0b141a', card: '#202c33',
+      text: '#e9edef', sub: '#8696a0', divider: 'rgba(255,255,255,.07)',
+      accent: '#00a884', dot: '#25d366', chevron: '#8696a0',
+    },
+    light: {
+      bg: '#ffffff', hero: '#f7f8fa', card: '#f7f8fa',
+      text: '#111b21', sub: '#667781', divider: '#e9edef',
+      accent: '#25d366', dot: '#25d366', chevron: '#667781',
+    },
   },
-  labels: { voice: 'Suara', video: 'Video', search: 'Cari' },
+  labels: { chat: 'Pesan', audio: 'Audio', video: 'Video' },
   rows: [
     ['Media, tautan & dok', '14'],
     ['Kosongkan sebagian penyimpanan', '49,9 MB'],
@@ -69,10 +79,54 @@ function getJam(tz) {
   }).format(new Date()).replace(':', '.')
 }
 
-function box(ctx, x, y, w, h, r, fill) {
+function roundRectPath(ctx, x, y, w, h, r) {
   ctx.beginPath()
   ctx.roundRect(x, y, w, h, r)
-  ctx.fillStyle = fill
+}
+
+function fitFont(ctx, text, maxW, size, weight, family) {
+  let s = size
+  do { ctx.font = `${weight} ${s}px ${family}`; s -= 1 }
+  while (ctx.measureText(text).width > maxW && s > 16)
+}
+
+/* ── ikon putih untuk tombol aksi (digambar vektor, tak butuh font emoji) ── */
+
+function ikonChat(ctx, cx, cy, warnaIkon) {
+  ctx.fillStyle = warnaIkon
+  roundRectPath(ctx, cx - 23, cy - 19, 46, 34, 11)
+  ctx.fill()
+  /* ekor gelembung */
+  ctx.beginPath()
+  ctx.moveTo(cx - 14, cy + 12)
+  ctx.lineTo(cx - 23, cy + 23)
+  ctx.lineTo(cx - 4, cy + 14)
+  ctx.closePath()
+  ctx.fill()
+}
+
+function ikonAudio(ctx, cx, cy, warnaIkon) {
+  ctx.save()
+  ctx.translate(cx, cy)
+  ctx.rotate(-Math.PI / 4)
+  ctx.fillStyle = warnaIkon
+  /* gagang telepon klasik: bar + dua ujung bulat besar */
+  roundRectPath(ctx, -24, -7, 48, 14, 7)
+  ctx.fill()
+  ctx.beginPath(); ctx.ellipse(-24, -4, 11, 14, 0, 0, Math.PI * 2); ctx.fill()
+  ctx.beginPath(); ctx.ellipse(24, 4, 11, 14, 0, 0, Math.PI * 2); ctx.fill()
+  ctx.restore()
+}
+
+function ikonVideo(ctx, cx, cy, warnaIkon) {
+  ctx.fillStyle = warnaIkon
+  roundRectPath(ctx, cx - 25, cy - 16, 42, 32, 9)
+  ctx.fill()
+  ctx.beginPath()
+  ctx.moveTo(cx + 16, cy - 12)
+  ctx.lineTo(cx + 30, cy)
+  ctx.lineTo(cx + 16, cy + 12)
+  ctx.closePath()
   ctx.fill()
 }
 
@@ -82,11 +136,27 @@ async function renderCard({ name, number, avatarUrl, themeName }) {
   const c = createCanvas(W, H)
   const ctx = c.getContext('2d')
 
+  /* latar + hero gradiat lembut */
   ctx.fillStyle = t.bg
   ctx.fillRect(0, 0, W, H)
+  const hero = ctx.createRadialGradient(W / 2, -60, 60, W / 2, 60, 430)
+  hero.addColorStop(0, t.hero)
+  hero.addColorStop(1, 'rgba(0,0,0,0)')
+  ctx.fillStyle = hero
+  ctx.fillRect(0, 0, W, 470)
 
-  /* Avatar bulat (avatar WA target → kosong = kotak tema seperti sumber) */
-  const cx = W / 2, cy = 190, r = 130
+  const cx = W / 2, cy = 165, r = 112
+
+  /* avatar bulat + shadow */
+  ctx.save()
+  ctx.shadowColor = 'rgba(0,0,0,.35)'
+  ctx.shadowBlur = 34
+  ctx.shadowOffsetY = 12
+  ctx.beginPath()
+  ctx.arc(cx, cy, r, 0, Math.PI * 2)
+  ctx.fillStyle = t.card
+  ctx.fill()
+  ctx.restore()
   ctx.save()
   ctx.beginPath()
   ctx.arc(cx, cy, r, 0, Math.PI * 2)
@@ -96,39 +166,99 @@ async function renderCard({ name, number, avatarUrl, themeName }) {
   } catch {
     ctx.fillStyle = t.card
     ctx.fillRect(cx - r, cy - r, r * 2, r * 2)
+    /* siluet orang standar WA saat tak ada foto */
+    ctx.fillStyle = t.divider
+    ctx.beginPath(); ctx.arc(cx, cy - 26, 40, 0, Math.PI * 2); ctx.fill()
+    ctx.beginPath(); ctx.arc(cx, cy + 96, 76, 0, Math.PI * 2); ctx.fill()
   }
   ctx.restore()
 
+  /* titik online */
+  ctx.beginPath()
+  ctx.arc(cx + 82, cy + 82, 17, 0, Math.PI * 2)
+  ctx.fillStyle = t.bg
+  ctx.fill()
+  ctx.beginPath()
+  ctx.arc(cx + 82, cy + 82, 13, 0, Math.PI * 2)
+  ctx.fillStyle = t.dot
+  ctx.fill()
+
+  /* nama, nomor, about */
   ctx.textAlign = 'center'
   ctx.fillStyle = t.text
-  ctx.font = `bold 40px ${f}`
-  ctx.fillText(name, cx, 385)
+  fitFont(ctx, name, 640, 42, 'bold', f)
+  ctx.fillText(name, cx, 356)
+
   ctx.fillStyle = t.sub
   ctx.font = `26px ${f}`
-  ctx.fillText(prettyNumber(number, cfg.countryCode), cx, 430)
+  ctx.fillText(prettyNumber(number, cfg.countryCode), cx, 400)
 
-  const btns = [cfg.labels.voice, cfg.labels.video, cfg.labels.search]
-  const bw = 210, gap = 20, sx = (W - (bw * 3 + gap * 2)) / 2
-  btns.forEach((b, i) => {
-    const x = sx + i * (bw + gap)
-    box(ctx, x, 480, bw, 85, 16, t.card)
-    ctx.fillStyle = cfg.accent
-    ctx.font = `24px ${f}`
-    ctx.fillText(b, x + bw / 2, 545)
+  fitFont(ctx, cfg.aboutText, 620, 21, 'italic', f)
+  ctx.fillStyle = t.sub
+  ctx.fillText(cfg.aboutText, cx, 436)
+
+  /* tiga tombol bundar aksi */
+  const aksi = [
+    { ikon: ikonChat, label: cfg.labels.chat },
+    { ikon: ikonAudio, label: cfg.labels.audio },
+    { ikon: ikonVideo, label: cfg.labels.video },
+  ]
+  const d = 96, jarak = 68
+  const sx = W / 2 - d - jarak
+  aksi.forEach((a, i) => {
+    const bx = sx + i * (d + jarak)
+    const by = 480
+    ctx.save()
+    ctx.shadowColor = 'rgba(0,0,0,.28)'
+    ctx.shadowBlur = 16
+    ctx.shadowOffsetY = 6
+    ctx.beginPath()
+    ctx.arc(bx + d / 2, by + d / 2, d / 2, 0, Math.PI * 2)
+    ctx.fillStyle = a.ikon === ikonAudio ? t.accent : t.accent
+    ctx.fill()
+    ctx.restore()
+    a.ikon(ctx, bx + d / 2, by + d / 2, '#ffffff')
+    ctx.textAlign = 'center'
+    ctx.fillStyle = t.sub
+    ctx.font = `19px ${f}`
+    ctx.fillText(a.label, bx + d / 2, by + d + 30)
   })
 
-  const rows = cfg.rows
-  box(ctx, 40, 610, W - 80, rows.length * 70 + 20, 18, t.card)
-  rows.forEach(([l, v], i) => {
-    const y = 660 + i * 70
+  /* section card ala WA: baris + pemisah tipis */
+  const baris = cfg.rows
+  const tinggiBaris = 68
+  const y0 = 640
+  const tinggi = baris.length * tinggiBaris + 24
+  roundRectPath(ctx, 24, y0, W - 48, tinggi, 18)
+  ctx.fillStyle = t.card
+  ctx.fill()
+
+  baris.forEach(([label, nilai], i) => {
+    const y = y0 + 24 + i * tinggiBaris
+    if (i > 0) {
+      ctx.fillStyle = t.divider
+      ctx.fillRect(68, y, W - 92 - 24 + 24 - 24, 1.5)
+    }
     ctx.textAlign = 'left'
     ctx.fillStyle = t.text
-    ctx.font = `25px ${f}`
-    ctx.fillText(l.length > 26 ? l.slice(0, 26) + '…' : l, 70, y)
+    ctx.font = `24px ${f}`
+    let teks = label
+    while (ctx.measureText(teks).width > W - 240 && teks.length > 6) teks = teks.slice(0, -2)
+    if (teks !== label) teks += '…'
+    ctx.fillText(teks, 68, y + tinggiBaris / 2 + 9)
+
     ctx.textAlign = 'right'
     ctx.fillStyle = t.sub
-    ctx.fillText(v ? `${v}  ›` : '›', W - 70, y)
+    ctx.font = `22px ${f}`
+    const nilaiTeks = nilai ? `${nilai}   ›` : '›'
+    ctx.fillText(nilaiTeks, W - 60, y + tinggiBaris / 2 + 8)
   })
+
+  /* caption kecil bawah — sentuhan WA */
+  ctx.textAlign = 'center'
+  ctx.fillStyle = t.sub
+  ctx.font = `italic 17px ${f}`
+  ctx.fillText('WhatsApp', W / 2, H - 28)
 
   return await c.encode('png')
 }
@@ -165,7 +295,7 @@ handler.command = /^(iqontact)$/i
 handler.help = ['iqontact <nama> | <nomor> [dark|light]']
 handler.tags = ['maker']
 handler.category = 'maker'
-handler.description = 'Kartu kontak gaya iOS dari nama & nomor, tema gelap/terang, jam WITA.'
+handler.description = 'Kartu kontak gaya halaman Info Kontak WhatsApp (avatar+titik online, tombol bundar hijau), jam WITA.'
 handler.limit = false
 
 export { renderCard }

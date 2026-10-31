@@ -7,6 +7,8 @@ import crypto from 'node:crypto'
 import { spawn } from 'node:child_process'
 import { ytDlpDownloadBest, getFfmpegBinPath } from '../../lib/awang-ytdlp.js'
 import { sendLocalMediaFast, sendRemoteMediaFast } from '../../lib/awang-media-transfer.js'
+import { sendInteractive } from '../../lib/awang-tombol.js'
+import { scraprUrl, klasifikasiMedia } from '../../lib/scrapr.js'
 
 const UA = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0 Safari/537.36'
 const MAX_VIDEO = 95 * 1024 * 1024
@@ -240,6 +242,50 @@ function sanitizeFilename(name) {
   return String(name).replace(/[<>:"/\\|?*\x00-\x1F]/g, '').replace(/\s+/g, ' ').trim().slice(0, 100) || 'tiktok'
 }
 
+/* ── Task183: dukungan foto post + pilihan tombol audio ── */
+
+/** Foto post TikTok (slideshow) — lewat scrapr; null kalau bukan foto. */
+async function fotoTikTok(inputUrl) {
+  try {
+    const hasil = await scraprUrl(inputUrl)
+    if (hasil.platform !== 'tiktok') return null
+    const k = klasifikasiMedia(hasil)
+    if (k.gambar.length && !k.video.length) return { gambar: k.gambar, judul: hasil.judul || 'Foto TikTok' }
+    return null
+  } catch { return null }
+}
+
+/** Audio MP3 dari URL video TikTok: ffmpeg dulu, scrapr cadangan. */
+async function audioMp3(inputUrl, resolvedUrl) {
+  if (resolvedUrl) {
+    const file = await extractAudioFromUrl(resolvedUrl).catch(() => '')
+    if (file) return { file, url: null }
+  }
+  try {
+    const k = klasifikasiMedia(await scraprUrl(inputUrl))
+    const mp3 = k.audio[0]
+    if (mp3?.url) return { file: null, url: mp3.url }
+  } catch { /* gagal */ }
+  return null
+}
+
+/** Kirim tombol "Unduh audio" (fallback teks biasa). */
+async function tawarkanAudio(conn, m, usedPrefix, inputUrl, judul) {
+  try {
+    await sendInteractive(conn, m.chat, {
+      title: '🎵 Audio TikTok',
+      subtitle: String(judul || '').slice(0, 60),
+      body: 'Mau sekalian unduh audio (MP3) dari hasil ini?',
+      footer: 'Usanagi Umi AI',
+      buttons: [{ label: '🎵 Unduh audio (MP3)', command: `${usedPrefix}tt-audio ${inputUrl}` }],
+    }, { quoted: m.raw })
+  } catch {
+    await conn.sendMessage(m.chat, {
+      text: `🎵 Mau audionya? Ketik:\n${usedPrefix}tt-audio ${inputUrl}`,
+    }, { quoted: m.raw }).catch(() => {})
+  }
+}
+
 function normalizeTikTokInput(value) {
   // WhatsApp messages can contain invisible formatting/spam characters after a
   // shared URL. They are not part of the TikTok URL and make third-party
@@ -263,8 +309,9 @@ async function sendLocalTikTokVideo(conn, m, file, title) {
   })
 }
 
-const handler = async (m, { conn, usedPrefix }) => {
+const handler = async (m, { conn, usedPrefix, command }) => {
   const input = normalizeTikTokInput(m.text)
+  const modeAudio = /^(tt-audio|ttaudio)$/i.test(String(command || ''))
 
   if (!input) {
     m.limit?.fail()
@@ -289,6 +336,56 @@ const handler = async (m, { conn, usedPrefix }) => {
 
   void react(conn, m, '⏳')
 
+  /* ── Task183 modeAudio: dipanggil lewat tombol "Unduh audio (MP3)" ── */
+  if (modeAudio) {
+    try {
+      const resolved = await resolveTikTokUrl(input)
+      const hasil = await audioMp3(input, resolved?.url || '')
+      if (!hasil) throw new Error('audio tidak tersedia')
+      if (hasil.file) {
+        try {
+          await conn.sendMessage(m.chat, {
+            audio: { url: hasil.file },
+            mimetype: 'audio/mpeg',
+            fileName: `${sanitizeFilename(resolved.title || 'tiktok')}.mp3`,
+            ptt: false,
+            caption: '🎵 Audio dari TikTok',
+          }, { quoted: m.raw })
+        } finally {
+          await fs.remove(hasil.file).catch(() => {})
+        }
+      } else {
+        await conn.sendMessage(m.chat, {
+          audio: { url: hasil.url },
+          mimetype: 'audio/mpeg',
+          ptt: false,
+          caption: '🎵 Audio dari TikTok',
+        }, { quoted: m.raw })
+      }
+      await react(conn, m, '🎵')
+      return
+    } catch (error) {
+      console.warn('[tt-audio]', error?.message || error)
+      await react(conn, m, '❌')
+      return m.reply('❌ Gagal mengambil audio MP3 dari link itu. Coba lagi atau pakai link lain.')
+    }
+  }
+
+  /* ── Task183 foto post: kirim sebagai foto, bukan video ── */
+  const foto = await fotoTikTok(input)
+  if (foto) {
+    for (const g of foto.gambar.slice(0, 8)) {
+      await conn.sendMessage(m.chat, {
+        image: { url: g.url },
+        caption: g === foto.gambar[0] ? `🖼️ *${foto.judul}*\n\n✅ Foto TikTok` : '',
+      }, { quoted: m.raw })
+    }
+    m.limit?.success()
+    await react(conn, m, '✅')
+    await tawarkanAudio(conn, m, usedPrefix, input, foto.judul)
+    return
+  }
+
   try {
     let resolved
     try {
@@ -300,6 +397,7 @@ const handler = async (m, { conn, usedPrefix }) => {
       await sendLocalTikTokVideo(conn, m, fallback.file, fallback.title || 'TikTok Video')
       m.limit?.success()
       await react(conn, m, '✅')
+      await tawarkanAudio(conn, m, usedPrefix, input, fallback.title || 'TikTok')
       return
     }
 
@@ -328,21 +426,9 @@ const handler = async (m, { conn, usedPrefix }) => {
     m.limit?.success()
     await react(conn, m, '✅')
 
-    // Start audio only after a successful video delivery so a failed transfer
-    // cannot leave an orphan temporary audio file.
-    const audioFile = await extractAudioFromUrl(resolved.url).catch(() => '')
-    if (audioFile) {
-      try {
-        await conn.sendMessage(m.chat, {
-          audio: { url: audioFile },
-          mimetype: 'audio/mpeg',
-          fileName: `${sanitizeFilename(title)}.mp3`,
-          ptt: false,
-        }, { quoted: m.raw })
-      } finally {
-        await fs.remove(audioFile).catch(() => {})
-      }
-    }
+    /* Task183 — audio tak lagi dikirim otomatis: user diberi PILIHAN tombol
+     * "Unduh audio (MP3)" (permintaan owner), id tombol → tt-audio <link>. */
+    await tawarkanAudio(conn, m, usedPrefix, input, title)
   } catch (error) {
     m.limit?.fail()
     await react(conn, m, '❌')
@@ -350,10 +436,10 @@ const handler = async (m, { conn, usedPrefix }) => {
   }
 }
 
-handler.command = /^(tiktok|tt|ttdl)$/i
-handler.help = ['tiktok', 'tt', 'ttdl']
+handler.command = /^(tiktok|tt|ttdl|tt-audio|ttaudio)$/i
+handler.help = ['tiktok <link>', 'tt <link>', 'tt-audio <link>']
 handler.tags = ['download']
-handler.description = 'Download TikTok HD No Watermark + Auto Audio'
+handler.description = 'Download TikTok HD No Watermark (video/foto) + tombol pilihan unduh audio MP3.'
 handler.limitCommit = 'manual'
 
 export { resolveTikTokFile, MAX_VIDEO }
