@@ -11,15 +11,15 @@ html,body{margin:0;height:100%;background:#0b1020;color:#e6f0ff;font:700 11px sy
 #zone{margin-top:5px;color:#9fe6ff}#hint{opacity:.55;font-size:10px;margin-top:6px;max-width:190px}
 #fps{position:fixed;top:calc(var(--st) + 8px);right:12px;opacity:.7}
 #map{position:fixed;top:calc(var(--st) + 30px);right:12px;width:112px;height:112px;border-radius:14px;box-shadow:0 4px 14px #000a;transition:width .2s,height .2s}#map.big{width:250px;height:250px}
-#joy{position:fixed;left:16px;bottom:calc(var(--sb) + 22px);width:140px;height:140px;border-radius:50%;border:2px solid #7a8089aa;background:radial-gradient(circle,#2c3036 0%,#0c0d10 58%,#3b4048 60%,#0c0d10 68%);box-shadow:0 0 24px #7fdcff33,inset 0 0 26px #7fdcff33,0 6px 16px #0009}
+#joy{position:fixed;left:16px;bottom:calc(var(--sb) + 22px);width:min(126px,34vw);height:min(126px,34vw);border-radius:50%;border:2px solid #7a8089aa;background:radial-gradient(circle,#2c3036 0%,#0c0d10 58%,#3b4048 60%,#0c0d10 68%);box-shadow:0 0 24px #7fdcff33,inset 0 0 26px #7fdcff33,0 6px 16px #0009}
 #joy::before{content:"";position:absolute;inset:10px;border-radius:50%;border:1.5px dashed #9aa3ad66}
 .ar{position:absolute;font-style:normal;font-size:9px;color:#b8c2cdcc}.ar.u{top:5px;left:50%;transform:translateX(-50%)}.ar.d{bottom:5px;left:50%;transform:translateX(-50%) rotate(180deg)}.ar.l{left:6px;top:50%;transform:translateY(-50%) rotate(-90deg)}.ar.r{right:6px;top:50%;transform:translateY(-50%) rotate(90deg)}
-#knob{position:absolute;left:50%;top:50%;width:58px;height:58px;margin:-29px;border-radius:50%;background:radial-gradient(circle at 35% 28%,#fff,#b9c2cc 28%,#4a515b 68%,#15181c);box-shadow:0 5px 14px #000a,0 0 18px #7fdcff88,inset 0 -5px 9px #000a}
-#pan{position:fixed;right:12px;bottom:calc(var(--sb) + 22px);display:grid;grid-template-columns:repeat(3,68px);gap:8px}
-.b{height:58px;border:1px solid #7a8089aa;border-radius:16px;background:linear-gradient(160deg,#41454b,#1a1c20 45%,#060607);color:#e9ebee;font:700 9.5px system-ui,sans-serif;letter-spacing:.06em;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;box-shadow:0 5px 14px #000c,inset 0 1px 0 #ffffff40;transition:transform .08s}
-.b:active{transform:scale(.93)}.b svg{width:22px;height:22px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+#knob{position:absolute;left:50%;top:50%;width:44%;height:44%;margin:-22% 0 0 -22%;border-radius:50%;background:radial-gradient(circle at 35% 28%,#fff,#b9c2cc 28%,#4a515b 68%,#15181c);box-shadow:0 5px 14px #000a,0 0 18px #7fdcff88,inset 0 -5px 9px #000a}
+#pan{position:fixed;right:10px;bottom:calc(var(--sb) + 22px);display:grid;grid-template-columns:repeat(3,minmax(0,1fr));width:min(232px,58vw);gap:7px}
+.b{height:clamp(44px,13vw,58px);border:1px solid #7a8089aa;border-radius:16px;background:linear-gradient(160deg,#41454b,#1a1c20 45%,#060607);color:#e9ebee;font:700 9.5px system-ui,sans-serif;letter-spacing:.06em;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;box-shadow:0 5px 14px #000c,inset 0 1px 0 #ffffff40;transition:transform .08s}
+.b:active{transform:scale(.93)}.b svg{width:clamp(17px,5vw,22px);height:clamp(17px,5vw,22px);stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
 .b.on{background:linear-gradient(160deg,#62676f,#25282c 50%,#0a0b0c);border-color:#dfe3e8;color:#fff}.b.on svg{stroke:#8fe3ff;filter:drop-shadow(0 0 4px #35d0ff)}
-#bBot{grid-column:1/4;height:44px;flex-direction:row;gap:8px;font-size:10px;border-color:#8fe3ffaa}
+#bBot{grid-column:1/4;height:clamp(36px,10vw,44px);flex-direction:row;gap:8px;font-size:10px;border-color:#8fe3ffaa}
 </style></head><body>
 <canvas id="c"></canvas>
 <div id="hud"><h1>RICHMASSANGE EXPLORER V2</h1><div id="zone"></div><div id="hint">GESER: PUTAR KAMERA · CUBIT: ZOOM · KETUK 2X: RESET · KETUK PETA: PERBESAR</div></div>
@@ -27,7 +27,15 @@ html,body{margin:0;height:100%;background:#0b1020;color:#e6f0ff;font:700 11px sy
 <div id="joy"><i class="ar u">▲</i><i class="ar d">▲</i><i class="ar l">▲</i><i class="ar r">▲</i><div id="knob"></div></div>
 <div id="pan"><button class="b" id="bBot"></button><button class="b" id="bRun"></button><button class="b" id="bSnd"></button><button class="b" id="bMap"></button><button class="b" id="bCam"></button><button class="b" id="bOrb"></button><button class="b" id="bRes"></button></div>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script>window.THREE||document.write('<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/build/three.min.js"><\/script>')</script>
 <script>
+if(typeof THREE==="undefined"){
+var _h=document.getElementById("hud");
+if(_h){var _d=document.createElement("div");_d.style.cssText="margin-top:8px;padding:8px 10px;max-width:270px;background:rgba(10,14,30,.94);border:1px solid #7fdcff66;border-radius:10px;color:#ffd7d7;font:700 11px system-ui,sans-serif;line-height:1.5";
+_d.innerHTML="⚠️ Library 3D gagal dimuat (jaringan memblokir) — laba-laba, peta & ikon tidak muncul.<br><br>Buka versi web:<br><b style=color:#9fe6ff>https://spidergame-alzriss.gwenna.my.id/</b>";
+_h.appendChild(_d);}
+console.error("spidergame: three.js gagal dimuat")}
+else{
 const V=THREE.Vector3,$=i=>document.getElementById(i),C3=(r,g,b)=>new THREE.Color(r,g,b),ADD=THREE.AdditiveBlending,PI=Math.PI;
 let seed=11;const rnd=()=>(seed=(seed*16807)%2147483647)/2147483647;
 const sm=(a,b,x)=>{const t=Math.max(0,Math.min(1,(x-a)/(b-a)));return t*t*(3-2*t)};
@@ -208,7 +216,7 @@ function ui(){const B=(id,ic,t,on)=>{const e=$(id);e.classList.toggle("on",!!on)
  B("bBot","bot","GANTI ROBOT · "+P.name);B("bRun",run?"bolt":"walk",run?"LARI":"JALAN",run);B("bSnd",sound?"snd":"mute",sound?"SUARA":"HENING",sound);B("bMap","map","PETA",showMap);B("bCam","cam",CAMS[ci][0]);B("bOrb","orbit","ORBIT",orbit);B("bRes","reset","RESET");$("map").style.display=showMap?"block":"none"}
 $("bBot").onclick=swap;$("bRun").onclick=()=>{run=!run;ui()};$("bSnd").onclick=()=>{sound=!sound;if(AC&&master)master.gain.setTargetAtTime(sound?.7:0,AC.currentTime,.05);ui()};
 $("bMap").onclick=()=>{showMap=!showMap;ui()};$("bCam").onclick=()=>{ci=(ci+1)%CAMS.length;cr();ui()};$("bOrb").onclick=()=>{orbit=!orbit;ui()};$("bRes").onclick=()=>{P.reset(0,9,PI);th=0;cr();ui()};
-ui();function resize(){R.setSize(innerWidth,innerHeight);C.aspect=innerWidth/innerHeight;C.updateProjectionMatrix()}addEventListener("resize",resize);resize();
+ui();function resize(){const w=document.documentElement.clientWidth||innerWidth,h=document.documentElement.clientHeight||innerHeight;R.setSize(w,h,false);C.aspect=w/h;C.updateProjectionMatrix()}addEventListener("resize",resize);addEventListener("orientationchange",()=>setTimeout(resize,150));resize();
 // minimap (dunia 400x400)
 const mc=$("map").getContext("2d"),st=document.createElement("canvas");st.width=st.height=224;const sx=st.getContext("2d"),MM=v=>(v+200)/400*224;
 sx.fillStyle="#0e2a1c";sx.fillRect(0,0,224,224);sx.fillStyle="#4a4f58";sx.beginPath();sx.arc(112,112,100,0,7);sx.lineWidth=14;sx.strokeStyle="#4a4f58";sx.stroke();
@@ -236,4 +244,5 @@ function loop(now){requestAnimationFrame(loop);const dt=Math.min(.05,(now-last)/
  if(++fr%6===0){$("zone").textContent=`${zone(P.pos)} · ${Math.round(P.pos.x)}, ${Math.round(P.pos.z)}`;if(showMap)drawMap()}
  R.render(S,C)}
 requestAnimationFrame(loop);
+}
 </script></body></html>
