@@ -1,0 +1,1189 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#101114">
+<title>UMI Game 3D — Catur & UNO</title>
+<style>
+  :root{ --gold:#ffd166; --bg:#0d0e11; --panel:rgba(16,17,20,.82); }
+  *{ box-sizing:border-box; -webkit-tap-highlight-color:transparent }
+  html,body{ margin:0; height:100%; overflow:hidden; background:var(--bg);
+    font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif; color:#f2efe9; user-select:none }
+  canvas{ display:block; position:fixed; inset:0 }
+  #hud{ position:fixed; inset:0; pointer-events:none; display:flex; flex-direction:column; justify-content:space-between; z-index:5 }
+  .bar{ pointer-events:auto; display:flex; gap:8px; align-items:center; padding:calc(env(safe-area-inset-top,0px) + 10px) 12px 0 }
+  .bar b{ font-size:15px; letter-spacing:.04em; text-shadow:0 2px 8px #000 }
+  .sp{ flex:1 }
+  button{ font:inherit; color:#f2efe9; background:var(--panel); border:1px solid #ffffff2a;
+    border-radius:12px; padding:8px 14px; cursor:pointer; backdrop-filter:blur(8px); font-weight:600; font-size:13px }
+  button:active{ transform:scale(.96) }
+  button.pri{ background:linear-gradient(160deg,#ffd166,#f4a259); color:#17130a; border:none }
+  #pesan{ align-self:center; margin-bottom:10px; background:var(--panel); border:1px solid #ffffff22;
+    border-radius:14px; padding:10px 16px; font-size:14px; font-weight:600; min-height:20px;
+    opacity:0; transition:opacity .25s; backdrop-filter:blur(8px); pointer-events:none; max-width:92vw; text-align:center }
+  #pesan.tampil{ opacity:1 }
+  #skor{ position:fixed; z-index:6; top:calc(env(safe-area-inset-top,0px) + 54px); left:50%; transform:translateX(-50%);
+    display:none; gap:18px; background:var(--panel); border:1px solid #ffffff22; border-radius:14px;
+    padding:8px 18px; font-weight:700; font-size:13px; backdrop-filter:blur(8px); pointer-events:none }
+  #skor span{ color:var(--gold) }
+  #kartuku{ position:fixed; z-index:4; bottom:0; left:0; right:0; display:none; justify-content:center; gap:0;
+    padding:10px 6px calc(env(safe-area-inset-bottom,0px) + 14px); pointer-events:none; min-height:110px }
+  #kartuku .k{ pointer-events:auto; width:64px; height:96px; margin:0 -18px; border-radius:8px;
+    cursor:pointer; box-shadow:0 6px 16px #000c, 0 0 0 2px #fff2 inset; transition:transform .18s, margin .18s;
+    display:flex; align-items:center; justify-content:center; font-weight:900; font-size:26px; color:#fff;
+    text-shadow:0 2px 4px #0008; border:2px solid #fff; position:relative; overflow:hidden }
+  #kartuku .k:hover, #kartuku .k:focus{ transform:translateY(-14px) scale(1.05); margin:0 -8px; z-index:5 }
+  #kartuku .k.kosong{ opacity:.35; pointer-events:none }
+  #modal{ position:fixed; inset:0; display:none; align-items:center; justify-content:center;
+    background:#000000a8; backdrop-filter:blur(6px); pointer-events:auto; z-index:10 }
+  #modal.tampil{ display:flex }
+  .kartu{ background:#17181d; border:1px solid #ffffff26; border-radius:18px; padding:22px; width:min(420px,92vw);
+    box-shadow:0 30px 80px #000e; text-align:center }
+  .kartu h2{ margin:0 0 6px; font-size:20px }
+  .kartu p{ margin:6px 0 16px; color:#bdb8ad; font-size:13.5px; line-height:1.55 }
+  .kartu .row{ display:flex; gap:10px; justify-content:center; flex-wrap:wrap }
+  .kredit{ margin-top:14px; font-size:11px; color:#8d8778 }
+  @media (max-width:480px){ #kartuku .k{ width:52px; height:80px; font-size:20px; margin:0 -16px } }
+</style>
+</head>
+<body>
+<div id="hud">
+  <div class="bar">
+    <b id="judul">UMI GAME 3D</b>
+    <div class="sp"></div>
+    <button id="btnBantuan" title="Bantuan">❓</button>
+    <button id="btnSuara" title="Suara">🔊</button>
+    <button id="btnKembali" style="display:none">🏠 Lobby</button>
+  </div>
+  <div id="pesan"></div>
+</div>
+<div id="skor"><div>Catur</div><div id="skorTeks"></div></div>
+<div id="kartuku"></div>
+<div id="modal"><div class="kartu" id="modalIsi"></div></div>
+
+<script src="three.min.js"></script>
+<script>window.THREE||document.write('<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"><\/script>')</script>
+<script>window.THREE||document.write('<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/build/three.min.js"><\/script>')</script>
+<script>
+if (typeof THREE === 'undefined') {
+  document.addEventListener('DOMContentLoaded', function () {
+    document.body.insertAdjacentHTML('beforeend',
+      '<div style="position:fixed;inset:0;display:flex;align-items:center;justify-content:center;background:#0d0e11;color:#ffb4b4;font:700 15px system-ui;text-align:center;padding:24px">' +
+      '⚠️ Library 3D gagal dimuat (jaringan memblokir). Muat ulang halaman atau buka lewat jaringan lain.</div>');
+  });
+} else {
+'use strict';
+/* ═══════════════════════════════════════════════════════════════
+   UMI GAME 3D — lobby + Catur 3D + UNO 3D
+   Animasi (tween), bayangan (shadow map), sound effect (WebAudio).
+   ═══════════════════════════════════════════════════════════════ */
+
+/* ── Sound effect (WebAudio, tanpa berkas) ───────────────────────────── */
+const FX = (() => {
+  let ctx = null, aktif = true;
+  function ac() { if (!ctx) { try { ctx = new (window.AudioContext || window.webkitAudioContext)() } catch { return null } } if (ctx.state === 'suspended') ctx.resume(); return ctx }
+  function nada(freq, dur, tipe, vol, delay) {
+    const c = ac(); if (!c) return;
+    const t0 = c.currentTime + (delay || 0);
+    const o = c.createOscillator(), g = c.createGain();
+    o.type = tipe || 'sine'; o.frequency.setValueAtTime(freq, t0);
+    g.gain.setValueAtTime(0, t0);
+    g.gain.linearRampToValueAtTime(vol || .16, t0 + .012);
+    g.gain.exponentialRampToValueAtTime(.0001, t0 + dur);
+    o.connect(g); g.connect(c.destination); o.start(t0); o.stop(t0 + dur + .05);
+  }
+  function derau(dur, vol, freq, q) {
+    const c = ac(); if (!c) return;
+    const t0 = c.currentTime;
+    const src = c.createBufferSource();
+    const buf = c.createBuffer(1, c.sampleRate * dur, c.sampleRate);
+    const d = buf.getChannelData(0);
+    for (let i = 0; i < d.length; i++) d[i] = (Math.random() * 2 - 1) * (1 - i / d.length);
+    src.buffer = buf;
+    const f = c.createBiquadFilter(); f.type = 'bandpass'; f.frequency.value = freq || 1800; f.Q.value = q || 1;
+    const g = c.createGain(); g.gain.value = vol || .3;
+    src.connect(f); f.connect(g); g.connect(c.destination); src.start(t0);
+  }
+  return {
+    set(v) { aktif = !!v },
+    get() { return aktif },
+    main(nama) {
+      if (!aktif) return;
+      switch (nama) {
+        case 'klik': nada(660, .08, 'triangle', .12); break;
+        case 'langkah': derau(.09, .34, 1500, 1.4); nada(190, .07, 'sine', .14); break;
+        case 'makan': derau(.16, .4, 900, .8); nada(140, .14, 'square', .1); break;
+        case 'check': nada(880, .12, 'square', .12); nada(1174, .16, 'square', .1, .09); break;
+        case 'mati': nada(392, .18, 'sawtooth', .12); nada(311, .22, 'sawtooth', .12, .16); nada(233, .5, 'sawtooth', .14, .34); break;
+        case 'kartu': derau(.12, .3, 3200, 2); nada(520, .07, 'triangle', .08); break;
+        case 'tarik': derau(.2, .26, 2400, 1.6); break;
+        case 'uno': nada(784, .1, 'square', .12); nada(1046, .1, 'square', .12, .1); nada(1318, .22, 'square', .12, .2); break;
+        case 'menang': [523, 659, 784, 1046, 1318].forEach((f, i) => nada(f, .3, 'triangle', .14, i * .12)); break;
+        case 'gagal': nada(160, .25, 'sawtooth', .12); break;
+        case 'pilih': nada(880, .07, 'sine', .1); break;
+      }
+    },
+  };
+})();
+
+/* ── Pesan HUD ───────────────────────────────────────────────────────── */
+let timerPesan = null;
+function pesan(teks, detik) {
+  const el = document.getElementById('pesan');
+  el.textContent = teks; el.classList.add('tampil');
+  clearTimeout(timerPesan);
+  timerPesan = setTimeout(() => el.classList.remove('tampil'), (detik || 2.6) * 1000);
+}
+function modal(html) {
+  const m = document.getElementById('modal');
+  document.getElementById('modalIsi').innerHTML = html;
+  m.classList.add('tampil');
+}
+document.getElementById('modal').addEventListener('click', (e) => {
+  if (e.target.id === 'modal') e.currentTarget.classList.remove('tampil');
+});
+
+/* ── Tween animasi ───────────────────────────────────────────────────── */
+const tweens = [];
+function tween(op, prop, ke, dur, selesai, ease) {
+  const dari = op[prop];
+  tweens.push({ op, prop, dari, ke, dur, t: 0, selesai, ease: ease || ((x) => 1 - Math.pow(1 - x, 3)) });
+}
+function updateTweens(dt) {
+  for (let i = tweens.length - 1; i >= 0; i--) {
+    const t = tweens[i];
+    t.t += dt;
+    const k = Math.min(1, t.t / t.dur);
+    if (Array.isArray(t.ke)) {
+      for (let j = 0; j < 3; j++) t.op[t.prop][j] = t.dari[j] + (t.ke[j] - t.dari[j]) * t.ease(k);
+    } else {
+      t.op[t.prop] = t.dari + (t.ke - t.dari) * t.ease(k);
+    }
+    if (k >= 1) { tweens.splice(i, 1); if (t.selesai) t.selesai(); }
+  }
+}
+const tunggu = (ms) => new Promise((r) => setTimeout(r, ms));
+
+/* ── Renderer, scene, cahaya (bayangan) ──────────────────────────────── */
+const renderer = new THREE.WebGLRenderer({ antialias: true });
+renderer.setPixelRatio(Math.min(devicePixelRatio || 1, 2));
+renderer.shadowMap.enabled = true;
+renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+renderer.outputEncoding = THREE.sRGBEncoding;
+document.body.appendChild(renderer.domElement);
+
+const scene = new THREE.Scene();
+scene.background = new THREE.Color(0x0d0e11);
+scene.fog = new THREE.Fog(0x0d0e11, 34, 85);
+
+const kamera = new THREE.PerspectiveCamera(50, innerWidth / innerHeight, .1, 100);
+/* kamera adaptif rasio layar: portrait sempit → mundur supaya muat */
+function pasangKamera(px, py, pz, lx, ly, lz) {
+  const m = Math.max(1, .85 / kamera.aspect);
+  kamera.position.set(px * m, py * m, pz * m);
+  kamera.lookAt(lx, ly, lz);
+}
+pasangKamera(0, 9, 11, 0, 0, 0);
+
+scene.add(new THREE.AmbientLight(0xbfd0e8, .45));
+const lampu = new THREE.DirectionalLight(0xfff3dd, 1.05);
+lampu.position.set(6, 12, 5);
+lampu.castShadow = true;
+lampu.shadow.mapSize.set(2048, 2048);
+lampu.shadow.camera.left = -10; lampu.shadow.camera.right = 10;
+lampu.shadow.camera.top = 10; lampu.shadow.camera.bottom = -10;
+lampu.shadow.camera.far = 40;
+lampu.shadow.bias = -0.0004;
+scene.add(lampu);
+const lampuBiru = new THREE.PointLight(0x6fb6ff, .5, 30);
+lampuBiru.position.set(-7, 5, -5);
+scene.add(lampuBiru);
+
+/* lantai */
+const lantai = new THREE.Mesh(
+  new THREE.PlaneGeometry(60, 60),
+  new THREE.MeshStandardMaterial({ color: 0x14161b, roughness: .92, metalness: .04 })
+);
+lantai.rotation.x = -Math.PI / 2;
+lantai.receiveShadow = true;
+scene.add(lantai);
+
+function resize() {
+  const w = document.documentElement.clientWidth || innerWidth;
+  const h = document.documentElement.clientHeight || innerHeight;
+  renderer.setSize(w, h);
+  kamera.aspect = w / h;
+  kamera.updateProjectionMatrix();
+  if (mode === 'catur') pasangKamera(0, 10.5, 7.6, 0, 0, 0);
+  else if (mode === 'uno') pasangKamera(0, 8.6, 6.4, 0, .5, 0);
+  else pasangKamera(0, 9, 11, 0, 0, 0);
+}
+addEventListener('resize', resize);
+addEventListener('orientationchange', () => setTimeout(resize, 150));
+
+/* raycaster & input */
+const ray = new THREE.Raycaster();
+const tetikus = new THREE.Vector2();
+let mode = 'lobby'; /* lobby | catur | uno */
+resize();
+let fokusRay = [];          /* objek yang bisa diklik */
+function posPointer(e) {
+  const t = e.touches ? e.touches[0] : e;
+  tetikus.x = (t.clientX / innerWidth) * 2 - 1;
+  tetikus.y = -(t.clientY / innerHeight) * 2 + 1;
+}
+function daftarRay() {
+  if (mode === 'catur') return grupCatur.children;
+  if (mode === 'uno') return grupUno.children;
+  return grupLobby.children;
+}
+function klikObjek(handler) {
+  const f = (e) => {
+    if (document.getElementById('modal').classList.contains('tampil')) return;
+    posPointer(e);
+    ray.setFromCamera(tetikus, kamera);
+    const kena = ray.intersectObjects(daftarRay(), true);
+    if (kena.length) {
+      let o = kena[0].object;
+      while (o && !o.userData.klik && o.parent) o = o.parent;
+      if (o && o.userData.klik) handler(o, kena[0]);
+    }
+  };
+  renderer.domElement.addEventListener('click', f);
+  renderer.domElement.addEventListener('touchstart', (e) => { f(e) }, { passive: true });
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   LOBBY — meja kayu dengan papan catur & tumpukan UNO (bisa diklik)
+   ═══════════════════════════════════════════════════════════════ */
+const grupLobby = new THREE.Group();
+scene.add(grupLobby);
+let rotasiKamera = 0;
+
+function buatMeja() {
+  const g = new THREE.Group();
+  const kayu = new THREE.MeshStandardMaterial({ color: 0x6b4a2f, roughness: .7, metalness: .05 });
+  const meja = new THREE.Mesh(new THREE.CylinderGeometry(5.4, 5.1, .5, 48), kayu);
+  meja.position.y = .25; meja.castShadow = true; meja.receiveShadow = true;
+  g.add(meja);
+  const kaki = new THREE.Mesh(new THREE.CylinderGeometry(.5, .8, 2.4, 20),
+    new THREE.MeshStandardMaterial({ color: 0x3d2b1c, roughness: .85 }));
+  kaki.position.y = -1.2; kaki.castShadow = true;
+  g.add(kaki);
+  return g;
+}
+
+/* papan catur mini di lobby */
+function buatPapanMini() {
+  const g = new THREE.Group();
+  for (let x = 0; x < 8; x++) for (let z = 0; z < 8; z++) {
+    const kotak = new THREE.Mesh(
+      new THREE.BoxGeometry(.5, .12, .5),
+      new THREE.MeshStandardMaterial({ color: (x + z) % 2 ? 0x2b2118 : 0xe8dcc3, roughness: .6 })
+    );
+    kotak.position.set((x - 3.5) * .5, .38, (z - 3.5) * .5);
+    kotak.castShadow = true; kotak.receiveShadow = true;
+    g.add(kotak);
+  }
+  g.userData.klik = 'catur';
+  return g;
+}
+
+/* tumpukan kartu UNO di lobby */
+function buatTumpukanMini() {
+  const g = new THREE.Group();
+  const warna = [0xe5484d, 0x3b82f6, 0x22c55e, 0xf5c518];
+  for (let i = 0; i < 8; i++) {
+    const kartu = new THREE.Mesh(
+      new THREE.BoxGeometry(1.1, .05, 1.65),
+      new THREE.MeshStandardMaterial({ color: warna[i % 4], roughness: .45 })
+    );
+    kartu.position.set(0, .42 + i * .06, 0);
+    kartu.rotation.y = (Math.random() - .5) * .18;
+    kartu.castShadow = true; kartu.receiveShadow = true;
+    g.add(kartu);
+  }
+  g.userData.klik = 'uno';
+  return g;
+}
+
+function bangunLobby() {
+  grupLobby.clear();
+  fokusRay = [];
+  const meja = buatMeja();
+  grupLobby.add(meja);
+  const papan = buatPapanMini();
+  papan.position.set(-1.9, .5, 0);
+  grupLobby.add(papan);
+  const uno = buatTumpukanMini();
+  uno.position.set(1.9, .5, 0);
+  grupLobby.add(uno);
+  fokusRay.push(papan, uno);
+  pesan('Ketuk papan catur ♟️ atau tumpukan UNO 🃏 untuk mulai', 4);
+}
+
+klikObjek((o) => {
+  if (mode !== 'lobby') return;
+  FX.main('pilih');
+  if (o.userData.klik === 'catur') mulaiCatur();
+  if (o.userData.klik === 'uno') mulaiUno();
+});
+
+/* ═══════════════════════════════════════════════════════════════
+   CATUR 3D — aturan lengkap dasar, bayangan bidak, animasi, bot
+   ═══════════════════════════════════════════════════════════════ */
+const grupCatur = new THREE.Group();
+scene.add(grupCatur);
+const P = { /* permainan catur */
+  papan: [],       /* 8x8: {t:'p', w:'w'|'b'} | null */
+  giliran: 'w', pilih: null, sah: [], selesai: false,
+  bidak: {},       /* key 'r0c4' → mesh */
+  mode: 'komputer',
+  skor: { w: 0, b: 0 },
+};
+const TIPE = { p: 'pion', r: 'benteng', n: 'kuda', b: 'gajah', q: 'ratu', k: 'raja' };
+
+function kosongkanPapan() {
+  P.papan = Array.from({ length: 8 }, () => Array(8).fill(null));
+}
+
+function posisiAwal() {
+  kosongkanPapan();
+  const belakang = ['r', 'n', 'b', 'q', 'k', 'b', 'n', 'r'];
+  for (let c = 0; c < 8; c++) {
+    P.papan[0][c] = { t: belakang[c], w: 'b' };
+    P.papan[1][c] = { t: 'p', w: 'b' };
+    P.papan[6][c] = { t: 'p', w: 'w' };
+    P.papan[7][c] = { t: belakang[c], w: 'w' };
+  }
+}
+
+/* geometri bidak 3D sederhana tapi berkarakter */
+function meshBidak(t, w) {
+  const putih = w === 'w';
+  const mat = new THREE.MeshStandardMaterial({
+    color: putih ? 0xf1e7d3 : 0x23262b,
+    roughness: .38, metalness: .12,
+  });
+  const matAksen = new THREE.MeshStandardMaterial({
+    color: putih ? 0xd8c9a8 : 0x0e0f12, roughness: .5, metalness: .1,
+  });
+  const g = new THREE.Group();
+  const alas = new THREE.Mesh(new THREE.CylinderGeometry(.34, .4, .16, 24), matAksen);
+  alas.position.y = .08; g.add(alas);
+  let badan;
+  if (t === 'p') {
+    badan = new THREE.Mesh(new THREE.SphereGeometry(.2, 20, 16), mat);
+    badan.position.y = .42;
+    const leher = new THREE.Mesh(new THREE.CylinderGeometry(.1, .17, .3, 16), mat);
+    leher.position.y = .24; g.add(leher);
+  } else if (t === 'r') {
+    badan = new THREE.Mesh(new THREE.BoxGeometry(.44, .5, .44), mat);
+    badan.position.y = .4;
+    const mahkota = new THREE.Mesh(new THREE.BoxGeometry(.5, .12, .5), matAksen);
+    mahkota.position.y = .7; g.add(mahkota);
+  } else if (t === 'n') {
+    badan = new THREE.Mesh(new THREE.ConeGeometry(.24, .6, 4), mat);
+    badan.position.y = .45; badan.rotation.y = Math.PI / 4;
+    const kepala = new THREE.Mesh(new THREE.SphereGeometry(.14, 14, 12), mat);
+    kepala.position.set(0, .78, .1); g.add(kepala);
+  } else if (t === 'b') {
+    badan = new THREE.Mesh(new THREE.ConeGeometry(.22, .62, 20), mat);
+    badan.position.y = .45;
+    const titik = new THREE.Mesh(new THREE.SphereGeometry(.07, 10, 8), matAksen);
+    titik.position.y = .8; g.add(titik);
+  } else if (t === 'q') {
+    badan = new THREE.Mesh(new THREE.CylinderGeometry(.14, .26, .6, 20), mat);
+    badan.position.y = .46;
+    const mahkota = new THREE.Mesh(new THREE.SphereGeometry(.17, 16, 12), matAksen);
+    mahkota.position.y = .82; g.add(mahkota);
+  } else { /* raja */
+    badan = new THREE.Mesh(new THREE.CylinderGeometry(.15, .28, .66, 20), mat);
+    badan.position.y = .48;
+    const salib1 = new THREE.Mesh(new THREE.BoxGeometry(.06, .26, .06), matAksen);
+    salib1.position.y = .92;
+    const salib2 = new THREE.Mesh(new THREE.BoxGeometry(.2, .06, .06), matAksen);
+    salib2.position.y = .95; g.add(salib1); g.add(salib2);
+  }
+  badan.castShadow = true; badan.receiveShadow = true;
+  alas.castShadow = true; alas.receiveShadow = true;
+  g.add(badan);
+  g.traverse((o) => { if (o.isMesh) { o.castShadow = true; o.receiveShadow = true } });
+  return g;
+}
+
+const xy = (r, c) => ({ x: (c - 3.5) * .9, z: (r - 3.5) * .9 });
+
+function letakkanBidak() {
+  for (const k in P.bidak) grupCatur.remove(P.bidak[k]);
+  P.bidak = {};
+  for (let r = 0; r < 8; r++) for (let c = 0; c < 8; c++) {
+    const isi = P.papan[r][c];
+    if (!isi) continue;
+    const m = meshBidak(isi.t, isi.w);
+    const pos = xy(r, c);
+    m.position.set(pos.x, .32, pos.z);
+    m.userData = { r, c, klik: 'bidak' };
+    grupCatur.add(m);
+    P.bidak[r + '_' + c] = m;
+  }
+}
+
+/* ── generator langkah ── */
+function dalam(r, c) { return r >= 0 && r < 8 && c >= 0 && c < 8 }
+function langkahPion(papan, r, c, w, sekali) {
+  const hasil = [];
+  const arah = w === 'w' ? -1 : 1;
+  const mulai = w === 'w' ? 6 : 1;
+  if (dalam(r + arah, c) && !papan[r + arah][c]) {
+    hasil.push([r + arah, c]);
+    if (r === mulai && !papan[r + 2 * arah][c]) hasil.push([r + 2 * arah, c]);
+  }
+  for (const dc of [-1, 1]) {
+    const rr = r + arah, cc = c + dc;
+    if (dalam(rr, cc) && papan[rr][cc] && papan[rr][cc].w !== w) hasil.push([rr, cc]);
+  }
+  if (sekali) return hasil;
+  return hasil;
+}
+function langkahLancar(papan, r, c, w, arah) {
+  const hasil = [];
+  let rr = r + arah[0], cc = c + arah[1];
+  while (dalam(rr, cc)) {
+    if (!papan[rr][cc]) hasil.push([rr, cc]);
+    else { if (papan[rr][cc].w !== w) hasil.push([rr, cc]); break }
+    rr += arah[0]; cc += arah[1];
+  }
+  return hasil;
+}
+function semuaLangkah(papan, r, c) {
+  const isi = papan[r][c];
+  if (!isi) return [];
+  const w = isi.w;
+  const hasil = [];
+  if (isi.t === 'p') return langkahPion(papan, r, c, w);
+  if (isi.t === 'r') {
+    [[1, 0], [-1, 0], [0, 1], [0, -1]].forEach((a) => hasil.push(...langkahLancar(papan, r, c, w, a)));
+  } else if (isi.t === 'b') {
+    [[1, 1], [1, -1], [-1, 1], [-1, -1]].forEach((a) => hasil.push(...langkahLancar(papan, r, c, w, a)));
+  } else if (isi.t === 'q') {
+    [[1, 0], [-1, 0], [0, 1], [0, -1], [1, 1], [1, -1], [-1, 1], [-1, -1]].forEach((a) => hasil.push(...langkahLancar(papan, r, c, w, a)));
+  } else if (isi.t === 'n') {
+    [[2, 1], [2, -1], [-2, 1], [-2, -1], [1, 2], [1, -2], [-1, 2], [-1, -2]].forEach(([dr, dc]) => {
+      const rr = r + dr, cc = c + dc;
+      if (dalam(rr, cc) && (!papan[rr][cc] || papan[rr][cc].w !== w)) hasil.push([rr, cc]);
+    });
+  } else if (isi.t === 'k') {
+    [[1, 0], [-1, 0], [0, 1], [0, -1], [1, 1], [1, -1], [-1, 1], [-1, -1]].forEach(([dr, dc]) => {
+      const rr = r + dr, cc = c + dc;
+      if (dalam(rr, cc) && (!papan[rr][cc] || papan[rr][cc].w !== w)) hasil.push([rr, cc]);
+    });
+  }
+  return hasil;
+}
+
+function cekRaja(papan, w) {
+  let raja = null;
+  for (let r = 0; r < 8; r++) for (let c = 0; c < 8; c++) {
+    const i = papan[r][c];
+    if (i && i.t === 'k' && i.w === w) raja = [r, c];
+  }
+  if (!raja) return false;
+  for (let r = 0; r < 8; r++) for (let c = 0; c < 8; c++) {
+    const i = papan[r][c];
+    if (!i || i.w === w) continue;
+    if (i.t === 'p') {
+      const arah = i.w === 'w' ? -1 : 1;
+      if (r + arah === raja[0] && Math.abs(c - raja[1]) === 1) return true;
+    } else if (semuaLangkah(papan, r, c).some(([rr, cc]) => rr === raja[0] && cc === raja[1])) return true;
+  }
+  return false;
+}
+function langkahSah(papan, r, c) {
+  const isi = papan[r][c];
+  if (!isi) return [];
+  return semuaLangkah(papan, r, c).filter(([rr, cc]) => {
+    const salinan = papan.map((baris) => baris.slice());
+    salinan[rr][cc] = salinan[r][c];
+    salinan[r][c] = null;
+    return !cekRaja(salinan, isi.w);
+  });
+}
+
+/* ── animasi & alur catur ── */
+function animBidakDariKe(mesh, r0, c0, r1, c1, selesai) {
+  const a = xy(r0, c0), b = xy(r1, c1);
+  mesh.position.x = a.x; mesh.position.z = a.z;
+  tween(mesh.position, 'x', b.x, .34, null);
+  tween(mesh.position, 'z', b.z, .34, () => { mesh.userData.r = r1; mesh.userData.c = c1; if (selesai) selesai() });
+  /* efek angkat saat melangkah */
+  const yAsli = mesh.position.y;
+  tween(mesh.position, 'y', yAsli + .35, .17, () => tween(mesh.position, 'y', yAsli, .17));
+}
+
+function konfirmasiLangkah(r0, c0, r1, c1) {
+  const isi = P.papan[r0][c0];
+  const korban = P.papan[r1][c1];
+  P.papan[r1][c1] = isi;
+  P.papan[r0][c0] = null;
+  /* pion jadi ratu di baris akhir */
+  let promosi = false;
+  if (isi.t === 'p' && (r1 === 0 || r1 === 7)) { isi.t = 'q'; promosi = true }
+
+  const mesh = P.bidak[r0 + '_' + c0];
+  delete P.bidak[r0 + '_' + c0];
+  if (korban) {
+    const meshKorban = P.bidak[r1 + '_' + c1];
+    delete P.bidak[r1 + '_' + c1];
+    if (meshKorban) {
+      FX.main('makan');
+      tween(meshKorban.scale, 'x', .01, .3);
+      tween(meshKorban.scale, 'y', .01, .3);
+      tween(meshKorban.scale, 'z', .01, .3, () => grupCatur.remove(meshKorban));
+    }
+  } else FX.main('langkah');
+  P.bidak[r1 + '_' + c1] = mesh;
+
+  animBidakDariKe(mesh, r0, c0, r1, c1, () => {
+    if (promosi) {
+      grupCatur.remove(mesh);
+      delete P.bidak[r1 + '_' + c1];
+      const baru = meshBidak('q', isi.w);
+      const pos = xy(r1, c1);
+      baru.position.set(pos.x, .32, pos.z);
+      baru.userData = { r: r1, c: r1 === r1 ? c1 : c1, klik: 'bidak' };
+      baru.userData.r = r1; baru.userData.c = c1;
+      grupCatur.add(baru);
+      P.bidak[r1 + '_' + c1] = baru;
+      pesan('Promosi! Pion menjadi Ratu 👑');
+    }
+    setelahLangkah(r1, c1);
+  });
+}
+
+function setelahLangkah(r1, c1) {
+  const lawan = P.giliran === 'w' ? 'b' : 'w';
+  P.giliran = lawan;
+  const dalamBahaya = cekRaja(P.papan, lawan);
+  const adaLangkah = adaLangkahSah(lawan);
+  if (!adaLangkah) {
+    const menang = lawan === 'w' ? 'b' : 'w';
+    P.selesai = true;
+    P.skor[menang]++;
+    FX.main(dalamBahaya ? 'mati' : 'menang');
+    pesan((menang === 'w' ? 'Putih' : 'Hitam') + ' menang! 🏆', 5);
+    tampilkanSkor();
+    setTimeout(() => { mode = 'lobby'; window.__keLobby() }, 3200);
+    return;
+  }
+  if (dalamBahaya) { FX.main('check'); pesan('Skak! ♚', 2); }
+  if (mode === 'catur' && P.mode === 'komputer' && P.giliran === 'b' && !P.selesai) {
+    setTimeout(botCatur, 620);
+  }
+}
+
+function adaLangkahSah(w) {
+  for (let r = 0; r < 8; r++) for (let c = 0; c < 8; c++) {
+    const i = P.papan[r][c];
+    if (i && i.w === w && langkahSah(P.papan, r, c).length) return true;
+  }
+  return false;
+}
+
+function botCatur() {
+  if (mode !== 'catur' || P.selesai) return;
+  const kandidat = [];
+  for (let r = 0; r < 8; r++) for (let c = 0; c < 8; c++) {
+    const i = P.papan[r][c];
+    if (!i || i.w !== 'b') continue;
+    for (const [rr, cc] of langkahSah(P.papan, r, c)) {
+      const nilai = (P.papan[rr][cc] ? { p: 10, n: 32, b: 33, r: 50, q: 90, k: 200 }[P.papan[rr][cc].t] : 0)
+        + Math.random() * 14;
+      kandidat.push({ r, c, rr, cc, nilai });
+    }
+  }
+  if (!kandidat.length) return;
+  kandidat.sort((a, b) => b.nilai - a.nilai);
+  const pilih = kandidat[0];
+  konfirmasiLangkah(pilih.r, pilih.c, pilih.rr, pilih.cc);
+}
+
+function pilihBidak(mesh) {
+  if (P.selesai) return;
+  const r = mesh.userData.r, c = mesh.userData.c;
+  const isi = P.papan[r][c];
+  if (!isi) return;
+  if (P.giliran !== 'w') { pesan('Giliran komputer…'); return }
+  if (isi.w !== P.giliran) {
+    /* kalau ada pilihan sah → coba langkah */
+    if (P.pilih && P.sah.some(([rr, cc]) => rr === r && cc === c)) {
+      konfirmasiLangkah(P.pilih[0], P.pilih[1], r, c);
+      bersihkanPilihan();
+      return;
+    }
+    FX.main('gagal'); pesan('Bidak lawan — pilih milikmu dulu'); return;
+  }
+  const sah = langkahSah(P.papan, r, c);
+  if (!sah.length) { FX.main('gagal'); pesan('Tidak ada langkah sah'); return }
+  FX.main('klik');
+  bersihkanPilihan();
+  P.pilih = [r, c];
+  P.sah = sah;
+  /* sorot */
+  for (const [rr, cc] of sah) {
+    const sorot = new THREE.Mesh(
+      new THREE.CircleGeometry(.28, 24),
+      new THREE.MeshBasicMaterial({ color: 0x4ade80, transparent: true, opacity: .55 })
+    );
+    const pos = xy(rr, cc);
+    sorot.rotation.x = -Math.PI / 2;
+    sorot.position.set(pos.x, .34, pos.z);
+    sorot.userData.sorot = true;
+    grupCatur.add(sorot);
+  }
+  tween(mesh.position, 'y', .5, .14, () => tween(mesh.position, 'y', .32, .12));
+}
+function bersihkanPilihan() {
+  P.pilih = null; P.sah = [];
+  for (let i = grupCatur.children.length - 1; i >= 0; i--) {
+    if (grupCatur.children[i].userData.sorot) grupCatur.remove(grupCatur.children[i]);
+  }
+}
+
+function fokusLobbySetelahSelesai() { bangunLobby(); tampilkanJudul('UMI GAME 3D') }
+
+function mulaiCatur() {
+  mode = 'catur';
+  grupLobby.visible = false;
+  grupUno.visible = false;
+  grupCatur.visible = true;
+  grupCatur.clear();
+  fokusRay = [];
+  posisiAwal();
+  P.giliran = 'w'; P.pilih = null; P.sah = []; P.selesai = false; P.mode = 'komputer';
+  P.bidak = {};
+  /* papan */
+  for (let x = 0; x < 8; x++) for (let z = 0; z < 8; z++) {
+    const kotak = new THREE.Mesh(
+      new THREE.BoxGeometry(.9, .16, .9),
+      new THREE.MeshStandardMaterial({ color: (x + z) % 2 ? 0x4a3826 : 0xdfd2b4, roughness: .55 })
+    );
+    const pos = xy(z, x);
+    kotak.position.set(pos.x, .08, pos.z);
+    kotak.receiveShadow = true;
+    grupCatur.add(kotak);
+  }
+  /* bingkai */
+  const bingkai = new THREE.Mesh(
+    new THREE.BoxGeometry(8.2, .5, 8.2),
+    new THREE.MeshStandardMaterial({ color: 0x2a1f14, roughness: .7 })
+  );
+  bingkai.position.y = -.06;
+  bingkai.castShadow = true; bingkai.receiveShadow = true;
+  grupCatur.add(bingkai);
+  letakkanBidak();
+  tampilkanSkor();
+  tampilkanJudul('♟️ CATUR 3D');
+  pesan('Giliranmu — ketuk bidak putih. Lawan: komputer.', 3.4);
+  /* kamera menyorot papan */
+  pasangKamera(0, 10.5, 7.6, 0, 0, 0);
+  /* mode interaksi */
+  klikCaturAktif = true;
+}
+let klikCaturAktif = false;
+
+function tampilkanSkor() {
+  const el = document.getElementById('skor');
+  el.style.display = mode === 'catur' ? 'flex' : 'none';
+  document.getElementById('skorTeks').textContent = `Putih ${P.skor.w} — ${P.skor.b} Hitam`;
+}
+function tampilkanJudul(t) { document.getElementById('judul').textContent = t }
+
+/* input catur (dipanggil dari ray global) */
+klikObjek((o) => {
+  if (mode !== 'catur') return;
+  if (o.userData.klik === 'bidak') pilihBidak(o);
+});
+
+/* ═══════════════════════════════════════════════════════════════
+   UNO 3D — meja bulat, kartu dengan bayangan, lawan bot, animasi
+   ═══════════════════════════════════════════════════════════════ */
+const grupUno = new THREE.Group();
+scene.add(grupUno);
+const U = {
+  pemain: [],      /* [{nama, tangan:[kartu], bot}] */
+  tumpukan: [],    /* draw pile */
+  tumpukBuang: [],
+  warna: null,     /* aktif: merah|biru|hijau|kuning */
+  giliran: 0, selesai: false,
+  arah: 1, ditarik: false,
+  kartuAktifMesh: null,
+  meja: null,
+};
+const WARNA_HEX = { merah: 0xe5484d, biru: 0x3b82f6, hijau: 0x22c55e, kuning: 0xf5c518 };
+const WARNA_NAMA = { merah: 'Merah', biru: 'Biru', hijau: 'Hijau', kuning: 'Kuning' };
+
+function buatDeck() {
+  const deck = [];
+  const warna = ['merah', 'biru', 'hijau', 'kuning'];
+  for (const w of warna) {
+    for (let n = 0; n <= 9; n++) {
+      deck.push({ w, n });
+      if (n > 0) deck.push({ w, n });
+    }
+    for (let i = 0; i < 2; i++) {
+      deck.push({ w, n: 'skip', aksi: 'skip' });
+      deck.push({ w, n: 'balik', aksi: 'balik' });
+      deck.push({ w, n: '+2', aksi: 'tarik2' });
+    }
+  }
+  for (let i = 0; i < 4; i++) {
+    deck.push({ w: 'liar', n: 'bebas', aksi: 'liar' });
+    deck.push({ w: 'liar', n: '+4', aksi: 'liar4' });
+  }
+  /* acak Fisher–Yates */
+  for (let i = deck.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    const t = deck[i]; deck[i] = deck[j]; deck[j] = t;
+  }
+  return deck;
+}
+
+/* tekstur kartu via kanvas (tanpa berkas) */
+function teksturKartu(warna, nilai) {
+  const cv = document.createElement('canvas');
+  cv.width = 128; cv.height = 192;
+  const x = cv.getContext('2d');
+  const hex = { merah: '#e5484d', biru: '#3b82f6', hijau: '#22c55e', kuning: '#f5c518', liar: '#17181d' }[warna];
+  x.fillStyle = hex; x.fillRect(0, 0, 128, 192);
+  x.strokeStyle = '#fff'; x.lineWidth = 7; x.strokeRect(5, 5, 118, 182);
+  x.fillStyle = '#ffffffd9';
+  x.beginPath(); x.ellipse(64, 96, 44, 62, 0, 0, Math.PI * 2); x.fill();
+  x.fillStyle = hex;
+  x.font = '900 44px system-ui, sans-serif';
+  x.textAlign = 'center'; x.textBaseline = 'middle';
+  const teks = String(nilai);
+  x.fillText(teks.length > 2 ? (nilai === 'bebas' ? '★' : nilai) : teks, 64, 98);
+  /* sudut kecil */
+  x.fillStyle = '#ffffffcc';
+  x.font = '900 20px system-ui, sans-serif';
+  x.fillText(teks.length > 2 ? (nilai === 'bebas' ? '★' : nilai) : teks, 18, 26);
+  const tex = new THREE.CanvasTexture(cv);
+  tex.anisotropy = 4;
+  return tex;
+}
+
+function meshKartu(kartu, belakang) {
+  const g = new THREE.Group();
+  const sisi = belakang
+    ? new THREE.MeshStandardMaterial({ color: 0xb91c1c, roughness: .5 })
+    : new THREE.MeshStandardMaterial({ map: teksturKartu(kartu.w, kartu.n), roughness: .42 });
+  const muka = new THREE.Mesh(new THREE.BoxGeometry(1.05, .04, 1.58), sisi);
+  muka.castShadow = true; muka.receiveShadow = true;
+  g.add(muka);
+  if (!belakang) {
+    /* lapisan putih pinggir */
+    const tepi = new THREE.Mesh(new THREE.BoxGeometry(1.12, .03, 1.65),
+      new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: .5 }));
+    tepi.position.y = -.02;
+    tepi.castShadow = true;
+    g.add(tepi);
+  }
+  g.userData.kartu = kartu;
+  return g;
+}
+
+function bangunMejaUno() {
+  grupUno.clear();
+  fokusRay = [];
+  const meja = new THREE.Mesh(
+    new THREE.CylinderGeometry(5, 4.7, .45, 56),
+    new THREE.MeshStandardMaterial({ color: 0x1d3a2f, roughness: .8 })
+  );
+  meja.position.y = .22;
+  meja.castShadow = true; meja.receiveShadow = true;
+  grupUno.add(meja);
+  U.meja = meja;
+  /* tumpukan buang di tengah */
+  U.tumpukBuangMesh = new THREE.Group();
+  U.tumpukBuangMesh.position.y = .48;
+  grupUno.add(U.tumpukBuangMesh);
+  /* tumpukan tarik */
+  U.tumpukanMesh = new THREE.Group();
+  U.tumpukanMesh.position.set(-1.6, .48, 0);
+  for (let i = 0; i < 6; i++) {
+    const m = meshKartu(null, true);
+    m.position.y = i * .045;
+    m.rotation.y = (Math.random() - .5) * .1;
+    U.tumpukanMesh.add(m);
+  }
+  grupUno.add(U.tumpukanMesh);
+  fokusRay.push(U.tumpukanMesh);
+  U.tumpukanMesh.userData.klik = 'tumpukan';
+  /* kursi lawan (3 sisi) */
+  U.kursiMesh = [];
+  const namaKursi = ['Kamu', 'Bot Kanan', 'Bot Depan', 'Bot Kiri'];
+  for (let i = 1; i < 4; i++) {
+    const sudut = (i / 4) * Math.PI * 2 - Math.PI / 2;
+    const chip = new THREE.Mesh(
+      new THREE.CylinderGeometry(.55, .55, .18, 28),
+      new THREE.MeshStandardMaterial({ color: 0x2b2d33, roughness: .6 })
+    );
+    chip.position.set(Math.cos(sudut) * 4.1, .5, Math.sin(sudut) * 4.1);
+    chip.castShadow = true; chip.receiveShadow = true;
+    grupUno.add(chip);
+    /* jumlah kartu lawan */
+    const cv = document.createElement('canvas'); cv.width = 128; cv.height = 64;
+    const x = cv.getContext('2d');
+    x.fillStyle = '#101114'; x.fillRect(0, 0, 128, 64);
+    x.fillStyle = '#ffd166'; x.font = '900 30px system-ui'; x.textAlign = 'center';
+    x.fillText(namaKursi[i], 64, 40);
+    const tex = new THREE.CanvasTexture(cv);
+    const papan = new THREE.Mesh(new THREE.PlaneGeometry(1.6, .8),
+      new THREE.MeshBasicMaterial({ map: tex, transparent: true }));
+    papan.position.copy(chip.position); papan.position.y = 1.05;
+    papan.rotation.y = -sudut + Math.PI; /* menghadap tengah */
+    papan.rotation.x = 0;
+    grupUno.add(papan);
+    U.kursiMesh.push({ chip, papan, i });
+    /* tumpukan kartu tertutup lawan */
+    const tumpuk = new THREE.Group();
+    for (let k = 0; k < 4; k++) {
+      const kc = meshKartu(null, true);
+      kc.position.y = k * .05;
+      tumpuk.add(kc);
+    }
+    tumpuk.position.set(Math.cos(sudut) * 3.0, .5, Math.sin(sudut) * 3.0);
+    tumpuk.rotation.y = -sudut;
+    grupUno.add(tumpuk);
+    tumpuk.userData = { kartuLawan: true, kursi: i };
+    U.kursiMesh[i - 1].tumpuk = tumpuk;
+    fokusRay.push(tumpuk);
+  }
+}
+
+function warnaLabel(w) {
+  return w === 'liar' ? 'LIAR' : WARNA_NAMA[w];
+}
+
+function gambarTangan() {
+  const wadah = document.getElementById('kartuku');
+  const tangan = U.pemain[0] ? U.pemain[0].tangan : [];
+  wadah.style.display = mode === 'uno' ? 'flex' : 'none';
+  wadah.innerHTML = '';
+  tangan.forEach((k, i) => {
+    const el = document.createElement('div');
+    el.className = 'k';
+    const bg = k.w === 'liar' ? 'linear-gradient(135deg,#111,#444)' :
+      ({ merah: '#e5484d', biru: '#3b82f6', hijau: '#22c55e', kuning: '#f5c518' })[k.w];
+    el.style.background = bg;
+    el.textContent = k.n === 'bebas' ? '★' : k.n;
+    el.title = `${warnaLabel(k.w)} ${k.n}`;
+    el.onclick = () => mainkanKartu(0, i);
+    wadah.appendChild(el);
+  });
+  const info = document.createElement('div');
+  info.className = 'k kosong';
+  info.style.background = '#17181d';
+  info.style.fontSize = '12px';
+  info.style.fontWeight = '700';
+  info.textContent = `Giliran: ${namaPemain(U.giliran)}`;
+  if (U.giliran !== 0) info.style.borderColor = '#e5484d';
+  wadah.appendChild(info);
+}
+function namaPemain(i) {
+  return ['Kamu', 'Bot Kanan', 'Bot Depan', 'Bot Kiri'][i] || ('Pemain ' + i);
+}
+
+function buangKeTengah(kartu) {
+  while (U.tumpukBuangMesh.children.length > 1) U.tumpukBuangMesh.remove(U.tumpukBuangMesh.children[0]);
+  const m = meshKartu(kartu, false);
+  m.position.set((Math.random() - .5) * .2, U.tumpukBuangMesh.children.length * .05, (Math.random() - .5) * .2);
+  m.rotation.y = (Math.random() - .5) * .6;
+  U.tumpukBuangMesh.add(m);
+}
+
+function legalUno(kartu) {
+  const atas = U.tumpukBuang[U.tumpukBuang.length - 1];
+  if (!atas) return true;
+  if (kartu.w === 'liar') return true;
+  if (kartu.aksi === 'liar4') return true;
+  if (kartu.w === U.warna) return true;
+  if (kartu.n === atas.n) return true;
+  if (kartu.w === atas.w && kartu.n === atas.n) return true;
+  return false;
+}
+
+async function mainkanKartu(iPemain, idx) {
+  if (U.selesai || U.giliran !== iPemain) return;
+  const p = U.pemain[iPemain];
+  const kartu = p.tangan[idx];
+  if (!kartu || !legalUno(kartu)) {
+    if (kartu) { FX.main('gagal'); pesan('Kartu itu tidak cocok!'); }
+    return;
+  }
+  p.tangan.splice(idx, 1);
+  U.tumpukBuang.push(kartu);
+  if (kartu.w !== 'liar') U.warna = kartu.w;
+  FX.main('kartu');
+  buangKeTengah(kartu);
+  gambarTangan();
+  updateJumlahKartuLawan();
+
+  /* efek kartu terbang ke tengah */
+  pesan(`${namaPemain(iPemain)} memainkan ${warnaLabel(kartu.w)} ${kartu.n}`, 1.8);
+
+  if (kartu.aksi === 'skip') {
+    maju(); maju();
+    pesan('Giliran dilewati!', 1.6);
+  } else if (kartu.aksi === 'balik') {
+    U.arah *= -1;
+    maju();
+    pesan('Arah balik!', 1.6);
+  } else if (kartu.aksi === 'tarik2') {
+    const korban = (U.giliran + U.arah + 4) % 4;
+    tarikKartu(korban, 2);
+    FX.main('tarik');
+    pesan(`${namaPemain(korban)} menarik2 kartu`, 1.8);
+    maju(); maju();
+  } else if (kartu.aksi === 'liar' || kartu.aksi === 'liar4') {
+    if (kartu.aksi === 'liar4') {
+      const korban = (U.giliran + U.arah + 4) % 4;
+      tarikKartu(korban, 4);
+      pesan(`${namaPemain(korban)} menarik4 kartu!`, 1.8);
+      maju(); maju();
+    }
+    /* pilih warna */
+    if (iPemain === 0) {
+      U.warna = await pilihWarna();
+      pesan(`Warna dipilih: ${WARNA_NAMA[U.warna]}`, 1.8);
+      if (kartu.aksi === 'liar') maju();
+    } else {
+      /* bot pilih warna terbanyak di tangannya */
+      const hitung = { merah: 0, biru: 0, hijau: 0, kuning: 0 };
+      for (const k of p.tangan) if (hitung[k.w] !== undefined) hitung[k.w]++;
+      U.warna = Object.keys(hitung).sort((a, b) => hitung[b] - hitung[a])[0];
+      pesan(`Bot memilih warna ${WARNA_NAMA[U.warna]}`, 1.8);
+      if (kartu.aksi === 'liar') maju();
+    }
+  } else {
+    maju();
+  }
+
+  if (p.tangan.length === 0) {
+    U.selesai = true;
+    FX.main('menang');
+    const juara = namaPemain(iPemain);
+    pesan(`🏆 ${iPemain === 0 ? 'Kamu' : juara} MENANG!`, 6);
+    setTimeout(() => {
+      modal(`<h2>🏆 ${iPemain === 0 ? 'Kamu Menang!' : juara + ' Menang'}</h2>
+        <p>Permainan UNO selesai. Main lagi?</p>
+        <div class="row">
+          <button class="pri" onclick="window.__unoLagi()">Main Lagi</button>
+          <button onclick="window.__keLobby()">Lobby</button>
+        </div>`);
+    }, 900);
+    return;
+  }
+  gambarTangan();
+  cekGiliranBot();
+}
+
+function pilihWarna() {
+  return new Promise((resolve) => {
+    modal(`<h2>Pilih warna</h2>
+      <p>Kartu liar aktif — tentukan warna permainan.</p>
+      <div class="row">
+        <button style="background:#e5484d;border:none;font-weight:800" onclick="window.__warna('merah')">Merah</button>
+        <button style="background:#3b82f6;border:none;font-weight:800" onclick="window.__warna('biru')">Biru</button>
+        <button style="background:#22c55e;border:none;font-weight:800;color:#08130c" onclick="window.__warna('hijau')">Hijau</button>
+        <button style="background:#f5c518;border:none;font-weight:800;color:#17130a" onclick="window.__warna('kuning')">Kuning</button>
+      </div>`);
+    window.__warna = (w) => {
+      document.getElementById('modal').classList.remove('tampil');
+      resolve(w);
+    };
+  });
+}
+
+function tarikKartu(iPemain, jumlah) {
+  const p = U.pemain[iPemain];
+  for (let i = 0; i < jumlah; i++) {
+    if (!U.tumpukan.length) {
+      U.tumpukan = U.tumpukBuang.slice(0, -1);
+      U.tumpukBuang = U.tumpukBuang.slice(-1);
+      /* bangun ulang mesh tumpukan */
+      if (U.tumpukanMesh) {
+        U.tumpukanMesh.children.slice().forEach((c) => U.tumpukanMesh.remove(c));
+        U.tumpukan.slice(0, 6).forEach((k, i2) => {
+          const m = meshKartu(null, true);
+          m.position.y = i2 * .045;
+          U.tumpukanMesh.add(m);
+        });
+      }
+    }
+    if (!U.tumpukan.length) break;
+    p.tangan.push(U.tumpukan.pop());
+  }
+}
+
+function maju() {
+  U.giliran = (U.giliran + U.arah + 4) % 4;
+  gambarTangan();
+}
+
+async function cekGiliranBot() {
+  if (U.selesai || mode !== 'uno') return;
+  if (U.giliran === 0) { pesan('Giliranmu — ketuk kartu atau tumpukan tarik', 2.4); return }
+  await tunggu(750);
+  if (U.selesai || mode !== 'uno' || U.giliran === 0) return;
+  const p = U.pemain[U.giliran];
+  /* cari kartu legal */
+  let idx = p.tangan.findIndex((k) => legalUno(k));
+  if (idx >= 0) {
+    await mainkanKartu(U.giliran, idx);
+  } else {
+    tarikKartu(U.giliran, 1);
+    FX.main('tarik');
+    pesan(`${namaPemain(U.giliran)} menarik kartu`, 1.5);
+    gambarTangan(); updateJumlahKartuLawan();
+    await tunggu(500);
+    /* coba mainkan yang baru ditarik */
+    idx = p.tangan.findIndex((k) => legalUno(k));
+    if (idx >= 0) await mainkanKartu(U.giliran, idx);
+    else { maju(); cekGiliranBot(); }
+  }
+}
+
+function updateJumlahKartuLawan() {
+  for (const k of U.kursiMesh || []) {
+    const jumlah = U.pemain[k.i] ? U.pemain[k.i].tangan.length : 0;
+    if (!k.tumpuk) continue;
+    k.tumpuk.children.slice(jumlah).forEach((c) => k.tumpuk.remove(c));
+    while (k.tumpuk.children.length < Math.min(jumlah, 8)) {
+      const m = meshKartu(null, true);
+      m.position.y = k.tumpuk.children.length * .05;
+      k.tumpuk.add(m);
+    }
+  }
+}
+
+function mulaiUno() {
+  mode = 'uno';
+  grupLobby.visible = false;
+  grupCatur.visible = false;
+  grupUno.visible = true;
+  tampilkanSkor();
+  tampilkanJudul('🃏 UNO 3D');
+  bangunMejaUno();
+  U.pemain = [
+    { nama: 'Kamu', tangan: [], bot: false },
+    { nama: 'Bot Kanan', tangan: [], bot: true },
+    { nama: 'Bot Depan', tangan: [], bot: true },
+    { nama: 'Bot Kiri', tangan: [], bot: true },
+  ];
+  U.tumpukan = buatDeck();
+  U.tumpukBuang = [];
+  U.giliran = 0; U.selesai = false; U.arah = 1; U.warna = null;
+  for (let i = 0; i < 4; i++) for (let j = 0; j < 7; j++) tarikKartu(i, 1);
+  /* kartu awal */
+  let awal = U.tumpukBuang.length ? null : U.tumpukan.pop();
+  do {
+    if (awal && awal.aksi && !['skip', 'balik'].includes(awal.aksi === 'tarik2' ? 'tarik2' : awal.aksi)) awal = null;
+    if (!awal) { awal = U.tumpukan.pop(); }
+    if (awal && awal.w !== 'liar') break;
+    if (awal && awal.w === 'liar') { U.tumpukan.unshift(awal); awal = U.tumpukan.pop(); }
+  } while (true);
+  U.tumpukBuang.push(awal);
+  U.warna = awal.w;
+  buangKeTengah(awal);
+  gambarTangan();
+  updateJumlahKartuLawan();
+  pasangKamera(0, 8.6, 6.4, 0, .5, 0);
+  pesan('UNO! Ketuk kartu yang cocok. Butuh kartu? Ketuk tumpukan kiri.', 3.6);
+  cekGiliranBot();
+}
+
+window.__unoLagi = () => { document.getElementById('modal').classList.remove('tampil'); mulaiUno() };
+window.__keLobby = () => {
+  document.getElementById('modal').classList.remove('tampil');
+  mode = 'lobby';
+  grupLobby.visible = true; grupCatur.visible = false; grupUno.visible = false;
+  document.getElementById('kartuku').style.display = 'none';
+  tampilkanSkor(); tampilkanJudul('UMI GAME 3D');
+  pasangKamera(0, 9, 11, 0, 0, 0);
+  bangunLobby();
+};
+
+/* klik UNO: tumpukan tarik */
+klikObjek((o) => {
+  if (mode !== 'uno') return;
+  if (o.userData.klik === 'tumpukan') {
+    if (U.giliran !== 0 || U.selesai) { pesan('Bukan giliranmu!'); return }
+    FX.main('tarik');
+    tarikKartu(0, 1);
+    gambarTangan();
+    pesan('Kamu menarik1 kartu', 1.4);
+    /* kalau kartu terakhir legal → boleh lanjut, kalau tidak → lewat */
+    setTimeout(() => {
+      const ada = U.pemain[0].tangan.some((k) => legalUno(k));
+      if (!ada) { maju(); cekGiliranBot(); }
+      else pesan('Sekarang mainkan kartu yang cocok (atau klik tumpukan lagi)', 2.4);
+    }, 450);
+  }
+});
+
+/* ═══════════════════════════════════════════════════════════════
+   HUD & loop utama
+   ═══════════════════════════════════════════════════════════════ */
+document.getElementById('btnKembali').onclick = () => window.__keLobby();
+document.getElementById('btnSuara').onclick = (e) => {
+  FX.set(!FX.get());
+  e.currentTarget.textContent = FX.get() ? '🔊' : '🔇';
+  if (FX.get()) FX.main('klik');
+  pesan(FX.get() ? 'Suara menyala' : 'Suara mati');
+};
+document.getElementById('btnBantuan').onclick = () => {
+  FX.main('klik');
+  modal(`<h2>Cara Main</h2>
+    <p><b>Catur 3D</b> — ketuk bidak putih, lalu kotak hijau. Lawan komputer.<br>
+    <b>UNO 3D</b> — ketuk kartu yang warna/angkanya cocok, atau tumpukan untuk menarik.<br>
+    Semua efek suara & bayangan aktif — nikmati meja3D-nya!</p>
+    <div class="row"><button class="pri" onclick="document.getElementById('modal').classList.remove('tampil')">Mengerti</button></div>
+    <div class="kredit">UMI Game 3D · three.js · WebAudio</div>`);
+};
+
+/* rotasi halus kamera di lobby */
+let jamSebelumnya = performance.now();
+function loop() {
+  requestAnimationFrame(loop);
+  const now = performance.now();
+  const dt = Math.min(.05, (now - jamSebelumnya) / 1000);
+  jamSebelumnya = now;
+  updateTweens(dt);
+  if (mode === 'lobby') {
+    rotasiKamera += dt * .12;
+    kamera.position.x = Math.sin(rotasiKamera) * 2.2;
+    kamera.position.z = 11 + Math.cos(rotasiKamera) * .8;
+    kamera.lookAt(0, .6, 0);
+    grupLobby.rotation.y = Math.sin(now / 4000) * .04;
+  }
+  renderer.render(scene, kamera);
+}
+
+/* mulai */
+grupCatur.visible = false;
+grupUno.visible = false;
+bangunLobby();
+loop();
+
+/* API kecil utk pengujian & deep-link: #catur / #uno */
+window.UMI3D = { mulaiCatur: mulaiCatur, mulaiUno: mulaiUno, keLobby: window.__keLobby, mode: function () { return mode }, pos: function () { const v = new THREE.Vector3(0, .5, 0).project(kamera); return { k: kamera.position.toArray().map(x => +x.toFixed(2)), a: +kamera.aspect.toFixed(3), ndc: [+v.x.toFixed(2), +v.y.toFixed(2)], rot: [+kamera.rotation.x.toFixed(2), +kamera.rotation.y.toFixed(2), +kamera.rotation.z.toFixed(2)] } } };
+if (location.hash === '#catur') setTimeout(mulaiCatur, 350);
+else if (location.hash === '#uno') setTimeout(mulaiUno, 350);
+
+} /* penutup guard THREE */
+</script>
+</body>
+</html>
