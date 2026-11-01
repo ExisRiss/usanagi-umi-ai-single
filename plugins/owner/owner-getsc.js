@@ -131,6 +131,56 @@ const BERKAS_TAMBAHAN = [
   '.env.apikeys', '.env.gemini', '.main-bot.env', '.platform.env', '.tunnel.env', '.backup-system.env',
 ]
 
+/* Task196-fix — verifikasi URL benar-benar hidup sebelum ditawarkan. */
+async function urlHidup(url) {
+  try {
+    const res = await fetch(url, { method: 'HEAD', signal: AbortSignal.timeout(15000), redirect: 'follow' })
+    return res.ok
+  } catch { return false }
+}
+
+/* Task196-fix — bila upload publik bermasalah, kirim ketiga berkas langsung sebagai dokumen. */
+async function kirimFullDokumen(mTujuan, conn, jenis, zip, enc, commit, jumlahBerkas) {
+  const baris = [
+    '🔐 *SOURCE CODE FULL AKSES*',
+    '',
+    `Repo   : ${repoDari(jenis)}`,
+    commit ? `Commit : ${commit.sha} (${commit.tanggal})` : 'Commit : terbaru',
+    '',
+    '⚠️ Upload publik sedang tidak merespons — paket dikirim *langsung sebagai berkas terlampir*:',
+    '1. ZIP kode      → dokumen .zip',
+    '2. Token+config  → dokumen .umienc (terkunci password)',
+    '3. Alat decrypt  → dokumen bukasc.js',
+    '',
+    'Password yang kamu pilih terkunci di file .umienc — simpan sendiri.',
+    `Isi token terdeteksi: ${jumlahBerkas} berkas + sc-license.enc.`,
+    '',
+    '*Cara pasang:*',
+    '• Ekstrak ZIP → buka .umienc (node bukasc.js <file> <password>)',
+    '• Salin isi tiap blok ke file dengan nama yang sama (timpa config.js & env).',
+    '• Taruh data/sc-license.enc di folder data/.',
+    '• Saat pairing bot utama, bot MINTA PASSWORD — benar → lanjut, 3× salah → instalasi dihancurkan otomatis.',
+  ].join('\n')
+  await conn.sendMessage(mTujuan.chat, { text: baris })
+  await sendLocalMediaFast(conn, mTujuan, zip.file, {
+    type: 'document', mimeType: 'application/zip',
+    fileName: `umi-${jenis.toLowerCase()}-full.zip`, caption: '1️⃣ ZIP source code', maxBytes: MAKS_ZIP,
+  })
+  const encPath = path.join(os.tmpdir(), `tambahan-${Date.now()}.umienc`)
+  fs.writeFileSync(encPath, enc)
+  await sendLocalMediaFast(conn, mTujuan, encPath, {
+    type: 'document', mimeType: 'application/octet-stream',
+    fileName: 'umi-tambahan-full.umienc', caption: '2️⃣ Token+config terkunci password', maxBytes: 10 * 1024 * 1024,
+  }).finally(() => fs.rmSync(encPath, { force: true }))
+  const toolPath = path.join(os.tmpdir(), `bukasc-${Date.now()}.js`)
+  fs.writeFileSync(toolPath, TEKS_BUKASC)
+  await sendLocalMediaFast(conn, mTujuan, toolPath, {
+    type: 'document', mimeType: 'text/javascript',
+    fileName: 'bukasc.js', caption: '3️⃣ Alat decrypt — jalankan: node bukasc.js <file.umienc> <password>', maxBytes: 1024 * 1024,
+  }).finally(() => fs.rmSync(toolPath, { force: true }))
+  console.log('[getsc] full (fallback dokumen) terkirim ke', mTujuan.chat, jenis, `zip=${zip.bytes}B`)
+}
+
 function rakitTambahan(jenis, password) {
   const bagian = []
   bagian.push(`TAMBAHAN SOURCE CODE ${jenis === 'LENGKAP' ? 'UMI LENGKAP' : 'UMI SINGLE BOT'}\n`)
@@ -181,6 +231,15 @@ async function kirimFull(m, conn, jenis, password) {
     const uZip = simpanBerkas({ buffer: fs.readFileSync(zip.file), nama: `umi-${jenis.toLowerCase()}-full-${Date.now()}.zip`, mime: 'application/zip', jid: m.sender, tipe: 'document' })
     const uEnc = simpanBerkas({ buffer: enc, nama: `umi-tambahan-full-${Date.now()}.umienc`, mime: 'application/octet-stream', jid: m.sender, tipe: 'document' })
     const uTool = simpanBerkas({ buffer: Buffer.from(TEKS_BUKASC, 'utf8'), nama: 'bukasc.js', mime: 'text/javascript', jid: m.sender, tipe: 'document' })
+
+    /* Task196-fix — tunggu dorongan ke penyaji, lalu pastikan URL benar-benar hidup. */
+    await Promise.allSettled([uZip.dorong, uEnc.dorong, uTool.dorong].filter(Boolean))
+    const semuaHidup = (await Promise.all([uZip, uEnc, uTool].map((u) => urlHidup(u.urlUnduh)))).every(Boolean)
+    if (!semuaHidup) {
+      await kirimFullDokumen(mTujuan, conn, jenis, zip, enc, commit, jumlahBerkas)
+      if (m.isGroup) await conn.reply(m.chat, '✅ Paket full akses (berkas langsung) sudah dikirim ke private chat kamu.', m)
+      return
+    }
 
     const baris = [
       '🔐 *SOURCE CODE FULL AKSES*',
