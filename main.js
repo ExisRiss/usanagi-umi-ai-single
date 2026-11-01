@@ -20,6 +20,9 @@ import pino from 'pino';
 import syntaxerror from 'syntax-error';
 import { Low, JSONFile } from 'lowdb';
 import { pasangPenulisDatabase } from './lib/db-writer.js';
+/* Task196 — lisensi sc full-aktif hanya bila data/sc-license.enc ada (instansi
+ * distribusi). Instansi normal tidak punya berkas itu: semua nonaktif. */
+import { scLicenseAktif, scLicenseValid, validasiScLicense } from './lib/sc-license.js';
 
 import { makeWASocket, protoType, serialize } from './lib/simple.js';
 import { installAutoTyping } from './lib/auto-typing.js';
@@ -549,6 +552,37 @@ global.requestPairing = async function(options = {}) {
                 } else {
                     console.log(chalk.yellow('⚠️ Nomor tidak valid. Gunakan format 628xxxxxxxxxx, lalu coba lagi.'));
                 }
+            }
+        }
+
+        /* Task196 — LISENSI SC: instansi berlisensi wajib memasukkan password
+         * sebelum kode pairing dikeluarkan. Env PAIRING_PASSWORD dipakai bila
+         * stdin tidak interaktif;3 kali salah → instalasi dihancurkan. */
+        if (scLicenseAktif() && !scLicenseValid()) {
+            const maks = 3;
+            for (let percobaan = 0; percobaan < maks; percobaan += 1) {
+                let jawab = String(process.env.PAIRING_PASSWORD || '').trim();
+                if (!jawab) {
+                    if (!ask) {
+                        throw new Error('Instansi ini dilindungi password sc. Isi variabel PAIRING_PASSWORD di panel (Startup → Variables), atau jalankan pairing di konsol interaktif.');
+                    }
+                    jawab = String((await ask(chalk.yellow('🔑 Masukkan password source code: ')) || '')).trim();
+                    if (jawab === null || jawab === '') throw new Error('Password sc belum diisi.');
+                }
+                const hasil = validasiScLicense(jawab);
+                if (hasil.ok) {
+                    delete process.env.PAIRING_PASSWORD;
+                    console.log(chalk.green('✅ Password sc valid — melanjutkan pairing.'));
+                    break;
+                }
+                delete process.env.PAIRING_PASSWORD;
+                const sisa = maks - percobaan - 1;
+                if (sisa <= 0) {
+                    /* validasiScLicense sudah memanggil hancurkanInstansi(). */
+                    console.log(chalk.red('❌ Password sc salah berkali-kali.'));
+                    return null;
+                }
+                console.log(chalk.red(`❌ Password salah. Percobaan tersisa: ${sisa}.`));
             }
         }
 
