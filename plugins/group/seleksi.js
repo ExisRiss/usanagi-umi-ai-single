@@ -107,6 +107,20 @@ async function kirimNotifikasi(conn, p) {
     console.log(`[SELEKSI] Notifikasi pendaftar ${p.id} terkirim ke ${tujuan === p.grup.seleksiJid ? 'grup seleksi' : 'grup tujuan'} ${p.grup.nama}`)
 }
 
+/* Task195 — cache keanggotaan grup: poller menyentuh banyak grup tiap 14 dtk
+ * (dua server sekaligus). Tanpa cache, WA cepat memberi rate-limit metadata;
+ * efeknya SEMUA fitur bot kena backoff (terasa "delay parah"). */
+const cacheGrup = new Map()
+const CACHE_GRUP_TTL = 10 * 60 * 1000
+async function grupDikenal(conn, jid) {
+    const c = cacheGrup.get(jid)
+    if (c && c.sampai > Date.now()) return c.ada
+    const ada = await conn.groupMetadata(jid).then(() => true).catch(() => false)
+    cacheGrup.set(jid, { sampai: Date.now() + CACHE_GRUP_TTL, ada })
+    while (cacheGrup.size > 200) cacheGrup.delete(cacheGrup.keys().next().value)
+    return ada
+}
+
 let timerPoll = null
 function mulaiPoller(conn) {
     if (timerPoll) return
@@ -121,7 +135,7 @@ function mulaiPoller(conn) {
                 /* Task194 — hanya kirim kalau bot INI berada di grup target
                  * (grup seleksi bila sudah diatur, fallback grup tujuan). */
                 const tujuanKirim = p.grup.seleksiJid || p.grup.tujuanJid
-                const punya = await conn.groupMetadata(tujuanKirim).then(() => true).catch(() => false)
+                const punya = await grupDikenal(conn, tujuanKirim)
                 if (!punya) continue
                 try {
                     await api('/api/sinkron/antar', { method: 'POST', body: { idPendaftar: p.id } })  // claim
@@ -134,7 +148,7 @@ function mulaiPoller(conn) {
             const acc = await api('/api/sinkron/acc-pending')
             for (const x of (acc.pendaftar || [])) {
                 if (!x.grup?.tujuanJid) continue
-                const punya = await conn.groupMetadata(x.grup.tujuanJid).then(() => true).catch(() => false)
+                const punya = await grupDikenal(conn, x.grup.tujuanJid)
                 if (!punya) continue
                 try {
                     await conn.groupParticipantsUpdate(x.grup.tujuanJid, [x.jid], 'add')
