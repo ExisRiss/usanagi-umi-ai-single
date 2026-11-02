@@ -1194,21 +1194,30 @@ async function resolveInstagramFast(input, attempt = null) {
 
   const tierController = new AbortController()
   let lastError = new Error('Media Instagram tidak ditemukan.')
+  /* Task200 — pembungkus anti-unhandled: setiap promise scraper langsung
+   * ditangani sejak dibentuk. Dulu promise tier-2 dibuat bersamaan tapi
+   * handler-nya baru dipasang saat loop mencapai tier-2; kalau scraper cepat
+   * gagal lebih dulu, reject-nya jadi process.unhandledRejection. */
+  const aman = (promise, tier) => promise.then(
+    candidates => ({ kind: 'remote', candidates, tier }),
+    error => ({ error }),
+  )
   const tierTasks = [
     [
-      scrapeInstagramGraphql(source, tierController.signal).then(candidates => ({ kind: 'remote', candidates, tier: 1 })),
-      scrapeInstagramApi(source, tierController.signal).then(candidates => ({ kind: 'remote', candidates, tier: 1 })),
+      aman(scrapeInstagramGraphql(source, tierController.signal), 1),
+      aman(scrapeInstagramApi(source, tierController.signal), 1),
     ],
     [
-      scrapeInstagramWebSjs(source, tierController.signal).then(candidates => ({ kind: 'remote', candidates, tier: 2 })),
-      scrapeInstagramPage(source, tierController.signal).then(candidates => ({ kind: 'remote', candidates, tier: 2 })),
-      scrapeInstagramEmbed(source, tierController.signal).then(candidates => ({ kind: 'remote', candidates, tier: 2 })),
+      aman(scrapeInstagramWebSjs(source, tierController.signal), 2),
+      aman(scrapeInstagramPage(source, tierController.signal), 2),
+      aman(scrapeInstagramEmbed(source, tierController.signal), 2),
     ],
   ]
 
   try {
     for (const tier of tierTasks) {
       const pending = tier.map(task => task.then(result => {
+        if (result.error) throw result.error
         const candidates = filterInstagramCandidatesForIntent(result.candidates, intent)
         if (!candidates.length) throw new Error('Resolver Instagram tidak mengembalikan media yang sesuai.')
         return { ...result, candidates }

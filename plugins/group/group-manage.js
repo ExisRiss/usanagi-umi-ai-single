@@ -1,3 +1,31 @@
+/* Task200 — tangani `rate-overlimit` dari WhatsApp: retry dengan jeda
+ * sebelum menyerah, dan balas dengan pesan manusiawi (bukan error mentah). */
+const TUNGGU = (ms) => new Promise((r) => setTimeout(r, ms));
+async function jalankanAksi(conn, chat, target, aksi) {
+ let terakhir = null;
+ for (let percobaan = 0; percobaan < 3; percobaan++) {
+  try {
+   return await conn.groupParticipantsUpdate(chat, [target], aksi);
+  } catch (error) {
+   terakhir = error;
+   const teks = String(error?.message || error);
+   if (/rate[- ]?overlimit|rate.?limit/i.test(teks) && percobaan < 2) {
+    await TUNGGU(4000 * (percobaan + 1)); // 4s lalu 8s — beri jeda WA
+    continue;
+   }
+   throw error;
+  }
+ }
+ throw terakhir;
+}
+function pesanGagalAksi(error) {
+ const teks = String(error?.message || error);
+ if (/rate[- ]?overlimit|rate.?limit/i.test(teks)) {
+  return '⛔ WhatsApp membatasi aksi grup ini (*rate limit*).\nTunggu ±1 menit lalu coba lagi — jangan diulang terus-menerus.';
+ }
+ return `❌ Gagal memproses anggota grup: ${teks.slice(0, 160)}`;
+}
+
 const handler = async (m, { conn, text, participants, groupMetadata, command }) => {
  const target = m.quoted ? m.quoted.sender : m.mentionedJid && m.mentionedJid[0] ? m.mentionedJid[0] : text ? text.replace(/[^0-9]/g, '') + '@s.whatsapp.net' : null;
 
@@ -11,8 +39,14 @@ const handler = async (m, { conn, text, participants, groupMetadata, command }) 
   case 'add':
    {
     if (inGc) return m.reply('User sudah ada didalam grup!');
-    const response = await conn.groupParticipantsUpdate(m.chat, [target], 'add');
-    const jpegThumbnail = await conn.profilePictureUrl(m.chat, 'image');
+    let response;
+    try {
+     response = await jalankanAksi(conn, m.chat, target, 'add');
+    } catch (error) {
+     return m.reply(pesanGagalAksi(error));
+    }
+    let jpegThumbnail = '';
+    try { jpegThumbnail = await conn.profilePictureUrl(m.chat, 'image'); } catch { /* tanpa foto */ }
 
     for (const participant of response) {
      const jid = participant.content.attrs.phone_number || participant.content.attrs.jid;
@@ -33,19 +67,31 @@ const handler = async (m, { conn, text, participants, groupMetadata, command }) 
 
   case 'kick':
    if (!inGc) return m.reply('User tidak ada dalam grup.');
-   conn.groupParticipantsUpdate(m.chat, [target], 'remove');
+   try {
+    await jalankanAksi(conn, m.chat, target, 'remove');
+   } catch (error) {
+    return m.reply(pesanGagalAksi(error));
+   }
    m.reply(`Berhasil kick: @${target.split('@')[0]}`);
    break;
 
   case 'promote':
    if (!inGc) return m.reply('User tidak berada dalam grup!');
-   conn.groupParticipantsUpdate(m.chat, [target], 'promote');
+   try {
+    await jalankanAksi(conn, m.chat, target, 'promote');
+   } catch (error) {
+    return m.reply(pesanGagalAksi(error));
+   }
    m.reply(`Promote: @${target.split('@')[0]}`);
    break;
 
   case 'demote':
    if (!inGc) return m.reply('User tidak berada dalam grup!');
-   conn.groupParticipantsUpdate(m.chat, [target], 'demote');
+   try {
+    await jalankanAksi(conn, m.chat, target, 'demote');
+   } catch (error) {
+    return m.reply(pesanGagalAksi(error));
+   }
    m.reply(`Demote: @${target.split('@')[0]}`);
    break;
 
