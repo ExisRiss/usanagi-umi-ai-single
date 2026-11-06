@@ -10,7 +10,7 @@
 
 import {
   delay
-} from '@whiskeysockets/baileys';
+} from '@sairidev/baileys-new';
 
 const handler = async (m, {
   conn

@@ -18,7 +18,7 @@ const exec = promisify(_exec)
 const {
     generateWAMessageFromContent,
     proto
-} = (await import('@whiskeysockets/baileys')).default || {}
+} = (await import('@sairidev/baileys-new')).default || {}
 
 // ============================================================
 // TRANSLATOR SAFE IMPORT

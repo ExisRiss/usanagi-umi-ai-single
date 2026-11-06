@@ -1,4 +1,4 @@
-import { proto } from "@whiskeysockets/baileys"
+import { proto } from "@sairidev/baileys-new"
 
 let handler = async (m, { conn, text, command, usedPrefix, isAdmin, isOwner }) => {
   if (!global.db.data.msgs) {

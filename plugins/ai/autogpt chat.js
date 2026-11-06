@@ -1,5 +1,5 @@
 import { chatgpt } from '../../lib/scrape/chatgpt.js'
-import { delay } from '@whiskeysockets/baileys'
+import { delay } from '@sairidev/baileys-new'
 import { AIRich } from '../../lib/ui/MessageBuilder.js'
 
 let handler = async (m, { conn, text, usedPrefix, command }) => {

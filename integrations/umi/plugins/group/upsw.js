@@ -26,7 +26,7 @@ Rimuru MD adalah SC hasil rename dari SC Ourin MD.
                  「 👑 𝑹𝑰𝑴𝑼𝑹𝑼 𝑴𝑫 👑 」
 */
 
-import { generateWAMessageContent, generateWAMessageFromContent } from '@whiskeysockets/baileys';
+import { generateWAMessageContent, generateWAMessageFromContent } from '@sairidev/baileys-new';
 import crypto from 'crypto';
 const pluginConfig = {
     name: 'upsw',

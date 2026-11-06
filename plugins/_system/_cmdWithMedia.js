@@ -1,4 +1,4 @@
-import { proto, generateWAMessage, areJidsSameUser } from '@whiskeysockets/baileys';
+import { proto, generateWAMessage, areJidsSameUser } from '@sairidev/baileys-new';
 
 export async function all(m, chatUpdate) {
 	if (m?.isBaileys) return;

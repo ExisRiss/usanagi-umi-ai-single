@@ -1,4 +1,4 @@
-import { generateWAMessageFromContent, proto } from '@whiskeysockets/baileys'
+import { generateWAMessageFromContent, proto } from '@sairidev/baileys-new'
 
 const INACTIVE_TIME = 3 * 24 * 60 * 60 * 1000 // 3 hari
 

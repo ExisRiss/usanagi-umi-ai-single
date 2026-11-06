@@ -184,7 +184,7 @@ async function grabStill(basePath, at, outPath) {
 let BAILEYS_MOD = null
 async function getBaileys() {
   if (BAILEYS_MOD?.downloadContentFromMessage) return BAILEYS_MOD
-  const candidates = ['@itsliaaa/baileys', '@whiskeysockets/baileys', '@nazedev/baileys', '@neoxr/baileys', '@adiwajshing/baileys', 'baileys']
+  const candidates = ['@itsliaaa/baileys', '@sairidev/baileys-new', '@nazedev/baileys', '@neoxr/baileys', '@adiwajshing/baileys', 'baileys']
   try {
     const pj = JSON.parse(fs.readFileSync('./package.json', 'utf8'))
     for (const name of Object.keys({ ...pj.dependencies, ...pj.devDependencies }))

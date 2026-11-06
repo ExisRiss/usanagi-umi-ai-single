@@ -1,6 +1,6 @@
 /* By AlzRiss - Usanagi Umi AI */
 
-import { delay } from '@whiskeysockets/baileys';
+import { delay } from '@sairidev/baileys-new';
 
 const handler = async (m, { conn, text }) => {
 	if (!m.quoted) {

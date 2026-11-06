@@ -1,7 +1,7 @@
 import fetch from 'node-fetch'
 import { spawn } from 'child_process'
 import sharp from 'sharp'
-import { prepareWAMessageMedia } from '@whiskeysockets/baileys'
+import { prepareWAMessageMedia } from '@sairidev/baileys-new'
 
 /* ================= ANTI LOAD DOBEL ================= */
 if (!global.autosholatLoaded) {

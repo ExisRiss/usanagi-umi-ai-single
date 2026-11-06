@@ -9,7 +9,7 @@ import * as levelling from '../../lib/levelling.js'
 import fs from 'fs'
 import os from 'os'
 import sharp from 'sharp'
-import { prepareWAMessageMedia } from '@whiskeysockets/baileys'
+import { prepareWAMessageMedia } from '@sairidev/baileys-new'
 import * as translator from '../../lib/translator.js'
 
 // ============================================================

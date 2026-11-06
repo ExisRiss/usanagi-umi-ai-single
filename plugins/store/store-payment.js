@@ -8,7 +8,7 @@
 import { existsSync, mkdirSync, writeFileSync } from 'fs'
 import { join } from 'path'
 import { pathToFileURL } from 'url'
-import { proto, generateWAMessageContent, generateWAMessageFromContent } from '@whiskeysockets/baileys'
+import { proto, generateWAMessageContent, generateWAMessageFromContent } from '@sairidev/baileys-new'
 
 const handler = async (m, { conn, text, command, usedPrefix }) => {
 

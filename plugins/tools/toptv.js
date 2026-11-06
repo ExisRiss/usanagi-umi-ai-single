@@ -1,4 +1,4 @@
-import { generateWAMessageContent } from "@whiskeysockets/baileys";
+import { generateWAMessageContent } from "@sairidev/baileys-new";
 
 const handler = async (m, { conn, usedPrefix, command }) => {
   const q = m.quoted ? m.quoted : m;

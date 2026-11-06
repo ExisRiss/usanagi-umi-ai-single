@@ -2,7 +2,7 @@
 
 import crypto from 'crypto'
 import sharp from 'sharp'
-import { downloadContentFromMessage } from '@whiskeysockets/baileys'
+import { downloadContentFromMessage } from '@sairidev/baileys-new'
 import { settings } from '../../config/settings.js'
 
 const MAX_STICKER_SIZE = 1024 * 1024

@@ -14,7 +14,7 @@ import { createRequire } from 'module'
 import { botMessageVerdict } from '../../lib/bot-filter.js'
 
 const require = createRequire(import.meta.url)
-const { downloadContentFromMessage } = await import('@whiskeysockets/baileys')
+const { downloadContentFromMessage } = await import('@sairidev/baileys-new')
 
 // ==========================================
 // GLOBAL STORAGE & UTILS

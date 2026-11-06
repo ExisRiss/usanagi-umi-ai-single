@@ -29,7 +29,7 @@ Rimuru MD adalah SC hasil rename dari SC Ourin MD.
 import axios from "axios";
 import * as cheerio from "cheerio";
 import crypto from "crypto";
-import { generateWAMessageFromContent, generateWAMessage, jidNormalizedUser } from "@whiskeysockets/baileys";
+import { generateWAMessageFromContent, generateWAMessage, jidNormalizedUser } from "@sairidev/baileys-new";
 
 const pluginConfig = {
     name: 'bandingkan-hp',

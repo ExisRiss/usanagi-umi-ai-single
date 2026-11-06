@@ -1,4 +1,4 @@
-import { getDevice } from '@whiskeysockets/baileys'
+import { getDevice } from '@sairidev/baileys-new'
 
 let handler = async (m, { conn, isOwner }) => {
     // Memastikan ada pesan yang di-reply

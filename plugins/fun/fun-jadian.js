@@ -1,4 +1,4 @@
-import { generateWAMessageFromContent, proto } from '@whiskeysockets/baileys'
+import { generateWAMessageFromContent, proto } from '@sairidev/baileys-new'
 
 const cleanJid = jid => {
   if (!jid) return ''

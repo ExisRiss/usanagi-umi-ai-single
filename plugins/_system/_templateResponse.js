@@ -20,7 +20,7 @@ import {
   generateWAMessage,
   areJidsSameUser,
   generateMessageIDV2,
-} from '@whiskeysockets/baileys'
+} from '@sairidev/baileys-new'
 import { extractSelectionId } from '../../lib/message-response.js'
 import { actionFromLabel } from '../../lib/umi-menu/label-action.js'
 import { bangunDaftarPerintah, cocokPerintah } from '../../lib/plugin-command-match.js'

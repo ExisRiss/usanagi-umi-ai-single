@@ -27,7 +27,7 @@ Rimuru MD adalah SC hasil rename dari SC Ourin MD.
 */
 
 import { getDatabase } from "../../src/lib/rimuru-database.js";
-import { generateWAMessageFromContent } from "@whiskeysockets/baileys";
+import { generateWAMessageFromContent } from "@sairidev/baileys-new";
 import config from "../../config.js";
 import { saluranCtx } from "../../src/lib/rimuru-context.js";
 

@@ -10,7 +10,7 @@ import path from 'node:path'
 import os from 'node:os'
 import yts from 'yt-search'
 import sharp from 'sharp'
-import { prepareWAMessageMedia } from '@whiskeysockets/baileys'
+import { prepareWAMessageMedia } from '@sairidev/baileys-new'
 
 // ============================================================
 // CONSTANTS

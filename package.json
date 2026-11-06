@@ -31,7 +31,7 @@
     "@ffmpeg-installer/ffmpeg": "^1.1.0",
     "@hapi/boom": "^10.0.1",
     "@napi-rs/canvas": "^1.0.0",
-    "@whiskeysockets/baileys": "npm:@itsliaaa/baileys@^0.5.1",
+    "@sairidev/baileys-new": "github:ExisRiss/baileys-new#7bb1fc0cc59d8f9bd88581bb03d46a27afbeaa0c",
     "archiver": "^7.0.1",
     "awesome-phonenumber": "^5.10.0",
     "axios": "^1.20.0",

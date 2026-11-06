@@ -1,7 +1,7 @@
 import yts from "yt-search"
 import {
     generateWAMessageFromContent
-} from "@whiskeysockets/baileys"
+} from "@sairidev/baileys-new"
 import { format } from 'util';
 
 let handler = async (m, {

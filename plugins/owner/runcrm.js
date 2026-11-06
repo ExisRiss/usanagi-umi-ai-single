@@ -2,7 +2,7 @@
 // Command: .runcrm
 // Type: ESM Plugin
 
-import { generateWAMessageFromContent } from '@whiskeysockets/baileys'
+import { generateWAMessageFromContent } from '@sairidev/baileys-new'
 
 const handler = async (m, {
     conn,

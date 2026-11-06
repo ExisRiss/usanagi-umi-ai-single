@@ -9,7 +9,7 @@ import { planAutoAI, shouldAutoAITrigger, isSelfAIRequest } from './lib/auto-ai.
 import { schedulePluginCommand } from './lib/auto-ai-scheduler.js';
 import { runWithBotConnection } from './lib/bot-connection-context.js';
 import { smsg } from './lib/simple.js';
-import { generateWAMessageFromContent, proto } from '@whiskeysockets/baileys'
+import { generateWAMessageFromContent, proto } from '@sairidev/baileys-new'
 import { format } from 'util';
 import { recordError } from './lib/error-hub.js'
 /* Task132: daftar akses per sesi (fitur OURIN `.addakses`). */

@@ -13,7 +13,7 @@
  *     bukan stack panjang di laporan error.
  */
 
-import * as baileys from '@whiskeysockets/baileys'
+import * as baileys from '@sairidev/baileys-new'
 import crypto from 'node:crypto'
 import { PassThrough } from 'stream'
 import ffmpeg from 'fluent-ffmpeg'

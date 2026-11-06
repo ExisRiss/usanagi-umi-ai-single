@@ -5,7 +5,7 @@ import {
   DisconnectReason,
   fetchLatestBaileysVersion,
   makeCacheableSignalKeyStore,
-} from '@whiskeysockets/baileys'
+} from '@sairidev/baileys-new'
 import { opsiSocket } from '../lib/socket-options.js'
 import { Boom } from '@hapi/boom'
 import pino from 'pino'

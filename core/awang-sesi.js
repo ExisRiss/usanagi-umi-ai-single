@@ -4,7 +4,7 @@ import path from 'path'
 import fs from 'fs'
 import Database from 'better-sqlite3'
 import { fileURLToPath } from 'url'
-import { initAuthCreds, BufferJSON, proto } from '@whiskeysockets/baileys'
+import { initAuthCreds, BufferJSON, proto } from '@sairidev/baileys-new'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 export const SESSION_DIR = path.join(__dirname, '..', 'sessions')

@@ -30,7 +30,7 @@ import config from "../../config.js";
 import { getDatabase } from "../../src/lib/rimuru-database.js";
 import { getRole } from "./level.js";
 import fs from "fs";
-import { getDevice } from "@whiskeysockets/baileys";
+import { getDevice } from "@sairidev/baileys-new";
 
 const pluginConfig = {
   name: "profile",

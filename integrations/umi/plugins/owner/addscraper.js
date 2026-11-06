@@ -28,7 +28,7 @@ Rimuru MD adalah SC hasil rename dari SC Ourin MD.
 
 import fs from 'fs';
 import path from 'path';
-import { downloadContentFromMessage } from '@whiskeysockets/baileys';
+import { downloadContentFromMessage } from '@sairidev/baileys-new';
 
 const pluginConfig = {
     name: 'addscraper',

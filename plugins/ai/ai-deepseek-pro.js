@@ -359,7 +359,7 @@ function buildTurnContext({ intent, mood, name, isGroup, image, prefix }) {
 
 async function fetchImageDataUrl(imageMessage) {
   try {
-    const { downloadContentFromMessage } = await import('@whiskeysockets/baileys')
+    const { downloadContentFromMessage } = await import('@sairidev/baileys-new')
     const stream = await downloadContentFromMessage(imageMessage, 'image')
     const chunks = []
     let total = 0

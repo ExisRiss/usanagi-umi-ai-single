@@ -37,7 +37,7 @@ export const FEATURE_CREDIT = "Fitur By: Anita Putri Azzahra\nFitur SC Bot Umi U
  * Creator : Hilman
  */
 
-import { proto, generateWAMessageFromContent, generateWAMessageContent } from '@whiskeysockets/baileys'
+import { proto, generateWAMessageFromContent, generateWAMessageContent } from '@sairidev/baileys-new'
 
 async function getSlide(url) {
   const res = await fetch(`https://www.tikwm.com/api/?url=${url}&hd=1`)

@@ -1,7 +1,7 @@
 /* By AlzRiss - Usanagi Umi AI */
 
 import pino from 'pino'
-import { downloadMediaMessage } from '@whiskeysockets/baileys'
+import { downloadMediaMessage } from '@sairidev/baileys-new'
 import { settings } from '../../config/settings.js'
 
 const logger = pino({ level: 'silent' })
