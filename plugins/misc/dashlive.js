@@ -5,6 +5,7 @@
 // Uptime berjalan live di HTML
 
 import os from 'os'
+import { botJidAktif } from '../../lib/bot-jid.js'
 
 const getCPUUsage = () => {
   const cpus = os.cpus()
@@ -774,8 +775,7 @@ const handler = async (m, { conn }) => {
 
                 forwardedAiBotMessageInfo: {
 
-                  botJid:
-                    '867051314767696@bot'
+                  botJid: botJidAktif(conn)
 
                 },
 

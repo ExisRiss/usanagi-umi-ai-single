@@ -8,7 +8,10 @@ export function isOnlyPcActive() {
 
 export function setOnlyPcActive(enabled) {
   const state = getAccessModeState()
-  const mode = enabled ? ACCESS_MODES.ONLY_PC : state.mode === ACCESS_MODES.ONLY_PC ? ACCESS_MODES.NORMAL : state.mode
+  /* Task205: `.onlypc off` bukan kembali normal — semua permukaan dibatasi
+   * (mode 'off'): PC warning→tindakan, group tidak dilayani. */
+  const mode = enabled ? ACCESS_MODES.ONLY_PC : ACCESS_MODES.OFF
+  if (state.mode === mode) return state
   return setAccessMode(mode)
 }
 

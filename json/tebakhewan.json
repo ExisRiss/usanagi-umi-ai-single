@@ -1,0 +1,30 @@
+[
+  {
+    "soal": "🐅 dan 🐘",
+    "jawaban": [
+      "harimau",
+      "gajah"
+    ],
+    "petunjuk": "Dua hewan besar yang sering muncul di hutan tropis"
+  },
+  {
+    "soal": "Bertanduk, suka lompat-lompat",
+    "jawaban": "kambing",
+    "petunjuk": "Hewan ternak berkaki empat"
+  },
+  {
+    "soal": "Hewan yang bisa terbang dan bernyanyi",
+    "jawaban": "burung",
+    "petunjuk": "Hewan bersayap"
+  },
+  {
+    "soal": "Hewan laut dengan cangkang keras",
+    "jawaban": "kepiting",
+    "petunjuk": "Serangga laut"
+  },
+  {
+    "soal": "Hewan lambat dengan cangkang",
+    "jawaban": "kura-kura",
+    "petunjuk": "Hewan bertubuh keras"
+  }
+]

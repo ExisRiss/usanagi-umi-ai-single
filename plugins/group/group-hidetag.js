@@ -2,7 +2,7 @@
 // Fix LID + Force Mention By ChatGPT 🗿 + Media Support
 // Added: @all / @semua prefix khusus
 
-import { generateWAMessageFromContent, proto } from '@rexxhayanasi/elaina-baileys'
+import { generateWAMessageFromContent, proto } from '@whiskeysockets/baileys'
 
 const cleanJid = jid => {
   if (!jid) return ''

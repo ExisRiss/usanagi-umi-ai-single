@@ -13,12 +13,18 @@
  *     bukan stack panjang di laporan error.
  */
 
-import * as baileys from '@rexxhayanasi/elaina-baileys'
+import * as baileys from '@whiskeysockets/baileys'
 import crypto from 'node:crypto'
 import { PassThrough } from 'stream'
 import ffmpeg from 'fluent-ffmpeg'
 
 const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms))
+
+/* Task206 — semua balasan dibungkus catch: saat metadata dibatasi (429),
+ * mengirim balasan ke grup pun bisa gagal; jangan biarkan itu lolos sebagai
+ * unhandledRejection yang masuk laporan error owner (bukti: dobel di
+ * data/errors — plugin/owner/owner-swgc + process.unhandledRejection). */
+const balas = (m, teks) => Promise.resolve(m.reply(teks)).catch(() => {})
 
 /** Cache daftar grup per koneksi, umur 60 detik. */
 const groupListCache = new Map()
@@ -75,10 +81,10 @@ let handler = async (m, { conn, text }) => {
   if (!raw || /^(list|daftar)$/i.test(raw)) {
     const groups = await listMyGroups(conn, { force: Boolean(raw) })
     if (!groups.length) {
-      return m.reply('📢 Bot belum mengikuti grup apa pun (atau metadata grup tidak bisa dibaca).')
+      return balas(m, '📢 Bot belum mengikuti grup apa pun (atau metadata grup tidak bisa dibaca).')
     }
     const list = groups.map((item, index) => `${index + 1}. ${item.subject}`).join('\n')
-    return m.reply(
+    return balas(m, 
       `📢 *LIST GRUP*\n\n${list}\n\n` +
       `Contoh:\n.swgroup 1|Halo semua\n\n` +
       `Reply gambar/video/audio:\n.swgroup 1\n\n` +
@@ -91,7 +97,7 @@ let handler = async (m, { conn, text }) => {
   const groups = await listMyGroups(conn)
 
   if (!Number.isInteger(nomor) || nomor < 0 || !groups[nomor]) {
-    return m.reply(
+    return balas(m, 
       `Nomor grup tidak valid.\n\n` +
       `Lihat daftar dulu: .swgroup list\n` +
       `Jumlah grup yang bisa dipakai: ${groups.length}`
@@ -108,8 +114,15 @@ let handler = async (m, { conn, text }) => {
     const meta = await conn.groupMetadata(target)
     if (!Array.isArray(meta?.participants)) throw new Error('metadata grup kosong')
   } catch (error) {
+    /* Task206 —429/503 (metadata dibatasi) BUKAN grup rusak: balas dengan
+     * hitung mundur, jangan tampilkan seakan-akan bot dikeluarkan. */
+    const status = Number(error?.statusCode || error?.output?.statusCode || error?.data || 0)
+    if (status === 429 || status === 503 || /dibatasi sementara|belum merespons|timeout/i.test(String(error?.message || ''))) {
+      const detik = Math.max(1, Math.ceil(Number(error?.retryAfterMs || 60000) / 1000))
+      return balas(m, `⏳ *Metadata WhatsApp dibatasi sementara* oleh WhatsApp (normal, biasanya ±${detik} detik).\nCoba kirim ulang perintahnya sebentar lagi ya.`)
+    }
     const code = error?.code || error?.data
-    return m.reply(
+    return balas(m,
       `❌ Grup *${groups[nomor].subject}* tidak bisa diakses bot (${code || 'gagal'}).\n\n` +
       `Kemungkinan bot sudah keluar dari grup itu. Coba \`.swgroup list\` lagi untuk daftar terbaru.`
     )
@@ -119,7 +132,7 @@ let handler = async (m, { conn, text }) => {
   try {
     if (/image|video|audio/.test(mime)) {
       const buffer = await quoted.download().catch(() => null)
-      if (!buffer) return m.reply('❌ Gagal mengunduh media yang kamu reply.')
+      if (!buffer) return balas(m, '❌ Gagal mengunduh media yang kamu reply.')
 
       let content = {}
       if (/image/.test(mime)) {
@@ -132,26 +145,31 @@ let handler = async (m, { conn, text }) => {
       }
 
       await groupStatus(conn, target, content)
-      return m.reply('✅ Status grup berhasil dikirim')
+      return balas(m, '✅ Status grup berhasil dikirim')
     }
 
     if (!caption) {
-      return m.reply(
+      return balas(m, 
         `Contoh:\n.swgroup 1|Halo semua\n\nAtau reply media:\n.swgroup 1`
       )
     }
 
     await groupStatus(conn, target, { text: caption })
-    return m.reply('✅ Status grup berhasil dikirim')
+    return balas(m, '✅ Status grup berhasil dikirim')
   } catch (error) {
     const code = error?.code || error?.data || error?.output?.statusCode || ''
     const pesan = String(error?.message || error || '')
-    const alasan = String(code) === '403' || /forbidden/i.test(pesan)
-      ? 'WhatsApp menolak (403 forbidden). Pastikan bot masih anggota grup dan kamu admin grup.'
-      : String(code) === '404'
-        ? 'Grup tidak ditemukan (404). Kemungkinan grup sudah dibubarkan.'
-        : pesan.slice(0, 180) || 'Alasan tidak diketahui.'
-    return m.reply(`❌ Gagal mengirim status grup.\n\n${alasan}`)
+    /* Task206 —429/503 saat mengirim: pesan ramah + hitung mundur (bukan stack). */
+    const alasan = String(code) === '429' || String(code) === '503'
+      ? `Metadata WhatsApp dibatasi sementara — coba lagi ±${Math.max(1, Math.ceil(Number(error?.retryAfterMs || 60000) / 1000))} detik.`
+      : String(code) === '403' || /forbidden/i.test(pesan)
+        ? 'WhatsApp menolak (403 forbidden). Pastikan bot masih anggota grup dan kamu admin grup.'
+        : String(code) === '404'
+          ? 'Grup tidak ditemukan (404). Kemungkinan grup sudah dibubarkan.'
+          : /dibatasi sementara|belum merespons/i.test(pesan)
+            ? pesan.slice(0, 180)
+            : pesan.slice(0, 180) || 'Alasan tidak diketahui.'
+    return balas(m, `❌ Gagal mengirim status grup.\n\n${alasan}`)
   }
 }
 

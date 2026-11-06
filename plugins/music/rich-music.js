@@ -12,7 +12,7 @@
 
 import yts from 'yt-search'
 import crypto from 'node:crypto'
-import { proto, generateWAMessageFromContent, prepareWAMessageMedia } from '@rexxhayanasi/elaina-baileys'
+import { proto, generateWAMessageFromContent, prepareWAMessageMedia } from '@whiskeysockets/baileys'
 
 function shortId() {
   return crypto.randomBytes(8).toString('hex').toUpperCase()

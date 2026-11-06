@@ -1,5 +1,7 @@
 import { sendAutoAIReply } from './lib/auto-ai-reply.js'
 import { handleAfkMessage } from './lib/afk.js';
+import { getAccessModeState } from './core/awang-mode.js';
+import { modeEfektif, flagMode, putusanAkses, muatConfig, catatPeringatan, resetHitungan, teksTindakan, tindakanLabel, terapkanTindakan } from './lib/access-warn.js';
 import { isRealmAccessCommand } from './lib/realms/access.js';
 import { runUnifiedCommand, awardMessageExp } from './lib/rpg/unified-runtime.js';
 import { unifiedRpg } from './lib/rpg/unified-store.js';
@@ -9,7 +11,7 @@ import { planAutoAI, shouldAutoAITrigger, isSelfAIRequest } from './lib/auto-ai.
 import { schedulePluginCommand } from './lib/auto-ai-scheduler.js';
 import { runWithBotConnection } from './lib/bot-connection-context.js';
 import { smsg } from './lib/simple.js';
-import { generateWAMessageFromContent, proto } from '@rexxhayanasi/elaina-baileys'
+import { generateWAMessageFromContent, proto } from '@whiskeysockets/baileys'
 import { format } from 'util';
 import { recordError } from './lib/error-hub.js'
 import syncUserDatabase from './lib/database.js';
@@ -245,8 +247,23 @@ const prefixKey = prefixStorageKey(this, m.chat)
 const activePrefix = await getActivePrefix(prefixKey, botConfig.defaultPrefix)
 // Activity clears AFK before private/premium/registration/only-group command gates.
 // Do this before profile merging, so a stale PN/LID field cannot overwrite the status.
-const afkNotify = (isOwner || m.fromMe || (botConfig.type === 'jadibot' ? botConfig.public !== false : global.db.data.settings?.[this.user.jid]?.public !== false)) && !isPluginDisabled(botConfig, '_system/_afk.js')
-await handleAfkMessage(m, this, { prefix: activePrefix, aliases: userIdentityKeys, type: chatUpdate.type, notify: afkNotify })
+/* Task205 — notifikasi AFK dibungkam hanya di permukaan yang dibatasi. */
+let gcOnlyUntukNotif = true
+try {
+    const modeNotif = modeEfektif({ onlyGroup: botConfig.onlyGroup === true, mode: getAccessModeState().mode })
+    const flagNotif = flagMode(modeNotif)
+    gcOnlyUntukNotif = m.isGroup ? flagNotif.gc : flagNotif.pc
+} catch {
+    gcOnlyUntukNotif = m.isGroup || !(botConfig.onlyGroup === true)
+}
+const afkNotify = (isOwner || m.fromMe || (botConfig.type === 'jadibot' ? botConfig.public !== false : global.db.data.settings?.[this.user.jid]?.public !== false)) && !isPluginDisabled(botConfig, '_system/_afk.js') && gcOnlyUntukNotif
+/* Task204 — kegagalan pemeriksaan AFK tidak boleh mematikan seluruh
+ * pemrosesan pesan (dulu throw di sini = bot tidak merespon chat sama sekali). */
+try {
+    await handleAfkMessage(m, this, { prefix: activePrefix, aliases: userIdentityKeys, type: chatUpdate.type, notify: afkNotify })
+} catch (afkError) {
+    console.log(`[afk] pemeriksaan dilewati: ${afkError?.message || afkError}`)
+}
 const mergedUser = mergeUserIdentityRecords(global.db.data.users, userIdentityKeys)
 global.db.data.users[m.sender] ||= mergedUser
 
@@ -354,15 +371,49 @@ m.limit = false;
 
 		if (typeof m.text !== 'string') m.text = '';
 
-	// Mode akses per-session Jadibot:
-	// - onlyGroup: seluruh command ditolak di private chat.
-	// - self: hanya owner session, developer terkunci, atau bot sendiri.
-	// Bot utama juga menghormati Only Group bila owner mengaktifkannya dari web.
-	if (botConfig.onlyGroup === true && !m.isGroup && !realmAccessCommand) return;
+	// Task205 — mode privat (Task150) didahulukan: diam tanpa peringatan.
 	const instancePublic = botConfig.type === 'jadibot' || botConfig.managedSettings === true
 		? botConfig.public !== false
 		: global.db.data.settings[this.user.jid].public
 	if (!instancePublic && !m.fromMe && !isOwner) return;
+	// Task205 — GERBANG AKSES + MESIN PERINGATAN (sama dengan handler.js):
+	// permukaan dibatasi → diam; PC dibatasi + command → warning→tindakan.
+	try {
+		const modeAkses = modeEfektif({ onlyGroup: botConfig.onlyGroup === true, mode: getAccessModeState().mode })
+		const teksCommand = activePrefix && String(m.text || '').startsWith(activePrefix)
+			? String(m.text).slice(activePrefix.length).trim()
+			: ''
+		const putusan = putusanAkses({
+			mode: modeAkses,
+			isGroup: Boolean(isGroup),
+			isOwner: Boolean(isOwner || m.fromMe),
+			isCommand: Boolean(teksCommand),
+			realmAccess: Boolean(realmAccessCommand),
+		})
+		if (putusan === 'diam') return
+		if (putusan === 'peringatan') {
+			const config = muatConfig(global.db.data)
+			const hasil = catatPeringatan(global.db.data, m.sender)
+			const kenaTindakan = !config.enabled || hasil.lewat
+			const pesan = kenaTindakan
+				? teksTindakan(config, config.action)
+				: '⚠️ *PERINGATAN ' + hasil.count + '/' + hasil.threshold + '*\n' + config.text +
+				  '\n\nSetelah ' + hasil.threshold + ' peringatan → ' + tindakanLabel(config.action) + '.'
+			try {
+				await this.reply(m.chat, pesan, m)
+			} catch (warnError) {
+				console.log('[akses] gagal kirim peringatan: ' + (warnError?.message || warnError))
+			}
+			if (kenaTindakan) {
+				const aksi = await terapkanTindakan({ conn: this, dbData: global.db.data }, m.sender, config.action)
+				resetHitungan(global.db.data, m.sender)
+				console.log('[akses] tindakan ' + config.action + ' → ' + String(m.sender).split('@')[0] + ' (' + aksi.jalur + ')')
+			}
+			return
+		}
+	} catch (aksesError) {
+		console.log('[akses] gagal memeriksa: ' + (aksesError?.message || aksesError))
+	}
 if (m.isBaileys) return;
 m.exp += Math.ceil(Math.random() * 10);
 

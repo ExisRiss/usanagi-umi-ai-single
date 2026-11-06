@@ -794,7 +794,7 @@ function isBillable(action) {
 
 async function fetchImageDataUrl(imageMessage) {
   try {
-    const { downloadContentFromMessage } = await import('@rexxhayanasi/elaina-baileys')
+    const { downloadContentFromMessage } = await import('@whiskeysockets/baileys')
     const stream = await downloadContentFromMessage(imageMessage, 'image')
     const chunks = []
     let size = 0

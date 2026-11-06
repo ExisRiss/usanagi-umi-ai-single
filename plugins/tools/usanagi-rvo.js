@@ -1,6 +1,6 @@
 /* By AlzRiss - Usanagi Umi AI */
 
-import { downloadMediaMessage } from '@rexxhayanasi/elaina-baileys'
+import { downloadMediaMessage } from '@whiskeysockets/baileys'
 import { getAllOwnerNumbers, normalizeNumber, resolveTargetPhoneNumber } from '../../lib/awang-cekakses.js'
 import { getRvoMediaInfo, hasViewOnce } from '../../lib/rvo.js'
 

@@ -1,5 +1,5 @@
 import fs from 'fs'
-import { generateWAMessageFromContent, proto } from '@rexxhayanasi/elaina-baileys'
+import { generateWAMessageFromContent, proto } from '@whiskeysockets/baileys'
 
 const dbPath = './lib/chat.json'
 

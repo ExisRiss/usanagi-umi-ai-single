@@ -2,7 +2,7 @@ import {
   generateWAMessageFromContent,
   prepareWAMessageMedia,
   proto
-} from '@rexxhayanasi/elaina-baileys'
+} from '@whiskeysockets/baileys'
 import fs from 'fs'
 import sharp from 'sharp'
 

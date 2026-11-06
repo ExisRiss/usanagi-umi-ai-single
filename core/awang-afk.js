@@ -1,6 +1,12 @@
 /* By AlzRiss - Usanagi Umi AI */
 import { unifiedRpg } from '../lib/rpg/unified-store.js'
 const migrated=new WeakSet(),fallback={users:{}}
+/* Task204 — penanda unik per record AFK. Cooldown notifikasi (Task178) harus
+ * membedakan record: user yang AFK→kembali→AFK lagi dalam10 menit tetap harus
+ * disapa (dulu key cuma chat|target sehingga event kedua dibungkam — "bot
+ * engga respon"). Lintas sesi/proses record yang SAMA tetap terdedup karena
+ * seq/since ikut di key. */
+let seqCounter=0
 export function normalizeAfkJid(value){
  const jid=String(value||'').replace(/:\d+(?=@)/,'')
  return /^\d{1,25}@(s\.whatsapp\.net|lid)$/.test(jid)?jid:''
@@ -37,7 +43,7 @@ function keysInState(jid,aliases,states){
 }
 export function setAfk(jid,reason,aliases=[]){
  const states=state(),keys=keysInState(jid,aliases,states);if(!keys.length)return null
- const entry={reason:String(reason||'').trim().slice(0,1000),since:Date.now()}
+ const entry={reason:String(reason||'').trim().slice(0,1000),since:Date.now(),seq:++seqCounter}
  for(const key of keys)delete states[key]
  states[keys[0]]=entry;return entry
 }

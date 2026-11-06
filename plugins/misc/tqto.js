@@ -1,5 +1,5 @@
 import sharp from 'sharp'
-import { prepareWAMessageMedia } from '@rexxhayanasi/elaina-baileys'
+import { prepareWAMessageMedia } from '@whiskeysockets/baileys'
 
 const THUMB_URL = './media/banner.jpg'
 const URL = global.links?.websiteUrl || global.scriptUrl || ''

@@ -1,4 +1,4 @@
-import { getDevice } from '@rexxhayanasi/elaina-baileys'
+import { getDevice } from '@whiskeysockets/baileys'
 
 let handler = async (m, { conn, isOwner }) => {
     // Memastikan ada pesan yang di-reply

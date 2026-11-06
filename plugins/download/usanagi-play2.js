@@ -28,7 +28,7 @@ import fs from 'fs/promises'
 import os from 'os'
 import path from 'path'
 import { createRequire } from 'module'
-import { prepareWAMessageMedia } from '@rexxhayanasi/elaina-baileys'
+import { prepareWAMessageMedia } from '@whiskeysockets/baileys'
 import { AIRich } from '../../lib/ui/MessageBuilder.js'
 
 // ffmpeg: di server bot binernya ada di node_modules/@ffmpeg-installer.

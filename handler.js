@@ -9,7 +9,7 @@ import { planAutoAI, shouldAutoAITrigger, isSelfAIRequest } from './lib/auto-ai.
 import { schedulePluginCommand } from './lib/auto-ai-scheduler.js';
 import { runWithBotConnection } from './lib/bot-connection-context.js';
 import { smsg } from './lib/simple.js';
-import { generateWAMessageFromContent, proto } from '@rexxhayanasi/elaina-baileys'
+import { generateWAMessageFromContent, proto } from '@whiskeysockets/baileys'
 import { format } from 'util';
 import { recordError } from './lib/error-hub.js'
 /* Task132: daftar akses per sesi (fitur OURIN `.addakses`). */
@@ -33,7 +33,10 @@ import { normalizePrefixMode, resolveIncomingPrefix } from './lib/prefix-policy.
 import { botKind, sanitizeActivePrefix, normalizeIncoming, splitDoublePrefix } from './lib/prefix-bot.js'
 import { nomorOwnerUtama as daftarNomorOwnerUtama } from './lib/owner-utama.js';
 /* Task147: jangan pernah diam saat pesan berbentuk perintah dibuang gerbang. */
-import { cariPesanPrefix, bolehHint, petunjukOnlyGroup } from './lib/prefix-hint.js';
+import { cariPesanPrefix, bolehHint } from './lib/prefix-hint.js';
+/* Task205: gerbang akses onlygc/onlypc/off + mesin peringatan. */
+import { getAccessModeState } from './core/awang-mode.js';
+import { modeEfektif, flagMode, putusanAkses, muatConfig, catatPeringatan, resetHitungan, teksTindakan, tindakanLabel, terapkanTindakan } from './lib/access-warn.js';
 /* Task150: mode privat = bot diam total kecuali developer/owner utama/owner bot. */
 import { apakahPrivat, putusanModePrivat, roleDari, catatanDiam } from './lib/mode-privat.js';
 import { limitsEnabled } from './lib/limit-mode.js'
@@ -341,32 +344,6 @@ if (isBlacklistedUser && !isOwner && !blacklistCmd) {
     return
 }
 
-// ==================
-// 🔒 MODE PRIVAT — BOT DIAM (Task150)
-// ==================
-/*
- * Diletakkan SEDINI MUNGKIN: sebelum database user disentuh, sebelum AFK,
- * sebelum aksi tertunda (.deploysubdomain), dan sebelum petunjuk prefix.
- * Ketiganya dulu bisa mengirim balasan ke pengguna yang tidak berhak saat
- * bot disetel private — itulah yang membuat "bot masih bales".
- */
-try {
-    const setelanUtama = global.db?.data?.settings?.[this.user?.jid]
-    const privatSesi = apakahPrivat(botConfig, setelanUtama)
-    if (privatSesi) {
-        const putusan = putusanModePrivat({
-            privat: true,
-            fromMe: Boolean(m.fromMe || m.key?.fromMe),
-            ...roleDari({ isROwner, isOwnerUtama, isOwner }),
-        })
-        if (!putusan.dilayani) {
-            if (bolehLogDiam(m.chat)) console.log(catatanDiam(putusan, { sender: m.sender, chat: m.chat }))
-            return
-        }
-    }
-} catch (modeError) {
-    console.log(`[mode-privat] gagal memeriksa setelan: ${modeError?.message || modeError}`)
-}
 
 // ==================
 // 📊 DATABASE INIT
@@ -447,8 +424,63 @@ m.__botKind = prefixBotKind
 m.__prefixMode = prefixMode
 // Activity clears AFK before private/premium/registration/only-group command gates.
 // Do this before profile merging, so a stale PN/LID field cannot overwrite the status.
-const afkNotify = (isOwner || m.fromMe || (botConfig.type === 'jadibot' ? botConfig.public !== false : global.db.data.settings?.[this.user.jid]?.public !== false)) && !isPluginDisabled(botConfig, '_system/_afk.js')
-await handleAfkMessage(m, this, { prefix: activePrefix, aliases: userIdentityKeys, type: chatUpdate.type, notify: afkNotify })
+/* Task205 — notifikasi AFK dibungkam hanya di permukaan yang DIBATASI
+ * (PC saat onlygc/off; group saat onlypc/off). Permukaan yang dilayani
+ * tetap mendapat notis seperti biasa. */
+let gcOnlyUntukNotif = true
+try {
+    const modeNotif = modeEfektif({ onlyGroup: botConfig.onlyGroup === true, mode: getAccessModeState().mode })
+    const flagNotif = flagMode(modeNotif)
+    gcOnlyUntukNotif = m.isGroup ? flagNotif.gc : flagNotif.pc
+} catch {
+    gcOnlyUntukNotif = m.isGroup || !(botConfig.onlyGroup === true)
+}
+const afkNotify = (isOwner || m.fromMe || (botConfig.type === 'jadibot' ? botConfig.public !== false : global.db.data.settings?.[this.user.jid]?.public !== false)) && !isPluginDisabled(botConfig, '_system/_afk.js') && gcOnlyUntukNotif
+/* Task204 — kegagalan pemeriksaan AFK tidak boleh mematikan seluruh
+ * pemrosesan pesan (dulu throw di sini = bot tidak merespon chat sama sekali). */
+try {
+    await handleAfkMessage(m, this, { prefix: activePrefix, aliases: userIdentityKeys, type: chatUpdate.type, notify: afkNotify })
+} catch (afkError) {
+    console.log(`[afk] pemeriksaan dilewati: ${afkError?.message || afkError}`)
+}
+
+// ==================
+/* Task203 — Blok ini DIGESER dari sebelum-ke-setelah handleAfkMessage:
+ * Task150 menaruhnya paling awal sehingga aktivitas user saat mode private
+ * tidak pernah mencapai clear-AFK → AFK basi (stale) selamanya (uji
+ * afk-dispatch #11). Setelah geser: AFK tetap di-clear DULU (notify:false
+ * saat private = tanpa balasan), baru bot membungkam semua balasan.
+ * Balasan pertama (registrasi/onlyGroup/prefix hint) tetap SETELAH blok ini. */
+// 🔒 MODE PRIVAT — BOT DIAM (Task150)
+// ==================
+/*
+ * Diletakkan SEDINI MUNGKIN: sebelum database user disentuh, sebelum AFK,
+ * sebelum aksi tertunda (.deploysubdomain), dan sebelum petunjuk prefix.
+ * Ketiganya dulu bisa mengirim balasan ke pengguna yang tidak berhak saat
+ * bot disetel private — itulah yang membuat "bot masih bales".
+ */
+try {
+    const setelanUtama = global.db?.data?.settings?.[this.user?.jid]
+    const privatSesi = apakahPrivat(botConfig, setelanUtama)
+    if (privatSesi) {
+        // Diagnostik: sumber mana yang membuat sesi dianggap privat
+        // (laporan Task207: owner bilang mode public tapi bot diam).
+        if (bolehLogDiam(m.chat)) {
+            console.log(`[mode-privat-debug] type=${botConfig?.type} managed=${botConfig?.managedSettings} publicCfg=${botConfig?.public} dbPublic=${setelanUtama?.public} dbAdaPublik=${Boolean(setelanUtama && 'public' in setelanUtama)} jidBot=${this.user?.jid}`)
+        }
+        const putusan = putusanModePrivat({
+            privat: true,
+            fromMe: Boolean(m.fromMe || m.key?.fromMe),
+            ...roleDari({ isROwner, isOwnerUtama, isOwner }),
+        })
+        if (!putusan.dilayani) {
+            if (bolehLogDiam(m.chat)) console.log(catatanDiam(putusan, { sender: m.sender, chat: m.chat }))
+            return
+        }
+    }
+} catch (modeError) {
+    console.log(`[mode-privat] gagal memeriksa setelan: ${modeError?.message || modeError}`)
+}
 const mergedUser = mergeUserIdentityRecords(global.db.data.users, userIdentityKeys)
 global.db.data.users[m.sender] ||= mergedUser
 
@@ -537,6 +569,53 @@ try {
 const realmAccessCommand = isRealmAccessCommand(m.text, activePrefix)
 const prefix = { test: text => String(text || '').startsWith(activePrefix) }
 
+/* Task205 — GERBANG AKSES + MESIN PERINGATAN (permintaan owner):
+ *   - owner/developer: selalu dilayani;
+ *   - permukaan dibatasi + bukan command → DIAM (tanpa respon, tanpa hint);
+ *   - chat pribadi dibatasi + command → WARNING dulu, lewat batas →
+ *     tindakan (block/blacklist); bila warning OFF → langsung tindakan;
+ *   - group dibatasi + command → DIAM (tanpa respon);
+ *   - pengecualian lama realmAccessCommand di chat pribadi tetap berlaku.
+ * Clear-AFK sudah berjalan diam-diri di atas (Task203); mode privat (Task150)
+ * juga sudah diblokir lebih awal — jadi peringatan tidak pernah bocor ke
+ * mode private. */
+try {
+    const modeAkses = modeEfektif({ onlyGroup: botConfig.onlyGroup === true, mode: getAccessModeState().mode })
+    const teksCommand = activePrefix && String(m.text || '').startsWith(activePrefix)
+        ? String(m.text).slice(activePrefix.length).trim()
+        : ''
+    const putusan = putusanAkses({
+        mode: modeAkses,
+        isGroup: Boolean(isGroup),
+        isOwner: Boolean(isOwner || m.fromMe),
+        isCommand: Boolean(teksCommand),
+        realmAccess: Boolean(realmAccessCommand),
+    })
+    if (putusan === 'diam') return
+    if (putusan === 'peringatan') {
+        const config = muatConfig(global.db.data)
+        const hasil = catatPeringatan(global.db.data, m.sender)
+        const kenaTindakan = !config.enabled || hasil.lewat
+        const pesan = kenaTindakan
+            ? teksTindakan(config, config.action)
+            : '⚠️ *PERINGATAN ' + hasil.count + '/' + hasil.threshold + '*\n' + config.text +
+              '\n\nSetelah ' + hasil.threshold + ' peringatan → ' + tindakanLabel(config.action) + '.'
+        try {
+            await this.reply(m.chat, pesan, m)
+        } catch (warnError) {
+            console.log('[akses] gagal kirim peringatan: ' + (warnError?.message || warnError))
+        }
+        if (kenaTindakan) {
+            const aksi = await terapkanTindakan({ conn: this, dbData: global.db.data }, m.sender, config.action)
+            resetHitungan(global.db.data, m.sender)
+            console.log('[akses] tindakan ' + config.action + ' → ' + String(m.sender).split('@')[0] + ' (' + aksi.jalur + ')')
+        }
+        return
+    }
+} catch (aksesError) {
+    console.log('[akses] gagal memeriksa: ' + (aksesError?.message || aksesError))
+}
+
 /*
  * Task147 — BOT TIDAK BOLEH DIAM.
  *
@@ -610,20 +689,9 @@ m.limit = false;
 
 		if (typeof m.text !== 'string') m.text = '';
 
-	// Mode akses per-session Jadibot:
-	// - onlyGroup: seluruh command ditolak di private chat.
-	// - self: hanya owner session, developer terkunci, atau bot sendiri.
-	// Bot utama juga menghormati Only Group bila owner mengaktifkannya dari web.
-	if (botConfig.onlyGroup === true && !m.isGroup && !realmAccessCommand) {
-		/* Task147: sebelumnya `return` diam-diam. Pemilik bot yang lupa bahwa
-		 * setelan Only Group menyala melihat botnya seperti mati. */
-		try {
-			if (bolehHint(m.chat, 'onlygroup')) {
-				await this.reply(m.chat, petunjukOnlyGroup(botConfig.name || botConfig.namebot), m)
-			}
-		} catch (hintError) { /* balasan petunjuk tidak boleh menggagalkan handler */ }
-		return;
-	}
+	/* Task204 — gerbang onlygc dipindah ke atas (setelah clear-AFK, sebelum
+	 * hint prefix): chat pribadi benar-benar diam saat mode onlygc menyala.
+	 * Petunjuk Task147 sengaja dihapus sesuai permintaan owner terbaru. */
 	const instancePublic = botConfig.type === 'jadibot' || botConfig.managedSettings === true
 		? botConfig.public !== false
 		: global.db.data.settings[this.user.jid].public
@@ -1804,8 +1872,9 @@ global.dfail = (type, m, conn) => {
   return msg(m, conn)
 }
 let file = global.__filename(import.meta.url, true);
-watchFile(file, async () => {
+const watcherHandler = watchFile(file, async () => {
 	unwatchFile(file);
 	console.log(chalk.redBright("Update 'handler.js'"));
 	if (global.reloadHandler) console.log(await global.reloadHandler());
 });
+watcherHandler.unref?.()

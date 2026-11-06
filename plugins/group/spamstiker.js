@@ -6,7 +6,7 @@
  *   • Aksi memakai emoji loading 1️⃣→🔟 (mulaiReactLoading) seperti spamtag.
  */
 
-import { downloadContentFromMessage } from '@rexxhayanasi/elaina-baileys'
+import { downloadContentFromMessage } from '@whiskeysockets/baileys'
 import { mulaiReactLoading } from '../../lib/loading-react.js'
 
 const MAKS = 50

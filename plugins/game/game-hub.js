@@ -9,7 +9,7 @@
  * By AlzRiss - Usanagi Umi AI (clean-room build)
  */
 
-import { proto, generateWAMessageFromContent, prepareWAMessageMedia } from '@rexxhayanasi/elaina-baileys'
+import { proto, generateWAMessageFromContent, prepareWAMessageMedia } from '@whiskeysockets/baileys'
 import fs from 'node:fs'
 import path from 'node:path'
 

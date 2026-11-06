@@ -6,7 +6,7 @@ import os from 'node:os'
 import crypto from 'node:crypto'
 import { execFile } from 'node:child_process'
 import { promisify } from 'node:util'
-import { downloadMediaMessage } from '@rexxhayanasi/elaina-baileys'
+import { downloadMediaMessage } from '@whiskeysockets/baileys'
 
 const execFileAsync = promisify(execFile)
 

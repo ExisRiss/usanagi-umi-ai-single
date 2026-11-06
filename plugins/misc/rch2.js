@@ -8,8 +8,13 @@ import { getSubBots } from '../../lib/jadibot.js'
 
 const MAX_EMOJIS = 5
 const PARALLEL_BOTS = 4
+/* eslint-disable no-control-regex, no-misleading-character-class --
+ * Kedua regex berikut identik dengan spamrch.js: karakter kontrol memang
+ * sengaja dibersihkan, kombinasi ZWJ+VS16 adalah standar pemetaan emoji. */
 const INVISIBLE = /[\u0000-\u001F\u007F-\u009F\u200B-\u200F\u202A-\u202E\u2060-\u206F\uFEFF]/g
 const EMOJI_ONLY = /^[\p{Extended_Pictographic}\p{Regional_Indicator}\p{Emoji_Modifier}\u200D\uFE0F\u20E3#*0-9]+$/u
+
+/* eslint-enable no-control-regex, no-misleading-character-class */
 
 function usage(prefix, command) {
   return [
@@ -20,18 +25,19 @@ function usage(prefix, command) {
     'Contoh:',
     `${prefix}${command} https://whatsapp.com/channel/0029Vb.../436 🎉,⚡`,
     '',
-    'Link harus berakhir dengan nomor post, misalnya `/436`.',
+    'Nomor post opsional — tanpa nomor post, reaction diarahkan ke post terbaru.',
   ].join('\n')
 }
 
-function parseInput(value) {
+export function parseInput(value) {
   const input = String(value || '').replace(INVISIBLE, '').trim()
-  const match = input.match(/(?:https?:\/\/)?(?:www\.)?whatsapp\.com\/channel\/([A-Za-z0-9_-]+)\/(\d{1,24})(?=$|[/?#\s])/i)
+  // Nomor post OPSIONAL — kalau kosong, handler mengambil post terbaru.
+  const match = input.match(/(?:https?:\/\/)?(?:www\.)?whatsapp\.com\/channel\/([A-Za-z0-9_-]+)(?:\/(\d{1,24}))?(?=$|[/?#\s,])/i)
   if (!match) return null
 
   const after = input.slice((match.index || 0) + match[0].length).trim()
-  const emojis = [...new Set(after.split(',').map(item => item.trim()).filter(Boolean))]
-  return { invite: match[1], postId: match[2], emojis }
+  const emojis = [...new Set(after.split(/[\s,]+/).map(item => item.trim()).filter(Boolean))]
+  return { invite: match[1], postId: match[2] || '', emojis }
 }
 
 function validEmoji(value) {
@@ -74,6 +80,8 @@ async function reactFromConnection(conn, invite, postId, emoji) {
   const metadata = await withTimeout(conn.newsletterMetadata('invite', invite), 15000)
   const channelId = String(metadata?.id || '').trim()
   if (!channelId.endsWith('@newsletter')) throw new Error('channel not found')
+  // Follow best-effort: reaction ditolak kalau akun belum mengikuti channel.
+  try { await withTimeout(conn.newsletterFollow(channelId), 10000) } catch { /* boleh gagal kalau sudah ikut / izin lain */ }
   await withTimeout(conn.newsletterReactMessage(channelId, postId, emoji), 15000)
 }
 
@@ -104,10 +112,25 @@ const handler = async (m, { text, usedPrefix, command }) => {
 
   await m.reply(`⏳ Mengirim reaction dari Bot Utama + ${Math.max(0, connections.length - 1)} Jadibot aktif...`)
 
+  // Nomor post kosong (link polos) → arahkan ke post terbaru di channel.
+  let postId = parsed.postId
+  if (!postId) {
+    try {
+      const metadata = await withTimeout(connections[0].conn.newsletterMetadata('invite', parsed.invite), 15000)
+      const channelId = String(metadata?.id || '').trim()
+      const pesan = await withTimeout(connections[0].conn.newsletterFetchMessages('jid', channelId, 5), 15000)
+      const terakhir = (pesan || [])[pesan.length - 1]
+      postId = String(terakhir?.key?.server_id || terakhir?.key?.id || '')
+      if (!postId) return m.reply('❌ Tidak ada post terakhir yang terbaca — kirim link dengan nomor post (mis. …/436).')
+    } catch (e) {
+      return m.reply(`❌ Gagal membaca post terakhir (${e?.message || e}) — kirim link dengan nomor post (mis. …/436).`)
+    }
+  }
+
   const jobs = connections.map(({ conn, type }, index) => async () => {
     const emoji = parsed.emojis[index % parsed.emojis.length]
     try {
-      await reactFromConnection(conn, parsed.invite, parsed.postId, emoji)
+      await reactFromConnection(conn, parsed.invite, postId, emoji)
       return { ok: true, type, emoji }
     } catch (error) {
       return { ok: false, type, reason: publicFailure(error) }

@@ -59,12 +59,25 @@ function loadConfig() {
 }
 
 async function api(cfg, pathname, { method = 'GET', body } = {}) {
-  const res = await fetch(`${cfg.baseUrl}${pathname}`, {
-    method,
-    headers: { 'Content-Type': 'application/json' },
-    body: body === undefined ? undefined : JSON.stringify(body),
-    signal: AbortSignal.timeout(TIMEOUT_MS),
-  })
+  /* Task206 — timeout/ jaringan dipetakan ke pesan ramah (string), bukan
+   * DOMException mentah: dulu `.uno` melempar
+   * "DOMException [TimeoutError]: The operation was aborted due to timeout"
+   * ke chat + laporan error owner. */
+  let res
+  try {
+    res = await fetch(`${cfg.baseUrl}${pathname}`, {
+      method,
+      headers: { 'Content-Type': 'application/json' },
+      body: body === undefined ? undefined : JSON.stringify(body),
+      signal: AbortSignal.timeout(TIMEOUT_MS),
+    })
+  } catch (error) {
+    const nama = String(error?.name || '')
+    if (nama === 'TimeoutError' || nama === 'AbortError') {
+      throw `Server game tidak merespons dalam ${Math.round(TIMEOUT_MS / 1000)} detik — coba lagi sebentar lagi.`
+    }
+    throw `Server game gagal dihubungi (${String(error?.message || error).slice(0, 80)}).`
+  }
   let data = {}
   try { data = await res.json() } catch { /* balasan non-JSON */ }
   if (!res.ok) throw String(data.error || `Server game membalas HTTP ${res.status}`)

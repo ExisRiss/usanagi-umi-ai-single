@@ -4,9 +4,9 @@ import {
   default as makeWASocket,
   DisconnectReason,
   fetchLatestBaileysVersion,
-  Browsers,
   makeCacheableSignalKeyStore,
-} from '@rexxhayanasi/elaina-baileys'
+} from '@whiskeysockets/baileys'
+import { opsiSocket } from '../lib/socket-options.js'
 import { Boom } from '@hapi/boom'
 import pino from 'pino'
 import { settings } from '../config/settings.js'
@@ -54,19 +54,18 @@ export async function startConnection({ onReady, onPluginReload } = {}) {
   const { state, saveCreds } = await useSQLiteAuthState()
   const { version } = await fetchLatestBaileysVersion()
 
-  const conn = makeWASocket({
-    version,
-    logger,
-    printQRInTerminal: false,
-    auth: {
-      creds: state.creds,
-      keys: makeCacheableSignalKeyStore(state.keys, logger),
-    },
-    browser: Browsers.ubuntu('Chrome'),
-    generateHighQualityLinkPreview: true,
-    syncFullHistory: false,
-    markOnlineOnConnect: true,
-  })
+  /* Task214 — base opsi sama dengan bot utama & jadibot (lib/socket-options.js). */
+  const conn = makeWASocket(
+    opsiSocket({
+      auth: {
+        creds: state.creds,
+        keys: makeCacheableSignalKeyStore(state.keys, logger),
+      },
+      version,
+      logger,
+      performance: settings.runtimePerformance || {},
+    })
+  )
 
   const usingPairing = !state.creds?.registered
 

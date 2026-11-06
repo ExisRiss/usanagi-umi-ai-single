@@ -1,0 +1,30 @@
+[
+  {
+    "soal": "Ibukota Indonesia dan Ibukota Thailand",
+    "jawaban": [
+      "jakarta",
+      "bangkok"
+    ],
+    "petunjuk": "Kedua kota ini ibukota negara mereka"
+  },
+  {
+    "soal": "Kota Gudeg",
+    "jawaban": "yogyakarta",
+    "petunjuk": "Kota pelajar di Jawa Tengah"
+  },
+  {
+    "soal": "Kota mode di Perancis",
+    "jawaban": "paris",
+    "petunjuk": "Ibukota fashion dunia"
+  },
+  {
+    "soal": "Kota di Amerika Serikat yang terkenal dengan patung Liberty",
+    "jawaban": "new york",
+    "petunjuk": "Kota besar di AS"
+  },
+  {
+    "soal": "Kota metropolitan di Jepang",
+    "jawaban": "tokyo",
+    "petunjuk": "Ibukota Jepang"
+  }
+]

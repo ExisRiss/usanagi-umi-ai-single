@@ -1,35 +1,20 @@
-import axios from "axios"
-
-async function lyrics(title) {
-  try {
-    if (!title) throw new Error('Judul lagu diperlukan!')
-    const { data } = await axios.get(`https://lrclib.net/api/search?q=${encodeURIComponent(title)}`, {
-      headers: {
-        referer: `https://lrclib.net/search/${encodeURIComponent(title)}`,
-        'user-agent': 'Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/137.0.0.0 Mobile Safari/537.36'
-      }
-    })
-    return data
-  } catch (err) {
-    throw new Error(err.message)
-  }
-}
+import { cariLirik } from '../../lib/lyrics-source.js'
 
 let handler = async (m, { text }) => {
   if (!text) throw 'Masukkan judul lagu!\n\nContoh: .lyrics bunga maaf'
   try {
-    let res = await lyrics(text)
-    if (!res || !res.length) throw 'Lirik tidak ditemukan!'
+    const song = await cariLirik(text)
+    if (!song) return m.reply('❌ Lirik tidak ditemukan. Coba judul atau artis yang lebih spesifik ya.')
 
-    let song = res[0]
     let hasil = `🎵 *Lyrics Finder*
 
-*Judul:* ${song.trackName || '-'}
-*Artis:* ${song.artistName || '-'}
-*Album:* ${song.albumName || '-'}
+*Judul:* ${song.judul || '-'}
+*Artis:* ${song.artis || '-'}
+*Album:* ${song.album || '-'}
+*Sumber:* ${song.sumber}
 
 📑 *Lirik:*
-${song.plainLyrics || 'Tidak ada lirik tersedia.'}`
+${String(song.lirik || '').slice(0, 3500)}`
 
     m.reply(hasil)
   } catch (e) {
@@ -39,7 +24,7 @@ ${song.plainLyrics || 'Tidak ada lirik tersedia.'}`
 
 handler.help = ['lyrics <judul>']
 handler.tags = ['internet']
-handler.command = /^lyrics|lirik$/i
+handler.command = /^(lyrics|lirik)$/i
 handler.limit = false
 
 export default handler

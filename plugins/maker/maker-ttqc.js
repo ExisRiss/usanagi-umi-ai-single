@@ -41,10 +41,13 @@ const FONT_ASSETS = [
     // Task181: raw main/googlefonts/noto-emoji/fonts kena 404 (struktur repo
     // berubah). Pakai beberapa cadangan; berkas yang sudah ada di
     // assets/fonts tetap diprioritaskan tanpa unduh.
+    // Task203: font pindah ke direktori2D/ pada repo (restrukturisasi Emoji18).
+    // URL utk commit terakhir yang masih memuat file dipertahankan sebagai
+    // cadangan permanen (immutable), main/2D di depan.
     urls: [
-      'https://raw.githubusercontent.com/googlefonts/noto-emoji/v20200916/fonts/NotoColorEmoji.ttf',
-      'https://cdn.jsdelivr.net/gh/googlefonts/noto-emoji@v20200916/fonts/NotoColorEmoji.ttf',
-      'https://raw.githubusercontent.com/googlefonts/noto-emoji/main/fonts/NotoColorEmoji.ttf'
+      'https://raw.githubusercontent.com/googlefonts/noto-emoji/main/2D/fonts/NotoColorEmoji.ttf',
+      'https://cdn.jsdelivr.net/gh/googlefonts/noto-emoji@main/2D/fonts/NotoColorEmoji.ttf',
+      'https://raw.githubusercontent.com/googlefonts/noto-emoji/1ffdd21391dd1f25c081fa93a9dea0c7c029442b/2D/fonts/NotoColorEmoji.ttf'
     ],
     family: 'Noto Color Emoji'
   }

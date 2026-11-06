@@ -38,6 +38,7 @@
 import fs from 'node:fs'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
+import { botJidAktif } from '../../lib/bot-jid.js'
 
 const HERE = path.dirname(fileURLToPath(import.meta.url))
 
@@ -620,7 +621,7 @@ function buildRichPayload(html, room) {
             contextInfo: {
               forwardingScore: 1,
               isForwarded: true,
-              forwardedAiBotMessageInfo: { botJid: '867051314767696@bot' },
+              forwardedAiBotMessageInfo: { botJid: botJidAktif(conn) },
               forwardOrigin: 4,
             },
           },

@@ -28,11 +28,16 @@ import { Transform } from 'node:stream'
 import { sendLocalMediaFast } from '../../lib/awang-media-transfer.js'
 import { simpanBerkas } from '../../lib/upload-publik.js'
 import { buatIsiLisensi } from '../../lib/sc-license.js'
+import { saringZip } from '../../lib/zip-filter.js'
 
 const REPO_SINGLE = 'ExisRiss/usanagi-umi-ai-single'
 const REPO_LENGKAP = 'ExisRiss/usanagi-umi-ai'
 const BRANCH = 'main'
 const MAKS_ZIP = 60 * 1024 * 1024
+/* Task206 — unduhan boleh lebih besar dari batas kirim: zipball repo SINGLE
+ * pernah83 MB (bin/ ±39 MB) dan gagal DI SAAT stream. Unduh dulu (cap120 MB),
+ * lalu saring agar muat60 MB. */
+const MAKS_UNDUH = 120 * 1024 * 1024
 const MAKS_TAMBAHAN = 5 * 1024 * 1024
 
 /* Token pemilik yang menekan tombol (5 menit berlaku). */
@@ -54,7 +59,7 @@ async function unduhZipball(repo) {
   const batas = new Transform({
     transform(potongan, _enc, selesai) {
       total += potongan.length
-      if (total > MAKS_ZIP) { selesai(new Error('Zip melebihi batas 60 MB.')); return }
+      if (total > MAKS_UNDUH) { selesai(new Error('Zip GitHub melebihi 120 MB.')); return }
       selesai(null, potongan)
     },
   })
@@ -65,6 +70,27 @@ async function unduhZipball(repo) {
     throw error
   }
   if (!total) { fs.rmSync(tujuan, { force: true }); throw new Error('GitHub mengirim file kosong.') }
+  /* Task206 — bila zipball melebihi batas kirim60 MB, saring bertingkat
+   * (bin/ dulu — build artifact ±39 MB; lalu assets/, public/ bila perlu).
+   * Isi entri yang disalin TIDAK diubah (CRC tetap sah). */
+  if (total > MAKS_ZIP) {
+    const buf = fs.readFileSync(tujuan)
+    const akar = (nama) => { const i = nama.indexOf('/'); return i < 0 ? nama : nama.slice(i + 1) }
+    const tingkat = [
+      (n) => akar(n).startsWith('bin/'),
+      (n) => akar(n).startsWith('bin/') || akar(n).startsWith('assets/'),
+      (n) => akar(n).startsWith('bin/') || akar(n).startsWith('assets/') || akar(n).startsWith('public/'),
+    ]
+    let hasil = null
+    for (const buang of tingkat) {
+      const coba = saringZip(buf, buang)
+      if (coba.length <= MAKS_ZIP) { hasil = coba; break }
+    }
+    if (!hasil) { fs.rmSync(tujuan, { force: true }); throw new Error('Zip tetap melebihi batas 60 MB setelah penyaringan.') }
+    fs.writeFileSync(tujuan, hasil)
+    console.log('[getsc] zip disaring', total, '→', hasil.length, 'B')
+    total = hasil.length
+  }
   return { file: tujuan, bytes: total }
 }
 

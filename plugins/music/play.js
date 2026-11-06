@@ -1,7 +1,7 @@
 import { createDecipheriv } from 'crypto'
 import yts from 'yt-search'
 import sharp from 'sharp'
-import { prepareWAMessageMedia } from '@rexxhayanasi/elaina-baileys'
+import { prepareWAMessageMedia } from '@whiskeysockets/baileys'
 
 const METADATA_DECRYPTION_KEY = Buffer.from(
   'C5D58EF67A7584E4A29F6C35BBC4EB12',

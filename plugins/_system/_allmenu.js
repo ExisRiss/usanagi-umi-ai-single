@@ -18,7 +18,7 @@ const exec = promisify(_exec)
 const {
     generateWAMessageFromContent,
     proto
-} = (await import('@rexxhayanasi/elaina-baileys')).default || {}
+} = (await import('@whiskeysockets/baileys')).default || {}
 
 // ============================================================
 // TRANSLATOR SAFE IMPORT

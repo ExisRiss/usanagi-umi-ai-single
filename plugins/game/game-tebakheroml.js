@@ -1,4 +1,4 @@
-import axios from 'axios'
+import fs from 'fs'
 
 function normalize(text) {
   return String(text || '')
@@ -33,11 +33,14 @@ let handler = async (m, { conn, usedPrefix, command }) => {
 
     let data
     try {
-      const res = await axios.get('https://api.deline.web.id/game/tebakheroml')
-      if (!res.data || !res.data.result) throw new Error('invalid')
-      data = res.data.result
-    } catch (e) {
-      return m.reply('Gagal mengambil data hero, coba lagi.')
+      // Task204: API lama (host deline) MATI — pakai dataset lokal
+      // yang dibangun dari Fandom Mobile Legends (150 hero + gambar + clue).
+      const semua = JSON.parse(fs.readFileSync('./json/tebakheroml.json', 'utf8'))
+      if (!Array.isArray(semua) || !semua.length) throw new Error('empty')
+      data = semua[Math.floor(Math.random() * semua.length)]
+      if (!data || !data.jawaban || !data.img) throw new Error('invalid')
+    } catch {
+      return m.reply('Gagal memuat data hero, coba lagi.')
     }
 
     const answer = normalize(data.jawaban)

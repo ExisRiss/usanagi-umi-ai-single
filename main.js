@@ -25,6 +25,7 @@ import { pasangPenulisDatabase } from './lib/db-writer.js';
 import { scLicenseAktif, scLicenseValid, validasiScLicense } from './lib/sc-license.js';
 
 import { makeWASocket, protoType, serialize } from './lib/simple.js';
+import { opsiSocket, ringkasOpsi } from './lib/socket-options.js';
 import { installAutoTyping } from './lib/auto-typing.js';
 import { installBotConfigAccessors, getMainBotConfig } from './lib/bot-config.js';
 import { installRpgGlobals } from './lib/rpg/awang-rpg-globals.js';
@@ -52,7 +53,6 @@ import { isAnticallActive } from './core/awang-call.js';
 import {
     useMultiFileAuthState,
     initAuthCreds,
-    Browsers,
     fetchLatestBaileysVersion,
     makeCacheableSignalKeyStore,
     DisconnectReason
@@ -277,25 +277,17 @@ const { version } = await fetchLatestBaileysVersion();
  * ============================================================ */
 const runtimePerformance = global.runtimePerformance || {};
 
-const connectionOptions = {
+/* Task214 — opsi socket dipusatkan di lib/socket-options.js supaya bot utama,
+ * jadibot, dan mode single memakai nilai yang SAMA PERSIS. */
+const connectionOptions = opsiSocket({
     auth: {
         creds: state.creds,
         keys: makeCacheableSignalKeyStore(state.keys, pino({ level: 'silent' }))
     },
     version,
     logger: pino({ level: 'silent' }),
-    browser: Browsers.ubuntu('Chrome'),
-    generateHighQualityLinkPreview: true,
-    syncFullHistory: false,
-    shouldSyncHistoryMessage: () => false,
-    markOnlineOnConnect: true,
-    connectTimeoutMs: Number(runtimePerformance.connectTimeoutMs) || 45000,
-    keepAliveIntervalMs: Number(runtimePerformance.keepAliveIntervalMs) || 15000,
-    retryRequestDelayMs: Number(runtimePerformance.retryRequestDelayMs) || 100,
-    maxMsgRetryCount: Number(runtimePerformance.maxMessageRetries) || 10,
-    defaultQueryTimeoutMs: 60000,
-    printQRInTerminal: false
-};
+    performance: runtimePerformance
+});
 
 /* ============================================================
  * SETTING BOT UTAMA
@@ -837,6 +829,7 @@ let reconnectTimer = null;
 let reconnectInProgress = false;
 let reconnectAttempts = 0;
 let lastConnectionUpdateAt = Date.now();
+global.__umiLastConnectionAt = lastConnectionUpdateAt;
 
 function getDisconnectCode(error) {
     return (
@@ -854,6 +847,13 @@ function clearReconnectState() {
     reconnectInProgress = false;
     if (reconnectTimer) clearTimeout(reconnectTimer);
     reconnectTimer = null;
+}
+
+/* Task212 — penjaga 24 jam (plugins/owner/_penjaga-24jam.js) memakai ini
+ * untuk memicu siklus reconnect yang SAMA dengan event 'close', tanpa
+ * menduplikasi logika. Dipanggil hanya saat soket zombie/tertutup. */
+global.__umiReconnect = (reason) => {
+    try { scheduleReconnect(reason || 428) } catch (e) { console.error('[PENJAGA24] reconnect gagal:', e) }
 }
 
 function scheduleReconnect(reason) {
@@ -888,6 +888,8 @@ function scheduleReconnect(reason) {
 async function connectionUpdate(update) {
     const { receivedPendingNotifications, connection, lastDisconnect, isOnline } = update;
     lastConnectionUpdateAt = Date.now();
+    /* Task212 — dibaca penjaga 24 jam untuk mendeteksi soket zombie. */
+    global.__umiLastConnectionAt = lastConnectionUpdateAt;
     global.stopped = connection || global.stopped;
 
     if (connection === 'connecting') {

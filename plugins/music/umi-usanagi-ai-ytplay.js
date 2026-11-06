@@ -26,6 +26,7 @@ import { randomUUID } from 'node:crypto'
 import { searchYoutube, getYoutubeDirectUrl } from '../../lib/scrape/YouTube.js'
 import { downloadYoutube } from '../../lib/youtube-media.js'
 import { sendRemoteMediaFast } from '../../lib/awang-media-transfer.js'
+import { botJidAktif } from '../../lib/bot-jid.js'
 
 const BRAND = 'UMI Usanagi AI'
 const UA = 'Mozilla/5.0 (Linux; Android 15) AppleWebKit/537.36 Chrome/138 Mobile Safari/537.36'
@@ -327,7 +328,7 @@ async function sendRich(conn, chatId, html, { title, fallback }) {
               contextInfo: {
                 forwardingScore: 1,
                 isForwarded: true,
-                forwardedAiBotMessageInfo: { botJid: '867051314767696@bot' },
+                forwardedAiBotMessageInfo: { botJid: botJidAktif(conn) },
                 forwardOrigin: 4,
               },
             },

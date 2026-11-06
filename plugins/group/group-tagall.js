@@ -1,7 +1,7 @@
 // Code By Xnuvers007
 // Fix LID + Force Mention By ChatGPT 
 
-import { generateWAMessageFromContent, proto } from '@rexxhayanasi/elaina-baileys'
+import { generateWAMessageFromContent, proto } from '@whiskeysockets/baileys'
 
 const cleanJid = jid => {
   if (!jid) return ''

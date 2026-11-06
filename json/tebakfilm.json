@@ -1,0 +1,27 @@
+[
+  {
+    "soal": "I'm the king of the world!",
+    "jawaban": "titanic",
+    "petunjuk": "Film romantis yang berlatar kapal besar"
+  },
+  {
+    "soal": "Dinosaurus hidup kembali di pulau",
+    "jawaban": "jurassic park",
+    "petunjuk": "Film tentang taman dinosaurus"
+  },
+  {
+    "soal": "Hutan penuh makhluk aneh, Avatar",
+    "jawaban": "avatar",
+    "petunjuk": "Film sci-fi James Cameron"
+  },
+  {
+    "soal": "Pahlawan berwajah besi dan perisai",
+    "jawaban": "iron man",
+    "petunjuk": "Film Marvel"
+  },
+  {
+    "soal": "Film animasi tentang mainan hidup",
+    "jawaban": "toy story",
+    "petunjuk": "Film Pixar"
+  }
+]

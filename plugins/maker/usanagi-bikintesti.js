@@ -20,7 +20,7 @@
  */
 
 import { createCanvas, loadImage } from '@napi-rs/canvas'
-import { downloadMediaMessage } from '@rexxhayanasi/elaina-baileys'
+import { downloadMediaMessage } from '@whiskeysockets/baileys'
 
 const BW = 1080, BH = 1350
 const noopLogger = { info() {}, error() {}, warn() {}, debug() {}, trace() {}, fatal() {}, child() { return this } }

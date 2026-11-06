@@ -3,7 +3,7 @@ import {
  generateWAMessageFromContent,
   prepareWAMessageMedia,
   downloadContentFromMessage,
-} from "@rexxhayanasi/elaina-baileys";
+} from "@whiskeysockets/baileys";
 
 function buildStickerExif(metadata) {
   const json = Buffer.from(JSON.stringify(metadata), "utf-8");

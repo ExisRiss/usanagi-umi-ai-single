@@ -17,6 +17,7 @@ import fs from 'node:fs'
 import path from 'node:path'
 import crypto from 'node:crypto'
 import { fileURLToPath } from 'node:url'
+import { botJidAktif } from '../../lib/bot-jid.js'
 
 const HERE = path.dirname(fileURLToPath(import.meta.url))
 const BERKAS = path.join(HERE, '..', '..', 'lib', 'rich-games', 'spidergame.html')
@@ -80,7 +81,7 @@ const handler = async (m, { conn, usedPrefix }) => {
               contextInfo: {
                 forwardingScore: 1,
                 isForwarded: true,
-                forwardedAiBotMessageInfo: { botJid: '867051314767696@bot' },
+                forwardedAiBotMessageInfo: { botJid: botJidAktif(conn) },
                 forwardOrigin: 4,
               },
             },

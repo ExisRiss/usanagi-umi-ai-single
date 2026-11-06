@@ -1,7 +1,7 @@
 const snippets = {
  'fs':`import fs from 'node:fs';export default fs;export const watchFile=()=>{};export const unwatchFile=()=>{};`,
  './lib/simple.js': `export const smsg=(conn,m)=>m;`,
- '@rexxhayanasi/elaina-baileys': `export const generateWAMessageFromContent=()=>({});export const proto={};`,
+ '@whiskeysockets/baileys': `export const generateWAMessageFromContent=()=>({});export const proto={};`,
  'chalk': `const color=new Proxy(x=>String(x),{get:(t,k)=>color});export default color;`,
  './lib/welcome.js': `export const createWelcomeCard=()=>{};`,
  './lib/awang-cekakses.js': `export const normalizeNumber=x=>String(x||'').replace(/\\D/g,'');export const getAllOwnerNumbers=()=>[];export const resolveTargetPhoneNumber=async x=>String(x).split('@')[0];`,

@@ -1,0 +1,27 @@
+[
+  {
+    "soal": "Menyembuhkan pasien",
+    "jawaban": "dokter",
+    "petunjuk": "Profesi di bidang kesehatan"
+  },
+  {
+    "soal": "Menggambar bangunan",
+    "jawaban": "arsitek",
+    "petunjuk": "Profesi yang merancang gedung"
+  },
+  {
+    "soal": "Mengajar di sekolah",
+    "jawaban": "guru",
+    "petunjuk": "Profesi pendidik"
+  },
+  {
+    "soal": "Mengemudikan kendaraan umum",
+    "jawaban": "supir",
+    "petunjuk": "Profesi mengendarai mobil atau bus"
+  },
+  {
+    "soal": "Membuat masakan",
+    "jawaban": "kok",
+    "petunjuk": "Profesi di dapur"
+  }
+]

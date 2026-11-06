@@ -29,7 +29,7 @@ Rimuru MD adalah SC hasil rename dari SC Ourin MD.
 export const FEATURE_CREDIT = "Fitur By: Anita Putri Azzahra\nFitur SC Bot Umi Usanagi 👑\nTiktok: https://tiktok.com/@anita.putri.azzah1\nSaluran Resmi: https://whatsapp.com/channel/0029Vb8dmsUElagkVPIw9X2P";
 
 
-let { MessageType } = (await import('@rexxhayanasi/elaina-baileys')).default
+let { MessageType } = (await import('@whiskeysockets/baileys')).default
 
 function pickRandom(list) {
   return list[Math.floor(Math.random() * list.length)]

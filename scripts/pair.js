@@ -21,9 +21,9 @@ import { fileURLToPath } from 'node:url'
 import {
   makeWASocket,
   useMultiFileAuthState,
-  Browsers,
   DisconnectReason,
 } from '../lib/baileys.js'
+import { opsiSocket } from '../lib/socket-options.js'
 import { normalizeUserNumber, readSingleUsers, writeSingleUsers } from '../config/single-mode.js'
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..')
@@ -57,13 +57,13 @@ if (alreadyPaired) {
 }
 
 const { state, saveCreds } = await useMultiFileAuthState(sessionPath)
-const sock = makeWASocket({
-  auth: state,
-  printQRInTerminal: false,
-  browser: Browsers.ubuntu('Chrome'),
-  syncFullHistory: false,
-  generateHighQualityLinkPreview: false,
-})
+/* Task214 — base opsi sama dengan bot utama, jadibot, dan mode single. */
+const sock = makeWASocket(
+  opsiSocket({
+    auth: state,
+    generateHighQualityLinkPreview: false,
+  })
+)
 
 sock.ev.on('creds.update', saveCreds)
 

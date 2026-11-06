@@ -1,6 +1,6 @@
 import fs from 'fs'
 import sharp from 'sharp'
-import { prepareWAMessageMedia } from '@rexxhayanasi/elaina-baileys'
+import { prepareWAMessageMedia } from '@whiskeysockets/baileys'
 
 const THUMB_URL = 'https://telegra.ph/file/5c636746e3be7de5fb61f.jpg'
 

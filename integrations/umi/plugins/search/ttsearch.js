@@ -31,7 +31,7 @@ import {
   generateWAMessage,
   generateWAMessageFromContent,
   jidNormalizedUser,
-} from "@rexxhayanasi/elaina-baileys";
+} from "@whiskeysockets/baileys";
 import te from "../../src/lib/rimuru-error.js";
 import { tiktokSearchVideo } from "../../src/scraper/tiktoksearch.js";
 const pluginConfig = {

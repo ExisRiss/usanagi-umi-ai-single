@@ -5,7 +5,7 @@
 import {
     generateWAMessageFromContent,
     jidNormalizedUser
-} from '@rexxhayanasi/elaina-baileys'
+} from '@whiskeysockets/baileys'
 
 let handler = async (m, {
     conn,

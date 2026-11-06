@@ -30,11 +30,14 @@ function getTarget(m, args = []) {
 const handler = async (m, {
     args,
     isAdmin,
+    isOwner,
     usedPrefix,
     command
 }) => {
-    if (!isAdmin) {
-        return m.reply('❌ Khusus admin grup!')
+    // Owner tetap boleh menghapus blacklist walau bukan admin grup;
+    // selain itu khusus admin grup.
+    if (!isAdmin && !isOwner) {
+        return m.reply('❌ Khusus admin grup atau owner!')
     }
 
     global.db.data.blacklistUser =
@@ -90,10 +93,12 @@ const handler = async (m, {
     )
 }
 
-handler.help = ['delblacklist']
+handler.help = ['delblacklist <nomer>', 'delblacklist @user', 'delblacklist (reply pesan)']
 handler.tags = ['group']
 handler.command = /^delblacklist$/i
 handler.group = true
-handler.admin = true
+// handler.admin TIDAK dipasang: filter admin dijalankan di dalam handler
+// agar owner (bukan admin) tetap bisa memakai perintah ini.
+handler.description = 'Hapus user dari blacklist bot — .delblacklist <nomer> / @user / reply pesan'
 
 export default handler

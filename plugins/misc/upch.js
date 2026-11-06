@@ -3,7 +3,7 @@ import path from 'path'
 import crypto from 'node:crypto'
 import ffmpeg from 'fluent-ffmpeg'
 import { tmpdir } from 'os'
-import { downloadContentFromMessage } from '@rexxhayanasi/elaina-baileys'
+import { downloadContentFromMessage } from '@whiskeysockets/baileys'
 import { getFfmpegBinPath } from '../../lib/awang-ytdlp.js'
 
 let ffmpegPathReady = false

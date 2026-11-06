@@ -26,7 +26,7 @@ Rimuru MD adalah SC hasil rename dari SC Ourin MD.
                  「 👑 𝑹𝑰𝑴𝑼𝑹𝑼 𝑴𝑫 👑 」
 */
 
-import { generateWAMessageFromContent, proto, prepareWAMessageMedia } from '@rexxhayanasi/elaina-baileys';
+import { generateWAMessageFromContent, proto, prepareWAMessageMedia } from '@whiskeysockets/baileys';
 
 const pluginConfig = {
     name: 'ramadhan2027',

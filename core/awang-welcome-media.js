@@ -8,7 +8,7 @@ import { execFile } from 'node:child_process'
 import { promisify } from 'node:util'
 import ffmpegInstaller from '@ffmpeg-installer/ffmpeg'
 import sharp from 'sharp'
-import { downloadMediaMessage } from '@rexxhayanasi/elaina-baileys'
+import { downloadMediaMessage } from '@whiskeysockets/baileys'
 
 const execFileAsync = promisify(execFile)
 const FFMPEG_BINARY = process.env.FFMPEG_PATH || ffmpegInstaller?.path || 'ffmpeg'

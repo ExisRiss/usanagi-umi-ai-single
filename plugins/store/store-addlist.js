@@ -1,4 +1,4 @@
-import { proto } from "@rexxhayanasi/elaina-baileys"
+import { proto } from "@whiskeysockets/baileys"
 
 let handler = async (m, { conn, text, command, usedPrefix, isAdmin, isOwner }) => {
   if (!global.db.data.msgs) {

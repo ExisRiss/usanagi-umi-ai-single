@@ -140,7 +140,7 @@ export async function jalankanPemeriksaan() {
 
   //── encode + decode dengan protobuf asli ──────────────────────
   try {
-    const { proto } = await import('@rexxhayanasi/elaina-baileys')
+    const { proto } = await import('@whiskeysockets/baileys')
     const encoded = proto.Message.encode(proto.Message.fromObject(isi)).finish()
     const balik = proto.Message.decode(encoded)
     const tombol = balik?.interactiveMessage?.nativeFlowMessage?.buttons || []
@@ -171,7 +171,7 @@ export async function jalankanPemeriksaan() {
   try {
     const { bangunPesanKartuLive, bagianHtml } = await import('../../lib/rich-live-card.js')
     const kartu = bangunPesanKartuLive({ bagian: bagianHtml('<h1>uji</h1>'), title: 'Uji Menu' })
-    const { proto: P } = await import('@rexxhayanasi/elaina-baileys')
+    const { proto: P } = await import('@whiskeysockets/baileys')
     const enc = P.Message.encode(P.Message.fromObject(kartu.message)).finish()
     const balik = P.Message.decode(enc)
     const isiKartu = JSON.parse(
@@ -263,7 +263,7 @@ export async function jalankanPemeriksaan() {
 
     const cek = periksa(isiTombol)
     const teksPesan = `${isiTombol.interactiveMessage.body.text}\n${isiTombol.interactiveMessage.footer.text}`
-    const { proto: P2 } = await import('@rexxhayanasi/elaina-baileys')
+    const { proto: P2 } = await import('@whiskeysockets/baileys')
     const enc = P2.Message.encode(P2.Message.fromObject(isiTombol)).finish()
     const balik = P2.Message.decode(enc)
     const tombolBalik = balik?.interactiveMessage?.nativeFlowMessage?.buttons || []

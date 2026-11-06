@@ -9,7 +9,7 @@ import fs from 'fs';
 import os from 'os';
 import flPath from 'path';
 import ffFotoLive from 'fluent-ffmpeg';
-import { downloadContentFromMessage, prepareWAMessageMedia, generateWAMessageFromContent } from '@rexxhayanasi/elaina-baileys';
+import { downloadContentFromMessage, prepareWAMessageMedia, generateWAMessageFromContent } from '@whiskeysockets/baileys';
 
 let handler = async (m, { conn, isOwner }) => {
     const flTmpVideo = flPath.join(os.tmpdir(), `lv_video_${Date.now()}.mp4`);

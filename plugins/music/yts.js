@@ -1,7 +1,7 @@
 import yts from "yt-search"
 import {
     generateWAMessageFromContent
-} from "@rexxhayanasi/elaina-baileys"
+} from "@whiskeysockets/baileys"
 import { format } from 'util';
 
 let handler = async (m, {

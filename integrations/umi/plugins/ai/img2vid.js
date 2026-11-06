@@ -30,7 +30,7 @@ import axios from 'axios';
 import fs from 'fs';
 import path from 'path';
 import FormData from 'form-data';
-import { downloadContentFromMessage } from '@rexxhayanasi/elaina-baileys';
+import { downloadContentFromMessage } from '@whiskeysockets/baileys';
 import { RIMURU_CORE_CONFIG } from "../../config.js";
 import config from '../../config.js';
 const NEOXR_APIKEY = config.APIkey?.neoxr || 'Milik-Bot-zerotwoMD'

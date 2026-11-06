@@ -4,6 +4,7 @@ import { getAccessModeState } from '../../core/awang-mode.js'
 import { setOnlyPcActive } from '../../core/awang-pc.js'
 
 function getModeLabel(state) {
+  if (state.off) return 'ALL BLOCKED (off)'
   if (state.onlypc) return 'ONLY PRIVATE'
   if (state.onlygc) return 'ONLY GROUP'
   return 'NORMAL'
@@ -11,8 +12,8 @@ function getModeLabel(state) {
 
 function getAccessRows(state) {
   return [
-    `│ Group   : *${state.onlypc ? 'BLOCKED' : 'ALLOWED'}*`,
-    `│ Private : *${state.onlygc ? 'BLOCKED' : 'ALLOWED'}*`,
+    `│ Group   : *${state.onlypc || state.off ? 'BLOCKED' : 'ALLOWED'}*`,
+    `│ Private : *${state.onlygc || state.off ? 'BLOCKED' : 'ALLOWED'}*`,
   ]
 }
 
@@ -31,11 +32,13 @@ function buildStatus(state, action = null) {
     if (action.to) lines.push(`│ To      : *${action.to}*`)
   } else {
     lines.push('│')
-    lines.push(state.onlygc
-      ? '│ ONLY GROUP sedang membatasi command.'
-      : state.onlypc
-        ? '│ ONLY PRIVATE sedang membatasi command.'
-        : '│ Bot berjalan dalam akses normal.')
+    lines.push(state.off
+      ? '│ Semua permukaan dibatasi: PC warning→tindakan, group diam.'
+      : state.onlygc
+        ? '│ ONLY GROUP sedang membatasi command (PC warning→tindakan).'
+        : state.onlypc
+          ? '│ ONLY PRIVATE sedang membatasi command (group tidak dilayani).'
+          : '│ Bot berjalan dalam akses normal.')
   }
 
   lines.push('╰──────────────\n')
@@ -47,7 +50,8 @@ function buildUsage(usedPrefix) {
     '',
     '╭─「 CONTROL 」',
     `│ Aktifkan : *${usedPrefix}onlypc on*`,
-    `│ Matikan  : *${usedPrefix}onlypc off*`,
+    `│ Matikan  : *${usedPrefix}onlypc off*  (PC dibatasi + group tidak dilayani)`,
+    `│ Atur warning : *${usedPrefix}onlypcset*`,
     '╰──────────────',
   ].join('\n')
 }

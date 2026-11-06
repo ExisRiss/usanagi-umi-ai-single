@@ -1,3 +1,4 @@
+import { botJidAktif } from '../../lib/bot-jid.js'
 //~ Ahmad tumbuh kembang
 let handler = async (m, { conn, text }) => {
   try {
@@ -9,7 +10,7 @@ let handler = async (m, { conn, text }) => {
 
     const res = await conn.groupParticipantsUpdate(
       groupJid,
-      ["867051314767696@bot"],
+      [botJidAktif(conn)],
       "add",
     );
 

@@ -27,7 +27,7 @@ Rimuru MD adalah SC hasil rename dari SC Ourin MD.
 */
 
 import yts from "yt-search";
-import { generateWAMessageFromContent, proto } from "@rexxhayanasi/elaina-baileys";
+import { generateWAMessageFromContent, proto } from "@whiskeysockets/baileys";
 import axios from "axios";
 import sharp from "sharp";
 import config from "../../config.js";

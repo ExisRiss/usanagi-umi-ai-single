@@ -2,7 +2,7 @@
 // Command: .runcrm
 // Type: ESM Plugin
 
-import { generateWAMessageFromContent } from '@rexxhayanasi/elaina-baileys'
+import { generateWAMessageFromContent } from '@whiskeysockets/baileys'
 
 const handler = async (m, {
     conn,

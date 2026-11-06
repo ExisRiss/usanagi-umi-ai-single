@@ -2,7 +2,7 @@
 
 import os from 'os'
 import { createCanvas } from '@napi-rs/canvas'
-import { prepareWAMessageMedia } from '@rexxhayanasi/elaina-baileys'
+import { prepareWAMessageMedia } from '@whiskeysockets/baileys'
 import { settings } from '../../config/settings.js'
 import { ButtonV2 } from '../../lib/awang-tombol.js'
 

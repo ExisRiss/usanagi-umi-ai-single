@@ -28,7 +28,7 @@ Rimuru MD adalah SC hasil rename dari SC Ourin MD.
 
 import axios from 'axios'
 import crypto from 'crypto'
-import { generateWAMessage, generateWAMessageFromContent, jidNormalizedUser } from '@rexxhayanasi/elaina-baileys'
+import { generateWAMessage, generateWAMessageFromContent, jidNormalizedUser } from '@whiskeysockets/baileys'
 import config from '../../config.js'
 import te from '../../src/lib/rimuru-error.js'
 

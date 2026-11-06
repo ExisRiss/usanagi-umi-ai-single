@@ -10,7 +10,7 @@
 
 import {
   delay
-} from '@rexxhayanasi/elaina-baileys';
+} from '@whiskeysockets/baileys';
 
 const handler = async (m, {
   conn

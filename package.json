@@ -18,7 +18,8 @@
     "backup:once": "node scripts/backup-worker.js --once",
     "test:backup": "node --test tests/backup/",
     "pair": "node scripts/pair.js",
-    "users": "node -e \"import('./config/single-mode.js').then(m=>console.log(JSON.stringify(m.readSingleUsers(),null,2)))\""
+    "users": "node -e \"import('./config/single-mode.js').then(m=>console.log(JSON.stringify(m.readSingleUsers(),null,2)))\"",
+    "bughunt": "eslint . --quiet && node tools/bughunt-check.mjs"
   },
   "author": "AlzRiss × Arena",
   "license": "MIT",
@@ -30,7 +31,7 @@
     "@ffmpeg-installer/ffmpeg": "^1.1.0",
     "@hapi/boom": "^10.0.1",
     "@napi-rs/canvas": "^1.0.0",
-    "@rexxhayanasi/elaina-baileys": "^1.4.3",
+    "@whiskeysockets/baileys": "npm:@itsliaaa/baileys@^0.5.1",
     "archiver": "^7.0.1",
     "awesome-phonenumber": "^5.10.0",
     "axios": "^1.20.0",

@@ -31,7 +31,7 @@ import { fileTypeFromBuffer } from "file-type";
 import { config } from "../../config.js";
 import te from "../../src/lib/rimuru-error.js";
 import { saluranCtx } from "../../src/lib/rimuru-context.js";
-import { generateWAMessage } from "@rexxhayanasi/elaina-baileys";
+import { generateWAMessage } from "@whiskeysockets/baileys";
 
 const botConfig = config;
 

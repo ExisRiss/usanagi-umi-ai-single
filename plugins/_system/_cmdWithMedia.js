@@ -1,4 +1,4 @@
-import { proto, generateWAMessage, areJidsSameUser } from '@rexxhayanasi/elaina-baileys';
+import { proto, generateWAMessage, areJidsSameUser } from '@whiskeysockets/baileys';
 
 export async function all(m, chatUpdate) {
 	if (m?.isBaileys) return;
